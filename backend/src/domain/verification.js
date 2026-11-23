@@ -185,6 +185,12 @@ module.exports = (S, h) => {
         if (!(m.length == 3 && m[0] == 'ZM1' && m[1] == b.id && sha256(v.qr.s + m[2]) == v.qr.h)) {
           pn.att++;
           log(b, me, 'start code check failed', { via: 'qr', attempt: pn.att });
+          if (pn.att >= C.MAX_TRY) {
+            pn.lock = Date.now() + C.LOCK;
+            pn.att = 0;
+            log(b, me, 'Start PIN locked', { minutes: 5 });
+            return no('Too many wrong attempts. Locked for 5 minutes.');
+          }
           return no('That QR code is not correct.');
         }
       } else {
@@ -456,7 +462,9 @@ module.exports = (S, h) => {
       const { pin, rec } = newSecret();
       d.pin = rec;
       dlog(b, me, 'delivery PIN issued', { expires: new Date(rec.exp).toISOString() });
-      return ok({ pin });
+      /* a different recipient gets the PIN by SMS (simulated) so they can confirm delivery themselves */
+      if (b.rph) h.sim(b.rph, 'SMS', `ZamMove: ${b.drv} is delivering ${b.id} to you. Give this Delivery PIN only after checking your items: ${pin}`);
+      return ok({ pin, recipient: b.rn || '' });
     },
     dDeliver(me, p) {
       const b = find(p.id);

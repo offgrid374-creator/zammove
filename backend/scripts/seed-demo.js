@@ -46,6 +46,7 @@ const veh = (id, owner, type, brand, model, plate, color, year, desc, x = {}) =>
   trans: 'Manual',
   fuel: 'Diesel',
   regExp: '2027-12-31',
+  legal: { ins: 'CTPL-' + plate.replace(/\D/g, ''), insExp: '2027-12-31', cpc: 'CPC-DEMO-' + plate.replace(/\D/g, ''), cpcExp: '2028-12-31' },
   docs: [{ name: 'OR/CR (demo)', file: '' }],
   photo: '',
   approval: 'Approved',

@@ -156,7 +156,7 @@ const userOf = token => {
 };
 const view = me => ({ ...domain.view(me), version });
 const AUTH = { signup: 'signup', login: 'login', forgot: 'forgot', reset: 'resetPassword', 'owner-setup': 'ownerSetup' };
-const ROAD = new Set(['quote', 'createBooking']);
+const ROAD = new Set(['quote', 'createBooking', 'requote']);
 const pt = s => {
   const m = String(s || '').match(/^(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)$/);
   return m ? [+m[1], +m[2]] : null;
@@ -203,6 +203,12 @@ async function handle(method, url, body, token) {
       return [200, { ...r, state: view(userOf(token)) }];
     });
   }
+  /* simulated SMS/email (the demo panel's Messages tab shows them) */
+  if (method == 'GET' && path == '/dev/inbox')
+    return tx(() => {
+      const to = String(q.to || '').trim().toLowerCase();
+      return { out: [200, { ok: true, messages: S.nt.filter(n => n.sim && (!to || n.addr == to)).slice(0, 40).map(n => ({ ch: n.sim, to: n.addr, t: n.t, b: n.b })) }], dirty: false };
+    });
   if (method == 'POST' && path == '/public/track') return tx(() => ({ out: [200, domain.publicTrack(body || {})], dirty: false }));
   if (method == 'GET' && path.startsWith('/geo/')) {
     try {

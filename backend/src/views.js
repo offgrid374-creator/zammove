@@ -31,8 +31,9 @@ module.exports = (S, h) => {
     declined: (b.declined || []).includes(em) ? [em] : [],
     share: (() => {
       const a = h.asgOf(em),
-        pct = a && a.terms ? +a.terms.pct : +S.cfg.drvPct || 20;
-      return { pct, amt: Math.round(Math.max(0, b.tot - ((b.bd || [])[3] || 0)) * pct) / 100 };
+        pct = a && a.terms ? +a.terms.pct : +S.cfg.drvPct || 20,
+        mov = (b.bd || [])[2] || 0;
+      return { pct, mov, amt: Math.round(Math.max(0, b.tot - ((b.bd || [])[3] || 0) - mov) * pct) / 100 + mov };
     })(),
   });
   /* the customer sees the driver's live position only while the trip is active */
@@ -76,12 +77,13 @@ module.exports = (S, h) => {
         }
       : {}),
   });
+  /* the account's own copy: never the password hash, reset or verification codes (those go to the phone/email) */
   const selfUser = u => {
-    const { pw, reset, tv, ...rest } = u;
+    const { pw, reset, tv, code, codeT, vatt, ...rest } = u;
     return rest;
   };
   const staffUser = u => {
-    const { pw, reset, tv, code, ...rest } = u;
+    const { pw, reset, tv, code, codeT, vatt, ...rest } = u;
     return rest;
   };
   /* public profile: drivers also show completed trips and since when they drive for ZamMove */
@@ -171,9 +173,10 @@ module.exports = (S, h) => {
       pendMin: S.cfg.pendMin || 30,
       comm: S.cfg.comm == null ? 15 : S.cfg.comm,
       drvPct: S.cfg.drvPct || 20,
+      cashCap: +S.cfg.cashCap || 5000,
     },
     fleet: {
-      HV: C.HV,
+      HV: h.rates(),
       RV: C.RV,
       RT: C.RT,
       TYPE_INFO: C.TYPE_INFO,
@@ -183,6 +186,7 @@ module.exports = (S, h) => {
       CLAIM_DAYS: C.CLAIM_DAYS,
     },
     rentList: rentList(), // the vehicle catalogue the screens show (server is the source)
+    rules: { MOV_MAX: C.MOV_MAX, SIZES: C.SIZES, LATE_MIN: C.LATE_MIN, OPEN_UNTIL_H: C.OPEN_UNTIL_H },
     ratings: h.ratings(),
     rnAvail: S.rn
       .filter(r => ['Pending', 'Approved', 'Active'].includes(r.st))
@@ -204,10 +208,16 @@ module.exports = (S, h) => {
     au: [],
   };
 
+  /* balances worked out on the server (they depend on records the user cannot see, e.g. drivers' remittances) */
+  const cashOf = em => ({ held: h.cashHeld(em), cap: +S.cfg.cashCap || 5000, overdue: h.overdue(em), credit: h.drvCredit(em), strikes: ((h.U(em) || {}).strikes || []).length });
+  const money = all => ({
+    ownerBals: Object.fromEntries(S.users.filter(u => h.okr(u, 'owner')).map(u => [u.em, h.ownerBal(u.em)])),
+    ...(all ? { drvCash: Object.fromEntries(S.users.filter(u => h.okr(u, 'driver')).map(u => [u.em, cashOf(u.em)])) } : {}),
+  });
   return function viewFor(me) {
     if (!me) return { ...empty, ...base() };
     const em = me.em,
-      nt = S.nt.filter(n => n.to == em);
+      nt = S.nt.filter(n => n.to == em && !n.sim); // simulated SMS/email are not in-app notifications
     if (h.isAdmin(me)) {
       return {
         ...base(),
@@ -224,6 +234,7 @@ module.exports = (S, h) => {
         dp: S.dp,
         rem: S.rem,
         au: S.au.slice(-500),
+        ...money(true),
       };
     }
     const isDrv = h.okr(me, 'driver'),
@@ -290,6 +301,9 @@ module.exports = (S, h) => {
       dp,
       rem: S.rem.filter(r => r.drv == em || isCash),
       au: [],
+      ...(isOwn ? { ownerBal: h.ownerBal(em) } : {}),
+      ...(isDrv ? { cash: cashOf(em) } : {}),
+      ...(isCash ? money(false) : {}),
     };
   };
 };

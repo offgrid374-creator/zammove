@@ -395,7 +395,17 @@
     const note = okr(u, 'owner')
       ? ''
       : '<p class="mu n" style="margin:10px 0 0">When an administrator approves the vehicle, you also become a vehicle owner and get the Vehicle Owner workspace.</p>';
-    return `<details class="card" style="margin-top:12px" ${open ? 'open' : ''}><summary style="cursor:pointer;font-weight:500;min-height:44px;display:flex;align-items:center">Register a vehicle</summary><div class="wsf"><div><label for="w-vt">Type</label><select id="w-vt"><optgroup label="Hauling (takes bookings with a driver)">${HV.map(h => `<option value="${h.id}">${h.n}</option>`).join('')}</optgroup><optgroup label="Rental only (passenger)">${((S.fleet || {}).RT || []).map(h => `<option value="${h.id}">${h.n}</option>`).join('')}</optgroup></select></div><div><label for="w-vs">Seats (incl. driver)</label><input id="w-vs" type="number" min="1" max="30" placeholder="e.g. 3"></div><div><label for="w-vtr">Transmission</label><select id="w-vtr"><option>Manual</option><option>Automatic</option></select></div><div><label for="w-vfu">Fuel</label><select id="w-vfu"><option>Diesel</option><option>Gasoline</option><option>Electric</option></select></div><div><label for="w-vb">Brand</label><input id="w-vb"></div><div><label for="w-vm">Model</label><input id="w-vm"></div><div><label for="w-vp">Plate number</label><input id="w-vp"></div><div><label for="w-vx">Registration expires</label><input id="w-vx" type="date"></div><div><label for="w-vc">Color (as on the OR/CR)</label><input id="w-vc" placeholder="e.g. White"></div><div><label for="w-vy">Model year</label><input id="w-vy" type="number" min="1990" placeholder="e.g. 2021"></div><div><label for="w-vd">Notes for customers (optional)</label><input id="w-vd" placeholder="e.g. tarpaulin cover, rope and straps included"></div><div><label for="w-vf">OR/CR document (photo)</label><input id="w-vf" type="file" accept="image/*"></div><div><label for="w-vi">Vehicle photo (optional)</label><input id="w-vi" type="file" accept="image/*"></div></div>${selfBox}<div class="wsa"><button class="btn" data-a="w-vadd">Submit for admin verification</button></div>${note}</details>`;
+    return `<details class="card" style="margin-top:12px" ${open ? 'open' : ''}><summary style="cursor:pointer;font-weight:500;min-height:44px;display:flex;align-items:center">Register a vehicle</summary><div class="wsf"><div><label for="w-vt">Type</label><select id="w-vt"><optgroup label="Hauling (takes bookings with a driver)">${HV.map(h => `<option value="${h.id}">${h.n}</option>`).join('')}</optgroup><optgroup label="Rental only (passenger)">${((S.fleet || {}).RT || []).map(h => `<option value="${h.id}">${h.n}</option>`).join('')}</optgroup></select></div><div><label for="w-vs">Seats (incl. driver)</label><input id="w-vs" type="number" min="1" max="30" placeholder="e.g. 3"></div><div><label for="w-vtr">Transmission</label><select id="w-vtr"><option>Manual</option><option>Automatic</option></select></div><div><label for="w-vfu">Fuel</label><select id="w-vfu"><option>Diesel</option><option>Gasoline</option><option>Electric</option></select></div><div><label for="w-vb">Brand</label><input id="w-vb"></div><div><label for="w-vm">Model</label><input id="w-vm"></div><div><label for="w-vp">Plate number</label><input id="w-vp"></div><div><label for="w-vx">Registration expires</label><input id="w-vx" type="date"></div><div><label for="w-vc">Color (as on the OR/CR)</label><input id="w-vc" placeholder="e.g. White"></div><div><label for="w-vy">Model year</label><input id="w-vy" type="number" min="1990" placeholder="e.g. 2021"></div><div><label for="w-vd">Notes for customers (optional)</label><input id="w-vd" placeholder="e.g. tarpaulin cover, rope and straps included"></div><div><label for="w-vf">OR/CR document (photo)</label><input id="w-vf" type="file" accept="image/*"></div><div><label for="w-vi">Vehicle photo (optional)</label><input id="w-vi" type="file" accept="image/*"></div></div><span class="grp">Legal documents</span><p class="mu n" style="margin:0 0 8px">Every vehicle needs CTPL insurance. Hauling for hire also needs an LTFRB franchise (CPC); rental-only vehicles do not.</p><div class="wsf"><div><label for="w-lins">CTPL insurance policy no.</label><input id="w-lins" placeholder="e.g. CTPL-2026-001234"></div><div><label for="w-linx">Insurance valid until</label><input id="w-linx" type="date"></div><div><label for="w-lind">Insurance photo (optional)</label><input id="w-lind" type="file" accept="image/*"></div><div><label for="w-lcpc">LTFRB franchise (CPC) no. (hauling)</label><input id="w-lcpc" placeholder="e.g. 2024-09-01234"></div><div><label for="w-lcpx">Franchise valid until (hauling)</label><input id="w-lcpx" type="date"></div><div><label for="w-lcpd">Franchise photo (optional)</label><input id="w-lcpd" type="file" accept="image/*"></div></div>${selfBox}<div class="wsa"><button class="btn" data-a="w-vadd">Submit for admin verification</button></div>${note}</details>`;
+  };
+  /* franchise and insurance: status and a renewal form */
+  const legalH = v => {
+    const L = v.legal || {},
+      hauling = HV.some(x => x.id == v.type),
+      t = new Date(Date.now() + 8 * 36e5).toISOString().slice(0, 10),
+      soon = new Date(Date.now() + 8 * 36e5 + 30 * 864e5).toISOString().slice(0, 10),
+      st = d => (!d ? '<span class="tag r">missing</span>' : d < t ? `<span class="tag r">expired ${esc(d)}</span>` : d < soon ? `<span class="tag">until ${esc(d)}</span>` : `<span class="tag g">until ${esc(d)}</span>`);
+    const id = v.id;
+    return `<div class="vz-i"><span class="mu">Insurance (CTPL)</span><span>${st(L.insExp)}</span></div>${hauling ? `<div class="vz-i"><span class="mu">LTFRB franchise</span><span>${st(L.cpcExp)}</span></div>` : ''}<details style="margin-top:8px"><summary class="mu" style="cursor:pointer;min-height:36px;display:flex;align-items:center">Add or renew legal documents</summary><div class="wsf"><div><label for="w-li-${id}">CTPL policy no.</label><input id="w-li-${id}" value="${esc(L.ins || '')}"></div><div><label for="w-lx-${id}">Insurance valid until</label><input id="w-lx-${id}" type="date" value="${esc(L.insExp || '')}"></div>${hauling ? `<div><label for="w-lc-${id}">Franchise (CPC) no.</label><input id="w-lc-${id}" value="${esc(L.cpc || '')}"></div><div><label for="w-ly-${id}">Franchise valid until</label><input id="w-ly-${id}" type="date" value="${esc(L.cpcExp || '')}"></div>` : ''}</div><div class="wsa"><button class="btn sm o" data-a="w-vleg" data-id="${id}">Save documents</button></div></details>`;
   };
   /* owner-drivers drive their own vehicle in one step; owners without a driver role are told how */
   const selfH = (v, a) => {
@@ -414,7 +424,7 @@
       m
         .map(v => {
           const a = vAsg(v.id);
-          return `<div class="card" style="margin-top:12px"><div class="row" style="padding-top:0"><h2 style="font-size:20px">${esc(v.brand)} ${esc(v.model)}</h2>${stTag(v.approval)}</div><div class="mu n">${v.id} · ${esc(v.plate)} · ${vtN(v.type)} · ${v.cap} · ${esc(v.color || 'color not recorded')}${v.year ? ' · ' + esc(v.year) : ''} · registration until ${v.regExp}</div><div class="vz-i"><span class="mu">Driver</span><span>${a ? (a.driver == u.em ? 'You (owner-driver)' : nm(a.driver)) : 'None'}</span></div>${selfH(v, a)}<div class="vz-i"><span class="mu">Operational status</span><span>${stTag(v.status)}</span></div>
+          return `<div class="card" style="margin-top:12px"><div class="row" style="padding-top:0"><h2 style="font-size:20px">${esc(v.brand)} ${esc(v.model)}</h2>${stTag(v.approval)}</div><div class="mu n">${v.id} · ${esc(v.plate)} · ${vtN(v.type)} · ${v.cap} · ${esc(v.color || 'color not recorded')}${v.year ? ' · ' + esc(v.year) : ''} · registration until ${v.regExp}</div><div class="vz-i"><span class="mu">Driver</span><span>${a ? (a.driver == u.em ? 'You (owner-driver)' : nm(a.driver)) : 'None'}</span></div>${selfH(v, a)}<div class="vz-i"><span class="mu">Operational status</span><span>${stTag(v.status)}</span></div>${legalH(v)}
  ${v.approval == 'Approved' ? `<div class="wsa">${['Available', 'Unavailable', 'Maintenance'].map(s => `<button class="btn ${v.status == s ? '' : 'o'} sm" data-a="w-vs" data-id="${v.id}" data-s="${s}">${s}</button>`).join('')}</div>` : `<p class="mu">${v.approval == 'Rejected' ? 'Rejected: ' + esc((v.hist.slice(-1)[0] || {}).note || '') : 'Waiting for admin verification. The vehicle cannot receive bookings yet.'}</p>`}</div>`;
         })
         .join('') || '<div class="card empty" style="margin-top:12px">No vehicles yet.</div>'
@@ -629,12 +639,23 @@
             trans: val('w-vtr'),
             fuel: val('w-vfu'),
             self: !!($('#w-vself') && $('#w-vself').checked),
+            ins: val('w-lins'),
+            insExp: val('w-linx'),
+            insDoc: await pimg('w-lind'),
+            cpc: val('w-lcpc'),
+            cpcExp: val('w-lcpx'),
+            cpcDoc: await pimg('w-lcpd'),
           }).then(r => {
             if (r.ok && r.ownerOnApproval)
               r = { ...r, _m: 'Vehicle submitted. When an administrator approves it, you also become its owner.' };
             return r;
           }),
           'Vehicle submitted for verification.'
+        );
+      if (a == 'w-vleg')
+        return fin(
+          RQ('vehLegal', { id: d.id, ins: val('w-li-' + d.id), insExp: val('w-lx-' + d.id), cpc: val('w-lc-' + d.id), cpcExp: val('w-ly-' + d.id) }),
+          'Legal documents saved.'
         );
       if (a == 'w-self')
         return fin(API.selfAssign(me, d.id), 'You are now the driver of this vehicle. Set yourself Available to get bookings.');

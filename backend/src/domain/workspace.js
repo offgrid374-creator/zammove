@@ -102,6 +102,7 @@ module.exports = (S, h) => ({
       a.hist.push({ st: n, t: now(), by: me.em, note: note || reason });
     };
     if (['Approved', 'Rejected'].includes(s)) return no('This application is already closed.');
+    if (a.user == me.em) return no('You cannot decide your own application. Another administrator must do it.');
     if (act == 'verify') {
       if (s != 'Pending Review') return no('Only new applications can start verification.');
       go('Under Verification');
@@ -198,6 +199,9 @@ module.exports = (S, h) => ({
     if (S.vh.some(v => norm(v.plate) == norm(plate))) return no('This plate number is already registered.');
     if (!regExp || new Date(regExp) < new Date()) return no('The registration must not be expired.');
     if (!img(p.doc)) return no('Upload the registration document (OR/CR).');
+    /* legal documents: hauling for hire needs an LTFRB franchise (CPC); every vehicle needs CTPL insurance */
+    const legal = h.legalOf(ty, p);
+    if (legal.err) return no(legal.err);
     const spec = h.vSpec(ty, p);
     if (spec.err) return no(spec.err);
     const v = {
@@ -220,6 +224,7 @@ module.exports = (S, h) => ({
       approval: 'Pending Approval',
       status: 'Unavailable',
       selfReq: isDrv && !!p.self && !ty.rentOnly, // "I will drive it myself": set as its driver on approval
+      legal: legal.rec,
       hist: [{ e: 'Registered' + (isOwn ? '' : ' by a driver'), t: now(), by: me.em }],
     };
     S.vh.push(v);
@@ -228,6 +233,19 @@ module.exports = (S, h) => ({
       h.ntf(em, 'Vehicle to verify', `${me.name} registered ${brand} ${model} (${plate}).`)
     );
     return ok({ id: v.id, ownerOnApproval: !isOwn });
+  },
+  /* owner: renew the franchise or insurance (new number, expiry and photo) */
+  vehLegal(me, p) {
+    const v = h.vOf(p.id);
+    if (!v || v.owner != me.em || !h.acct(me)) return no('Vehicle not found.');
+    const ty = C.VT.find(x => x.id == v.type) || {};
+    const legal = h.legalOf(ty, p);
+    if (legal.err) return no(legal.err);
+    v.legal = legal.rec;
+    v.hist.push({ e: 'Legal documents updated', t: now(), by: me.em });
+    h.au(me.em, 'vehicle legal documents updated', { vehicle: v.id });
+    h.staffEms().forEach(em => h.ntf(em, 'Vehicle documents renewed', `${me.name} updated the franchise/insurance of ${v.plate}.`));
+    return ok();
   },
   vehStatus(me, p) {
     const v = h.vOf(p.id);
@@ -293,10 +311,14 @@ module.exports = (S, h) => ({
     if (!h.isAdmin(me)) return no('Administrator access required.');
     const v = h.vOf(p.id);
     if (!v || v.approval != 'Pending Approval') return no('Vehicle not found or already decided.');
+    if (v.owner == me.em) return no('You cannot approve your own vehicle. Another administrator must do it.');
     const reason = str(p.reason, 300);
     const o = h.U(v.owner);
     let extra = '';
     if (p.act == 'approve') {
+      const ty = C.VT.find(x => x.id == v.type) || {},
+        miss = h.legalIssues(v, ty, true);
+      if (miss.length) return no('Cannot approve: ' + miss.join('; ') + '. Ask the owner to add them.');
       v.approval = 'Approved';
       v.status = 'Available';
       /* a driver who registered a vehicle becomes its owner */

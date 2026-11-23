@@ -1,6 +1,7 @@
 'use strict';
 /* Cashier work (payment verification, weekly remittances) and administrator settings / staff / reset.
    Amounts are rounded to centavos everywhere. */
+const C = require('./constants');
 const { now, r2, rid, str, ok, no, peso } = require('../util');
 
 module.exports = (S, h) => ({
@@ -17,6 +18,11 @@ module.exports = (S, h) => ({
     x.vby = me.em;
     x.vt = now();
     if (note) x.note = note;
+    /* a rejected cancellation fee is due again; a verified one is credited to the driver */
+    if (x.kind == 'cancel_fee') {
+      if (!p.ok) x.status = 'Due';
+      else if (x.to) h.ntf(x.to, 'Cancellation fee received', `${peso(x.amount)} for ${x.bid} will be deducted from your next remittance.`);
+    }
     h.au(me.em, 'payment ' + x.status.toLowerCase(), {
       id: x.id,
       bid: x.bid,
@@ -46,12 +52,26 @@ module.exports = (S, h) => ({
         bks: l.map(b => b.id),
         gross: g,
         drvShare: r2(l.reduce((s, b) => s + h.splitOf(b).drv, 0)),
-        due: r2(l.reduce((s, b) => s + h.dueFor(b), 0)), // collected minus the driver's share of each trip
+        due: 0, // set below: collected minus the driver's share, minus cancellation fees owed to the driver
         method,
         ref,
         st: 'Submitted',
         t: now(),
       };
+    const owed = r2(l.reduce((s, b) => s + h.dueFor(b), 0)),
+      cr = S.pay.filter(x => x.kind == 'cancel_fee' && x.to == me.em && x.status == 'Verified' && !x.applied),
+      credit = r2(Math.min(owed, cr.reduce((s, x) => s + x.amount, 0)));
+    r.due = r2(owed - credit);
+    if (credit) {
+      r.credit = credit;
+      let left = credit;
+      cr.forEach(x => {
+        if (left >= x.amount - 0.005) {
+          x.applied = r.id;
+          left = r2(left - x.amount);
+        }
+      });
+    }
     l.forEach(b => (b.rem = r.id));
     S.rem.push(r);
     h.au(me.em, 'remittance submitted', { id: r.id, due: r.due });
@@ -79,6 +99,7 @@ module.exports = (S, h) => ({
     if (!h.canCash(me)) return no('Only a cashier or administrator can resolve discrepancies.');
     const r = S.rem.find(x => x.id == p.id);
     if (!r || r.st != 'Discrepancy') return no('No open discrepancy.');
+    if (r.drv == me.em) return no('You cannot resolve your own remittance.');
     const note = str(p.note, 300);
     if (note.length < 5) return no('Write how the discrepancy was resolved.');
     const a = r2(p.adj);
@@ -105,6 +126,45 @@ module.exports = (S, h) => ({
     return ok();
   },
   /* ZamMove commission and the default driver share (used when no driver agreement sets one) */
+  /* administrator: fares per vehicle type (base and per km) */
+  cfgRates(me, p) {
+    if (!h.isAdmin(me)) return no('Only an administrator can change settings.');
+    const rates = {};
+    for (const v of C.HV) {
+      const x = (p.rates || {})[v.id] || {},
+        base = Math.round(+x.base),
+        km = Math.round(+x.km * 100) / 100;
+      if (!(base >= 100 && base <= 50000)) return no(v.n + ': base fare must be ₱100 to ₱50,000.');
+      if (!(km >= 1 && km <= 1000)) return no(v.n + ': per-km rate must be ₱1 to ₱1,000.');
+      rates[v.id] = { base, km };
+    }
+    h.au(me.em, 'fare rates', { from: S.cfg.rates || null, to: rates });
+    S.cfg.rates = rates;
+    return ok();
+  },
+  /* administrator: most company money a driver may hold before new jobs are blocked */
+  cfgCash(me, p) {
+    if (!h.isAdmin(me)) return no('Only an administrator can change settings.');
+    const cap = Math.round(+p.cap);
+    if (!(cap >= 500 && cap <= 200000)) return no('Enter ₱500 to ₱200,000.');
+    h.au(me.em, 'cash limit', { from: S.cfg.cashCap, to: cap });
+    S.cfg.cashCap = cap;
+    return ok();
+  },
+  /* cashier: record a refund paid to a customer (deposit refunds, closed trips) */
+  refundPaid(me, p) {
+    if (!h.canCash(me)) return no('Only a cashier or administrator can record refunds.');
+    const x = S.pay.find(y => y.id == p.id && ['deposit_refund', 'refund'].includes(y.kind) && y.status == 'Due');
+    if (!x) return no('Refund not found or already paid.');
+    if (x.to == me.em) return no('You cannot pay a refund to yourself.');
+    const m = p.method == 'Cash' ? 'Cash' : 'GCash',
+      ref = str(p.ref, 30);
+    if (m == 'GCash' && !/^\d{10,13}$/.test(ref)) return no('Enter the GCash reference number (10–13 digits).');
+    Object.assign(x, { method: m, ref: ref || rid('CSH'), status: 'Paid', by: me.em, vby: me.em, vt: now() });
+    h.au(me.em, 'refund paid', { id: x.id, bid: x.bid, amount: x.amount });
+    h.ntf(x.to, 'Refund sent', `${peso(x.amount)} for ${x.bid} was refunded to you by ${m}.`);
+    return ok();
+  },
   cfgSplit(me, p) {
     if (!h.isAdmin(me)) return no('Only an administrator can change settings.');
     const comm = Math.round(+p.comm),

@@ -71,6 +71,7 @@ async function setup(data = world(), store = memoryStore()) {
       vid: 'l3',
       mv: 0,
       it: 'Sofa, 3 boxes',
+      sz: 'M',
       ...x,
     });
   return { st, d, S: st.S, me, act, bk, booking, store };

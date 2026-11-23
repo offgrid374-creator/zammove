@@ -64,11 +64,17 @@ module.exports = (S, h) => {
       if (!h.canCash(me)) return no('Only a cashier or administrator can record owner payouts.');
       const o = U(p.owner);
       if (!o || !h.okr(o, 'owner')) return no('Choose a vehicle owner.');
+      if (o.em == me.em) return no('You cannot record a payout to yourself.');
       const amt = r2(p.amount),
         bal = h.ownerBal(o.em);
       if (!(amt > 0)) return no('Enter the amount paid.');
       if (amt > bal.due + 0.005)
-        return no('That is more than the owner’s unpaid balance (' + peso(bal.due) + ').');
+        return no(
+          'That is more than the owner’s payable balance (' +
+            peso(bal.due) +
+            ').' +
+            (bal.waiting ? ' ' + peso(bal.waiting) + ' more becomes payable when the drivers’ remittances are verified.' : '')
+        );
       const method = p.method == 'Cash' ? 'Cash' : 'GCash',
         ref = str(p.ref, 30);
       if (method == 'GCash' && !/^\d{10,13}$/.test(ref))

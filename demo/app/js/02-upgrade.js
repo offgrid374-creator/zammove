@@ -148,7 +148,7 @@ authView = function (m) {
 const vbox = () => {
   const u = S.users.find(x => x.em == S.me.em);
   if (!u || u.ver) return '';
-  return `<div class="card" style="margin-bottom:14px"><h2>Verify your account</h2><p class="mu" style="margin:0 0 8px">Enter the 6-digit code sent to ${esc(u.ph || 'your phone')} and ${esc(u.em)}.</p><div class="note">Demo: no SMS or email service is connected, so your code is <b>${esc(u.code || '(ask staff)')}</b>. Bookings and rentals unlock after verification.</div><div style="display:flex;gap:8px"><input id="vc" inputmode="numeric" placeholder="6-digit code" style="max-width:200px"><button class="btn" data-a="verify">Verify</button></div><div class="err">${esc(msg.vm || '')}</div></div>`;
+  return `<div class="card" style="margin-bottom:14px"><h2>Verify your account</h2><p class="mu" style="margin:0 0 8px">Enter the 6-digit code sent to ${esc(u.ph || 'your phone')} and ${esc(u.em)}.</p><div class="note">Bookings and rentals unlock after verification. Prototype: no SMS service is connected yet, so the code goes to a simulated SMS inbox. <a href="#" data-a="zinbox" data-to="${esc(u.ph || '')}">Open the simulated inbox</a> · <a href="#" data-a="zresend">Send a new code</a></div><div style="display:flex;gap:8px"><input id="vc" inputmode="numeric" placeholder="6-digit code" style="max-width:200px"><button class="btn" data-a="verify">Verify</button></div><div class="err">${esc(msg.vm || '')}</div></div>`;
 };
 const _home = home;
 home = () => vbox() + _home();
@@ -492,7 +492,7 @@ document.addEventListener(
     }
     if (a == 'fgsend') {
       const em = val('em').toLowerCase(),
-        r = await ZAPI.auth('forgot', { em, dob: val('fdb') });
+        r = await ZAPI.auth('forgot', { em });
       if (!r.ok) {
         msg.auth = r.err;
         return render();
@@ -500,7 +500,7 @@ document.addEventListener(
       msg.fe = em;
       msg.fc = 1;
       msg.auth = '';
-      msg.fm = 'Demo code (no SMS or email service is connected): ' + r.demoCode;
+      msg.fm = 'If an account uses that email, a 6-digit code was sent to its email and phone. It expires in 15 minutes.';
       return render();
     }
     if (a == 'fgset') {

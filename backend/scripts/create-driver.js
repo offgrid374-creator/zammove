@@ -87,6 +87,7 @@ function randomPassword() {
       cap: type.cap,
       desc: '',
       regExp: '2027-12-31',
+      legal: { ins: arg('ins', 'CTPL-' + d.plate.replace(/\W/g, '')), insExp: arg('ins-exp', '2027-12-31'), cpc: arg('cpc', 'CPC-' + d.plate.replace(/\W/g, '')), cpcExp: arg('cpc-exp', '2028-12-31') },
       docs: [],
       photo: '',
       approval: 'Approved',

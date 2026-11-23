@@ -118,7 +118,7 @@ function createApp({ state, domain, cfg }) {
   );
 
   /* actions that price a trip get the road distance from OSRM first (computed here, never trusted from the browser) */
-  const ROAD = new Set(['quote', 'createBooking']);
+  const ROAD = new Set(['quote', 'createBooking', 'requote']);
 
   api.post('/act/:name', async (req, res) => {
     const fn =
@@ -148,6 +148,16 @@ function createApp({ state, domain, cfg }) {
   });
 
   api.post('/public/track', (req, res) => res.json(domain.publicTrack(req.body || {})));
+
+  /* PROTOTYPE ONLY: no SMS/email provider is connected, so messages a provider would deliver (verification and
+     reset codes, a recipient's Delivery PIN) are kept here, looked up by phone number or email. Disabled in production;
+     replace with a real provider (e.g. Semaphore for SMS) before going live. */
+  if (!cfg.production)
+    api.get('/dev/inbox', (req, res) => {
+      const to = String(req.query.to || '').trim().toLowerCase();
+      if (to.length < 5) return res.json({ ok: false, err: 'Enter a phone number or email.' });
+      res.json({ ok: true, messages: state.S.nt.filter(n => n.sim && n.addr == to).slice(0, 20).map(n => ({ ch: n.sim, t: n.t, b: n.b })) });
+    });
 
   /* test-only: replace all data (never enabled in production) */
   if (cfg.allowTestSeed) {

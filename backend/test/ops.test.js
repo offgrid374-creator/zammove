@@ -56,7 +56,8 @@ test('every completed trip is split: service fee + commission to ZamMove, driver
   /* changing the settings later never rewrites a completed trip */
   assert.ok((await t.act('a@t.ph', 'cfgSplit', { comm: 10, drvPct: 25 })).ok);
   assert.equal(t.d.h.splitOf(t.bk(id)).own, 1248);
-  assert.deepEqual(t.d.h.ownerBal('o@t.ph'), { earned: 1248, paid: 0, due: 1248 });
+  /* the owner's share becomes payable only when ZamMove has the money (driver's remittance verified) */
+  assert.deepEqual(t.d.h.ownerBal('o@t.ph'), { earned: 0, earnedTrips: 0, earnedRent: 0, waiting: 1248, paid: 0, due: 0 });
 });
 
 test('split settings are validated; agreements leave room for the commission', async () => {
@@ -78,6 +79,8 @@ test('remittance due follows the split, and the cashier pays the owner from his 
   assert.ok((await t.act('d1@t.ph', 'remit', { week, method: 'Cash', ref: 'OR-1' })).ok);
   const r = t.S.rem[t.S.rem.length - 1];
   assert.deepEqual([r.gross, r.drvShare, r.due], [2016, 384, 1632]);
+  assert.match((await t.act('k@t.ph', 'ownerPayout', { owner: 'o@t.ph', amount: 100, method: 'Cash' })).err, /becomes payable when the drivers’ remittances are verified/);
+  assert.ok((await t.act('k@t.ph', 'remitVerify', { id: r.id, recv: 1632 })).ok);
   /* owner payout */
   assert.match(
     (await t.act('d1@t.ph', 'ownerPayout', { owner: 'o@t.ph', amount: 100, method: 'Cash' })).err,
@@ -85,7 +88,7 @@ test('remittance due follows the split, and the cashier pays the owner from his 
   );
   assert.match(
     (await t.act('k@t.ph', 'ownerPayout', { owner: 'o@t.ph', amount: 5000, method: 'Cash' })).err,
-    /unpaid balance \(₱1,248\.00\)/
+    /payable balance \(₱1,248\.00\)/
   );
   assert.match(
     (await t.act('k@t.ph', 'ownerPayout', { owner: 'o@t.ph', amount: 500, method: 'GCash', ref: '12' })).err,
@@ -101,7 +104,7 @@ test('remittance due follows the split, and the cashier pays the owner from his 
       })
     ).ok
   );
-  assert.deepEqual(t.d.h.ownerBal('o@t.ph'), { earned: 1248, paid: 1000, due: 248 });
+  assert.deepEqual(t.d.h.ownerBal('o@t.ph'), { earned: 1248, earnedTrips: 1248, earnedRent: 0, waiting: 0, paid: 1000, due: 248 });
   assert.ok(t.S.nt.some(n => n.to == 'o@t.ph' && n.h == 'Payout sent'));
   assert.ok(
     t.d.view(t.me('o@t.ph')).pay.some(p => p.kind == 'owner_payout' && p.amount == 1000),
@@ -217,7 +220,7 @@ test('owners see their vehicle’s live position during a trip; drivers see thei
   const t = await setup();
   const id = (await t.booking('c1@t.ph')).id;
   const req = t.d.view(t.me('d1@t.ph')).bk.find(b => b.id == id);
-  assert.deepEqual(req.share, { pct: 20, amt: 384 });
+  assert.deepEqual(req.share, { pct: 20, mov: 0, amt: 384 });
   await t.act('d1@t.ph', 'accept', { id });
   await t.act('d1@t.ph', 'step', { id, to: 'On the Way to Pickup' });
   assert.ok((await t.act('d1@t.ph', 'gpsPing', { id, lat: 6.92, lng: 122.07, acc: 10 })).ok);

@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en" data-mode="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Simulated Inbox</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Geist:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../customer/css/app.css" />
+    <style>
+      main { max-width: 640px; }
+      .msg { padding: 14px 0; border-top: 1px solid var(--s2); }
+      .msg:first-child { border-top: 0; }
+      .msg small { color: var(--mu); }
+      .msg p { margin: 6px 0 0; font-size: 16px; }
+      .row2 { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+      .row2 input { flex: 1 1 220px; }
+      .warn { background: rgba(217, 119, 6, 0.12); color: #92400e; border-radius: 12px; padding: 10px 12px; font-size: 14px; margin-top: 12px; }
+      html[data-mode='dark'] .warn { color: #fbbf24; }
+    </style>
+    <script>
+      try {
+        var m = (JSON.parse(localStorage.getItem('zm5') || '{}') || {}).mode || 'light';
+        if (m == 'system') m = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        document.documentElement.setAttribute('data-mode', m);
+      } catch (e) {}
+    </script>
+  </head>
+  <body>
+    <main>
+      <h1>Simulated inbox</h1>
+      <p class="mu" style="margin:0">
+        Stands in for a phone or an email inbox. ZamMove has no SMS or email provider yet, so verification codes,
+        password reset codes and a recipient’s Delivery PIN are delivered here instead.
+      </p>
+      <div class="warn">Prototype only. This page is switched off on a production server; a real SMS provider replaces it.</div>
+      <section class="card" style="margin-top:16px">
+        <form id="f" class="row2" style="margin-top:0">
+          <input id="to" placeholder="Phone number (09…) or email" aria-label="Phone number or email" autocomplete="off" />
+          <button class="btn" type="submit">Open inbox</button>
+        </form>
+        <div id="out" style="margin-top:12px" aria-live="polite"></div>
+      </section>
+      <p class="mu n" style="margin-top:14px"><a href="../customer/">Back to ZamMove</a></p>
+    </main>
+    <script>
+      const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+      const $to = document.getElementById('to'),
+        $out = document.getElementById('out');
+      let cur = new URLSearchParams(location.search).get('to') || '';
+      $to.value = cur;
+      async function load() {
+        if (!cur) {
+          $out.innerHTML = '<div class="empty">Enter the phone number or email you signed up with.</div>';
+          return;
+        }
+        try {
+          const j = await (await fetch('/api/dev/inbox?to=' + encodeURIComponent(cur))).json();
+          if (!j.ok) return ($out.innerHTML = `<div class="empty">${esc(j.err || 'Not available.')}</div>`);
+          $out.innerHTML = j.messages.length
+            ? j.messages
+                .map(m => `<div class="msg"><small>${esc(m.ch)} · ${esc(new Date(m.t).toLocaleString())}</small><p>${esc(m.b)}</p></div>`)
+                .join('')
+            : '<div class="empty">No messages for ' + esc(cur) + ' yet.</div>';
+        } catch (e) {
+          $out.innerHTML = '<div class="empty">The ZamMove server is not reachable.</div>';
+        }
+      }
+      document.getElementById('f').addEventListener('submit', e => {
+        e.preventDefault();
+        cur = $to.value.trim().toLowerCase();
+        history.replaceState(null, '', '?to=' + encodeURIComponent(cur));
+        load();
+      });
+      load();
+      setInterval(load, 5000);
+    </script>
+  </body>
+</html>

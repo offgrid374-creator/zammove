@@ -30,6 +30,18 @@
   const el = document.createElement('div');
   el.id = 'zdemo';
   document.body.appendChild(el);
+  let msgs = [];
+  const loadMsgs = async () => {
+    const [, j] = await window.ZM_ENGINE.handle('GET', '/dev/inbox', undefined, null);
+    msgs = (j && j.messages) || [];
+  };
+  /* the app's "Open the simulated inbox" links open this tab */
+  window.ZM_DEMO_INBOX = async () => {
+    open = true;
+    tab = 'msgs';
+    await loadMsgs();
+    paint();
+  };
   let open = false,
     tab = 'acc',
     confirmReset = false,
@@ -53,10 +65,12 @@
 ${
   open
     ? `<div class="zd-panel" role="dialog" aria-label="Demo panel"><div class="zd-head"><b>ZamMove demo</b><span>No server: everything runs in this browser</span></div>
-<div class="zd-tabs"><button data-zd="tab" data-t="acc" aria-pressed="${tab == 'acc'}">Accounts</button><button data-zd="tab" data-t="script" aria-pressed="${tab == 'script'}">Demo script</button><button data-zd="tab" data-t="data" aria-pressed="${tab == 'data'}">Data</button></div>
+<div class="zd-tabs"><button data-zd="tab" data-t="acc" aria-pressed="${tab == 'acc'}">Accounts</button><button data-zd="tab" data-t="script" aria-pressed="${tab == 'script'}">Demo script</button><button data-zd="tab" data-t="msgs" aria-pressed="${tab == 'msgs'}">Messages</button><button data-zd="tab" data-t="data" aria-pressed="${tab == 'data'}">Data</button></div>
 <div class="zd-body">${
         tab == 'acc'
           ? `<p class="zd-note">One click logs in as that person. Password for every account: <code>${PW}</code></p>${acc}<div class="zd-row"><button class="zd-btn" data-zd="signup">Sign up as a new customer</button>${me ? '<button class="zd-btn ghost" data-zd="out">Log out</button>' : ''}</div>`
+          : tab == 'msgs'
+            ? `<p class="zd-note">Simulated SMS and email: verification codes, password reset codes and a recipient’s Delivery PIN (no real SMS/email provider is connected).</p>${msgs.length ? msgs.map(m => `<div class="zd-msg"><small>${m.ch} to ${m.to} · ${new Date(m.t).toLocaleTimeString()}</small><div>${String(m.b).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c])}</div></div>`).join('') : '<p class="zd-note">No messages yet. Sign up or use “Forgot password” to see one.</p>'}<button class="zd-btn ghost" data-zd="tab" data-t="msgs">Refresh</button>`
           : tab == 'script'
             ? `<ol class="zd-steps">${SCRIPT.map(([h, t]) => `<li><b>${h}</b><span>${t}</span></li>`).join('')}</ol><p class="zd-note">Tip: open this page in a second window (customer on one side, driver on the other). Each window logs in separately and sees the other’s changes within about 10 seconds.</p>`
             : `<p class="zd-note">Data is saved in this browser only, so you can close and reopen the demo. Seeded ${new Date(window.ZM_ENGINE.seededAt() || Date.now()).toLocaleString()}.</p>${window.ZM_ENGINE.storageFull() ? '<p class="zd-warn">The browser’s storage is full; changes will not survive a reload. Reset the demo.</p>' : ''}${
@@ -95,7 +109,10 @@ ${
     if (!t) return;
     const a = t.dataset.zd;
     if (a == 'toggle') open = !open;
-    if (a == 'tab') tab = t.dataset.t;
+    if (a == 'tab') {
+      tab = t.dataset.t;
+      if (tab == 'msgs') await loadMsgs();
+    }
     if (a == 'as') return as(t.dataset.em, t.dataset.ws);
     if (a == 'out' || a == 'signup') {
       ZAPI.logout();
@@ -154,7 +171,7 @@ ${
 .zd-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
 .zd-btn{min-height:38px;padding:0 14px;border:0;border-radius:11px;background:#0f5c53;color:#fff;font:600 13px Geist,system-ui,sans-serif;cursor:pointer}
 .zd-btn.ghost{background:#fff;color:#0f172a;box-shadow:inset 0 0 0 1px #cbd5e1}.zd-btn.danger{background:#be123c}
-.zd-steps{margin:0;padding:0 4px 0 22px;display:grid;gap:10px}.zd-steps b{display:block}.zd-steps span{font-size:13px;color:#475569}
+.zd-msg{padding:8px 4px;border-top:1px solid #e2e8f0;font-size:13.5px}.zd-msg small{color:#64748b;display:block}.zd-steps{margin:0;padding:0 4px 0 22px;display:grid;gap:10px}.zd-steps b{display:block}.zd-steps span{font-size:13px;color:#475569}
 html[data-mode='dark'] .zd-panel{background:#111b1a;color:#ecf3f2}html[data-mode='dark'] .zd-acc:hover{background:#182423}`;
   document.head.appendChild(css);
   paint();

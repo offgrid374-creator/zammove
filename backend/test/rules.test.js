@@ -34,7 +34,11 @@ test('pricing and capacity are decided by the server per vehicle, not per type',
   assert.match(third.err, /No vehicle of this type is free/);
   assert.ok((await t.booking('c1@t.ph', { tm: '15:00' })).ok, 'non-overlapping time later that day');
   assert.match((await t.booking('c1@t.ph', { dc: 'NOPE' })).err, /Invalid discount/);
-  assert.match((await t.booking('c1@t.ph', { dt: '2020-01-01' })).err, /future/);
+  assert.match((await t.booking('c1@t.ph', { dt: '2020-01-01' })).err, /at least 30 minutes from now/);
+  assert.match((await t.booking('c1@t.ph', { dt: future(120) })).err, /90 days ahead/);
+  assert.match((await t.booking('c1@t.ph', { sz: 'XL' })).err, /too small/);
+  assert.match((await t.booking('c1@t.ph', { mv: 4 })).err, /at most 3 helpers/);
+  assert.match((await t.booking('c1@t.ph', { rn: 'Lola', rph: '123' })).err, /recipient/);
   t.me('c2@t.ph').ver = false;
   assert.match((await t.booking('c2@t.ph', { dt: future(40) })).err, /Verify your account/);
 });
@@ -218,9 +222,19 @@ test('cancellation fee, timeout to "No driver found", re-submit and admin assign
   const a = (await t.booking('c1@t.ph')).id,
     b = (await t.booking('c2@t.ph')).id;
   await t.act('d1@t.ph', 'accept', { id: a });
+  /* free while the driver has not left yet; 10% to the driver once he is on the way */
+  await t.act('d1@t.ph', 'step', { id: a, to: 'On the Way to Pickup' });
   const c = await t.act('c1@t.ph', 'cancelBooking', { id: a });
   assert.equal(c.fee, Math.round(t.bk(a).tot * 10) / 100);
-  assert.equal(t.S.pay.find(p => p.bid == a).kind, 'cancel_fee');
+  const fee = t.S.pay.find(p => p.bid == a);
+  assert.deepEqual([fee.kind, fee.status, fee.to], ['cancel_fee', 'Due', 'd1@t.ph']);
+  assert.match((await t.booking('c1@t.ph', { dt: future(41) })).err, /Settle the/);
+  assert.ok((await t.act('c1@t.ph', 'payCancelFee', { id: a, method: 'GCash', ref: '1234567890' })).ok);
+  assert.ok((await t.act('k@t.ph', 'payVerify', { id: fee.id, ok: true })).ok);
+  assert.equal(t.d.h.drvCredit('d1@t.ph'), fee.amount, 'credited to the driver');
+  /* a scheduled booking stays open; one due soon times out after the waiting time */
+  const soon = new Date(Date.now() + 8 * 36e5 + 90 * 6e4).toISOString();
+  Object.assign(t.bk(b), { dt: soon.slice(0, 10), tm: soon.slice(11, 16) });
   assert.ok(t.S.nt.some(n => n.to == 'd1@t.ph' && n.h == 'Booking cancelled'));
   t.bk(b).cr = new Date(Date.now() - 40 * 6e4).toISOString();
   await t.st.run(() => t.d.h.sweep());
@@ -276,8 +290,15 @@ test('accounts: hashed passwords, lockout, reset, single owner setup, staff rule
   for (let i = 0; i < 4; i++) await run('login', { em: 'new@t.ph', pw: 'bad' });
   assert.match((await run('login', { em: 'new@t.ph', pw: 'bad' })).err, /locked/);
   assert.match((await run('login', { em: 'new@t.ph', pw: 'Passw0rd1' })).err, /Too many/);
-  const f = await run('forgot', { em: 'new@t.ph', dob: '1990-02-02' });
-  assert.ok((await run('resetPassword', { em: 'new@t.ph', code: f.demoCode, pw: 'Another1x' })).ok);
+  /* verification and reset codes never reach the app: only the (simulated) phone and email inbox */
+  assert.equal(t.d.view(t.me('new@t.ph')).users.find(u => u.em == 'new@t.ph').code, undefined);
+  assert.ok(t.S.nt.some(n => n.sim == 'SMS' && n.addr == '09171234567' && n.b.includes(t.me('new@t.ph').code)));
+  assert.ok(!t.d.view(t.me('new@t.ph')).nt.some(n => n.sim), 'not shown as an in-app notification');
+  const f = await run('forgot', { em: 'new@t.ph' });
+  assert.ok(f.ok && !f.demoCode, 'the code is not returned to the page');
+  assert.deepEqual(await run('forgot', { em: 'nobody@t.ph' }), { ok: true, sent: true }, 'same answer for unknown emails');
+  const code = t.S.nt.find(n => n.sim == 'Email' && n.addr == 'new@t.ph').b.match(/\d{6}/)[0];
+  assert.ok((await run('resetPassword', { em: 'new@t.ph', code, pw: 'Another1x' })).ok);
   assert.equal(t.me('new@t.ph').tv, 1, 'old tokens are revoked');
   assert.match(
     (await run('ownerSetup', { name: 'X', em: 'x@t.ph', pw: '0123456789' })).err,
@@ -293,7 +314,7 @@ test('3-wheeler bookings, vehicle color/year at registration, driver and vehicle
   const pic = 'data:image/jpeg;base64,AAAA';
   assert.match(
     (
-      await t.act('o@t.ph', 'addVehicle', {
+      await t.act('o@t.ph', 'addVehicle', { ins: 'CTPL-778899', insExp: future(300), cpc: 'CPC-2024-0001', cpcExp: future(500), 
         type: 'tw',
         brand: 'Bajaj',
         model: 'RE Cargo',
@@ -306,7 +327,7 @@ test('3-wheeler bookings, vehicle color/year at registration, driver and vehicle
   );
   assert.match(
     (
-      await t.act('o@t.ph', 'addVehicle', {
+      await t.act('o@t.ph', 'addVehicle', { ins: 'CTPL-778899', insExp: future(300), cpc: 'CPC-2024-0001', cpcExp: future(500), 
         type: 'tw',
         brand: 'Bajaj',
         model: 'RE Cargo',
@@ -319,7 +340,7 @@ test('3-wheeler bookings, vehicle color/year at registration, driver and vehicle
     ).err,
     /model year/
   );
-  const v = await t.act('o@t.ph', 'addVehicle', {
+  const v = await t.act('o@t.ph', 'addVehicle', { ins: 'CTPL-778899', insExp: future(300), cpc: 'CPC-2024-0001', cpcExp: future(500), 
     type: 'tw',
     brand: 'Bajaj',
     model: 'RE Cargo',
@@ -341,7 +362,7 @@ test('3-wheeler bookings, vehicle color/year at registration, driver and vehicle
   await t.act('a@t.ph', 'vehicleDecision', { id: v.id, act: 'approve' });
   t.S.asg.push({ id: 'S3', vehicle: v.id, driver: 'd3@t.ph', st: 'Active', hist: [] });
   t.S.dp['d3@t.ph'] = { avail: 'Available' };
-  const b = await t.booking('c1@t.ph', { vid: 'tw' });
+  const b = await t.booking('c1@t.ph', { vid: 'tw', sz: 'S' });
   assert.ok(b.ok, b.err);
   assert.equal(t.bk(b.id).tot, 693, '600 + 4 km x 15 = 660, + 5% = 693 (rounded fee)');
   assert.ok((await t.act('d3@t.ph', 'accept', { id: b.id })).ok);

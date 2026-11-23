@@ -140,7 +140,8 @@ test('HTTP: login gives a token; actions need it; a forged identity in the body 
         dt: future(),
         tm: '09:00',
         vid: 'l3',
-        it: 'Sofa',
+        it: 'Sofa and 2 boxes',
+        sz: 'M',
         cu: 'c2@t.ph',
       },
       login.token

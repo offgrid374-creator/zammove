@@ -77,6 +77,18 @@ const VT = [...HV, ...RT]; // every type a vehicle can be registered as
 /* rental statuses that hold the vehicle for their dates */
 const RBUSY = ['Pending', 'Approved', 'Active'];
 const DC = { ZAM10: 0.1, WELCOME: 0.05 },
+  /* helpers (movers) the driver brings, at most this many per vehicle type; the mover fee goes to the driver */
+  MOV_MAX = { tw: 1, pk: 2, l3: 3, cv: 4, w6: 6 },
+  /* how much is being moved: the smallest vehicle type that fits (types in HV are ordered small to large) */
+  SIZES = [
+    { id: 'S', n: 'A few items (boxes, one appliance)', min: 'tw' },
+    { id: 'M', n: 'Studio or one room', min: 'pk' },
+    { id: 'L', n: 'Two to three rooms', min: 'l3' },
+    { id: 'XL', n: 'Whole house or office', min: 'cv' },
+  ],
+  LATE_MIN = 30, // a driver this many minutes past the pickup time (not yet at pickup) counts as late
+  OPEN_UNTIL_H = 2, // a scheduled booking waits for a driver until this many hours before pickup
+  STRIKES_REVIEW = 3, // late/no-show strikes in 90 days that send a driver to admin review
   DEP = 5000, // minimum refundable rental deposit; owners may ask more per vehicle
   DEP_MAX = 100000,
   MOVER_FEE = 500,
@@ -235,7 +247,7 @@ const TRACK_ST = [
 ];
 const ROAD = ['Items Loaded', 'In Transit', 'Arrived at Destination', 'Delivery Confirmation'];
 const CANCEL_OK = ['Pending', 'No driver found', 'Accepted', 'On the Way to Pickup', 'Awaiting Down Payment'],
-  CANCEL_FREE = ['Pending', 'No driver found'];
+  CANCEL_FREE = ['Pending', 'No driver found', 'Accepted']; // free until the driver heads to the pickup
 const RENTAL_FLOW = ['Pending', 'Approved', 'Active', 'Returned', 'Completed'];
 
 const APP_ST = [
@@ -385,6 +397,12 @@ module.exports = {
   DC,
   DEP,
   DEP_MAX,
+  MOV_MAX,
+  SIZES,
+  LATE_MIN,
+  OPEN_UNTIL_H,
+  STRIKES_REVIEW,
+  coord,
   HANDOVER_PH,
   CLAIM_DAYS,
   CONTRACT_V,

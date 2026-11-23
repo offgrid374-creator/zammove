@@ -15,8 +15,9 @@ module.exports = (S, h) => {
   };
 
   /* the single pricing rule (server-side): base + km x rate + movers + 5% service fee - discount */
-  const price = (v, km, mv, dc) => {
-    const dist = r2(km * v.km), // km can have one decimal (road distance), e.g. 4.4 x 25 = 110
+  const price = (v0, km, mv, dc) => {
+    const v = h.rateOf(v0.id) || v0, // the administrator's current rates
+      dist = r2(km * v.km), // km can have one decimal (road distance), e.g. 4.4 x 25 = 110
       mov = mv * C.MOVER_FEE,
       sub = v.base + dist + mov,
       fee = Math.round(sub * C.SERVICE_FEE),
@@ -24,13 +25,26 @@ module.exports = (S, h) => {
     return { dist, mov, sub: r2(sub), fee, disc, tot: r2(sub + fee - disc) };
   };
 
+  const interrupt = (b, me, reason) => {
+    const why = str(reason, 300);
+    if (why.length < 10) return no('Describe what happened (10+ characters).');
+    if (h.done(b) || b.st == 'Interrupted' || ['Pending', 'No driver found'].includes(b.st))
+      return no('Only a trip in progress can be interrupted.');
+    b.intFrom = b.st;
+    b.int = { by: me.em, t: now(), why, from: b.st };
+    h.ev(b, me.em, 'Interrupted', 'Trip stopped: ' + why);
+    h.au(me.em, 'trip interrupted', { bk: b.id, from: b.intFrom });
+    h.staffEms().forEach(em => h.ntf(em, 'Trip interrupted', `${b.id}: ${why}`));
+    [b.cu, b.drvUser].filter(x => x && x != me.em).forEach(em => h.ntf(em, 'Trip stopped', `${b.id}: ${why} ZamMove will contact you.`));
+    return ok();
+  };
   const A = {
     quote(me, p) {
       const v = C.HV.find(x => x.id == p.vid);
       if (!v) return no('Choose a vehicle.');
       const road = p.__road && +p.__road.km > 0 ? p.__road : null,
         km = road ? road.km : C.kmBetween(str(p.pu, 200), str(p.dr, 200)),
-        mv = Math.max(0, Math.min(10, Math.round(+p.mv || 0))),
+        mv = Math.max(0, Math.min(C.MOV_MAX[v.id] || 0, Math.round(+p.mv || 0))),
         dc = str(p.dc, 20).toUpperCase();
       return ok({
         km,
@@ -42,6 +56,11 @@ module.exports = (S, h) => {
     },
     createBooking(me, p) {
       if (!me.ver) return no('Verify your account first (see the banner on Home).');
+      const owed = S.pay.find(x => x.kind == 'cancel_fee' && x.payer == me.em && x.status == 'Due'); // a submitted payment no longer blocks; a rejected one is due again
+      if (owed)
+        return no(
+          `Settle the ${peso(owed.amount)} cancellation fee for ${owed.bid} first (My bookings → that booking).`
+        );
       const v = C.HV.find(x => x.id == p.vid);
       if (!v) return no('Choose a vehicle.');
       const d = {
@@ -74,9 +93,26 @@ module.exports = (S, h) => {
         );
       if (!/^\d{4}-\d{2}-\d{2}$/.test(d.dt) || !/^\d{2}:\d{2}$/.test(d.tm))
         return no('Choose a pickup date and time.');
-      if (manilaMs(d.dt, d.tm) < Date.now()) return no('Schedule must be in the future.');
-      if (d.it.length < 3) return no('Describe the items to transport.');
-      if (!(mv >= 0 && mv <= 10)) return no('Movers must be between 0 and 10.');
+      const at = manilaMs(d.dt, d.tm);
+      if (!(at >= Date.now() + 30 * 6e4)) return no('Choose a pickup time at least 30 minutes from now.');
+      if (at > Date.now() + 90 * 864e5) return no('Bookings can be made up to 90 days ahead.');
+      if (d.it.length < 10) return no('List the items to transport (e.g. “sofa, 3 boxes, refrigerator”).');
+      const mx = C.MOV_MAX[v.id] || 0;
+      if (!(mv >= 0 && mv <= mx))
+        return no(`A ${v.n} takes at most ${mx} helper${mx == 1 ? '' : 's'}.`);
+      /* the load must fit: the size chosen sets the smallest vehicle type */
+      const sz = C.SIZES.find(x => x.id == p.sz);
+      if (!sz) return no('Choose how much you are moving.');
+      const rank = id => C.HV.findIndex(x => x.id == id);
+      if (rank(v.id) < rank(sz.min))
+        return no(
+          `A ${v.n} is too small for “${sz.n.toLowerCase()}”. Choose a ${C.HV.find(x => x.id == sz.min).n} or bigger.`
+        );
+      /* someone else receives the items (optional) */
+      const rn = str(p.rn, 80),
+        rph = str(p.rph, 20);
+      if ((rn || rph) && !(rn.length >= 3 && /^(09|\+639)\d{9}$/.test(rph)))
+        return no('For a different recipient, enter their full name and PH mobile number.');
       if (dc && !C.DC[dc]) return no('Invalid discount code.');
       if (h.capFree({ id: '', vid: v.id, dt: d.dt, tm: d.tm, km }) < 1)
         return no('No vehicle of this type is free at that time. Choose another time or vehicle type.');
@@ -97,6 +133,10 @@ module.exports = (S, h) => {
         disc: pr.disc,
         dc: pr.disc ? dc : '',
         ph: img(p.ph),
+        sz: sz.id,
+        ...(rn ? { rn, rph } : {}),
+        puC: C.coord(d.pu),
+        drC: C.coord(d.dr), // the coordinates are what the price is based on; the driver navigates to them
         st: 'Pending',
         drv: '',
         cr: t,
@@ -113,29 +153,48 @@ module.exports = (S, h) => {
       if (!b) return no('Booking not found.');
       if (!C.CANCEL_OK.includes(b.st))
         return no('This booking can no longer be cancelled here. Report an incident or contact support.');
-      const fee = h.cancelFee(b),
+      const late = h.late(b),
+        fee = late ? 0 : h.cancelFee(b),
         t = now(),
         from = b.st,
         drv = b.drvUser || '';
       b.cf = fee;
-      b.cxl = { t, by: me.em, from, fee };
+      b.cxl = { t, by: me.em, from, fee, ...(late ? { late: true } : {}) };
+      if (late) {
+        const d = h.U(drv);
+        if (d) {
+          (d.strikes = d.strikes || []).push({ bid: b.id, t, why: 'Late for pickup' });
+          const recent = d.strikes.filter(x => Date.now() - new Date(x.t).getTime() < 90 * 864e5).length;
+          h.au('system', 'driver strike', { driver: drv, bk: b.id, recent });
+          if (recent >= C.STRIKES_REVIEW)
+            h.staffEms().forEach(em =>
+              h.ntf(em, 'Driver review needed', `${d.name} has ${recent} late/no-show strikes in 90 days.`)
+            );
+        }
+      }
       h.ev(
         b,
         me.em,
         'Cancelled',
-        fee ? 'Cancelled by the customer. Cancellation fee ' + peso(fee) + '.' : 'Cancelled by the customer.'
+        late
+          ? `Cancelled by the customer free of charge: the driver was more than ${C.LATE_MIN} minutes late.`
+          : fee
+            ? 'Cancelled by the customer. Cancellation fee ' + peso(fee) + ' (goes to the driver who travelled).'
+            : 'Cancelled by the customer.'
       );
+      /* the fee compensates the driver who already travelled; the customer settles it before booking again */
       if (fee)
         S.pay.push(
           h.payMk({
             bid: b.id,
             kind: 'cancel_fee',
-            method: 'Cash or GCash',
+            method: '',
             amount: fee,
             ref: rid('FEE'),
             payer: me.em,
-            status: 'Submitted',
-            note: '10% cancellation fee',
+            to: drv,
+            status: 'Due',
+            note: '10% cancellation fee, paid to the driver',
           })
         );
       h.au(me.em, 'booking cancelled', { bk: b.id, from, fee, driver: drv || null, vehicle: b.veh || null });
@@ -148,9 +207,123 @@ module.exports = (S, h) => {
         h.ntf(
           drv,
           'Booking cancelled',
-          'The customer cancelled ' + b.id + '. You and your vehicle are free for that slot.'
+          late
+            ? `The customer cancelled ${b.id} because you were more than ${C.LATE_MIN} minutes late. A strike was recorded.`
+            : 'The customer cancelled ' + b.id + '. You and your vehicle are free for that slot.' + (fee ? ` You receive the ${peso(fee)} cancellation fee once the customer pays it.` : '')
         );
-      return ok({ fee });
+      return ok({ fee, late });
+    },
+    /* customer: pay a cancellation fee (a cashier verifies it; it is then credited to the driver) */
+    payCancelFee(me, p) {
+      const x = S.pay.find(y => y.kind == 'cancel_fee' && y.payer == me.em && y.bid == p.id && y.status == 'Due');
+      if (!x) return no('No cancellation fee is due for this booking.');
+      const m = p.method == 'Cash' ? 'Cash' : 'GCash',
+        ref = str(p.ref, 13);
+      if (m == 'GCash') {
+        if (!/^\d{10,13}$/.test(ref)) return no('Enter the GCash reference number (10–13 digits).');
+        if (S.pay.some(y => y.ref == ref && y.status != 'Rejected')) return no('This GCash reference was already used.');
+      }
+      Object.assign(x, { method: m, ref: m == 'GCash' ? ref : rid('CSH'), status: 'Submitted', t: now(), pf: img(p.pf) });
+      h.au(me.em, 'cancellation fee paid', { bk: x.bid, amount: x.amount, method: m });
+      h.ntf(me.em, 'Payment submitted', `${peso(x.amount)} cancellation fee for ${x.bid}. It counts once a cashier verifies it.`);
+      return ok();
+    },
+    /* driver: the locations do not match the pins (wrong price) -> propose a corrected route; the customer decides */
+    requote(me, p) {
+      const b = mine(me, p.id);
+      if (!b) return no('Booking not found or not assigned to you.');
+      if (!['Accepted', 'On the Way to Pickup', 'Awaiting Down Payment'].includes(b.st))
+        return no('A price correction is only possible before the down payment.');
+      if (h.paySum(b.id) > 0) return no('A payment was already recorded.');
+      if (b.rq && !b.rq.ans) return no('A price correction is already waiting for the customer.');
+      const pu = str(p.pu, 200) || b.pu,
+        dr = str(p.dr, 200) || b.dr,
+        why = str(p.reason, 300);
+      if (why.length < 10) return no('Explain what does not match (10+ characters).');
+      if (!C.coord(pu) || !C.coord(dr)) return no('Pick the corrected places from the suggestions or the map.');
+      const road = p.__road && +p.__road.km > 0 ? p.__road : null,
+        km = road ? road.km : C.kmBetween(pu, dr),
+        v = C.HV.find(x => x.id == b.vid),
+        pr = price(v, km, b.mv || 0, b.dc);
+      if (Math.abs(pr.tot - b.tot) < 1 && pu == b.pu && dr == b.dr) return no('Nothing changes: same places and price.');
+      b.rq = { pu, dr, km, kmBy: road ? 'road' : 'estimate', tot: pr.tot, bd: [v.base, pr.dist, pr.mov, pr.fee], disc: pr.disc, why, by: me.em, t: now() };
+      h.au(me.em, 'price correction proposed', { bk: b.id, from: b.tot, to: pr.tot });
+      h.ntf(b.cu, 'Price correction for ' + b.id, `${me.name}: ${why} New price ${peso(pr.tot)} (was ${peso(b.tot)}). Accept or decline it on the booking.`);
+      return ok({ tot: pr.tot });
+    },
+    /* customer: accept the corrected price, or decline (the booking is cancelled at no charge) */
+    requoteAnswer(me, p) {
+      const b = own(me, p.id);
+      if (!b || !b.rq || b.rq.ans) return no('No price correction is waiting for you.');
+      if (h.done(b)) return no('This booking is closed.');
+      const q = b.rq;
+      q.ans = p.accept ? 'accepted' : 'declined';
+      q.at = now();
+      if (p.accept) {
+        const was = b.tot;
+        Object.assign(b, { pu: q.pu, dr: q.dr, km: q.km, kmBy: q.kmBy, tot: q.tot, bd: q.bd, disc: q.disc, puC: C.coord(q.pu), drC: C.coord(q.dr) });
+        (b.ev = b.ev || []).push({ t: now(), by: me.em, from: b.st, to: b.st, note: `Price corrected from ${peso(was)} to ${peso(q.tot)} (accepted by the customer)` });
+        h.ntf(b.drvUser, 'Price correction accepted', `${b.id}: new price ${peso(q.tot)}.`);
+      } else {
+        b.cxl = { t: now(), by: me.em, from: b.st, fee: 0, requote: true };
+        h.ev(b, me.em, 'Cancelled', 'Cancelled at no charge: the customer declined the price correction.');
+        h.ntf(b.drvUser, 'Price correction declined', `${b.id} was cancelled by the customer at no charge.`);
+      }
+      h.au(me.em, 'price correction ' + q.ans, { bk: b.id });
+      return ok();
+    },
+    /* driver: a breakdown, accident or a customer who will not pay stops the trip; an administrator takes over */
+    tripProblem(me, p) {
+      const b = mine(me, p.id);
+      if (!b) return no('Booking not found or not assigned to you.');
+      return interrupt(b, me, p.reason);
+    },
+    tripInterrupt(me, p) {
+      if (!h.isAdmin(me)) return no('Administrator access required.');
+      const b = S.bk.find(x => x.id == p.id);
+      if (!b || !b.drvUser) return no('Booking not found or it has no driver.');
+      return interrupt(b, me, p.reason);
+    },
+    /* administrator: resume, give the trip to another driver (only before any money was collected),
+       or close it: the customer is charged what is fair and the rest of what was collected is refunded */
+    tripResolve(me, p) {
+      if (!h.isAdmin(me)) return no('Administrator access required.');
+      const b = S.bk.find(x => x.id == p.id);
+      if (!b || b.st != 'Interrupted') return no('This trip is not interrupted.');
+      if (b.cu == me.em || b.drvUser == me.em) return no('You cannot decide a trip you are part of.');
+      const why = str(p.reason, 300);
+      if (why.length < 10) return no('Write the decision and reason (10+ characters).');
+      const collected = h.paySum(b.id);
+      if (p.act == 'resume') {
+        h.ev(b, me.em, b.intFrom, 'Resumed by an administrator: ' + why);
+      } else if (p.act == 'reassign') {
+        if (collected > 0)
+          return no('Money was already collected by the first driver. Close the trip (refund or charge) and book again.');
+        const d = h.U(str(p.driver, 120).toLowerCase());
+        if (!d || d.em == b.drvUser) return no('Choose another driver.');
+        const prev = b.drvUser,
+          bad = h.chk(d.em, { ...b, id: b.id }).filter(x => !x[1]);
+        if (bad.length) return no(d.name + ': ' + bad[0][0] + '.');
+        const as = h.asgOf(d.em);
+        Object.assign(b, { drvUser: d.em, drv: d.name, veh: as.vehicle, acc: now(), ver: null, dver: null });
+        h.ev(b, me.em, 'Accepted', `Given to ${d.name} by an administrator (was ${h.U(prev) ? h.U(prev).name : prev}): ${why}`);
+        h.ntf(d.em, 'Booking assigned', `An administrator gave you ${b.id} (${b.dt} ${b.tm}).`);
+        h.ntf(prev, 'Trip reassigned', `${b.id} was given to another driver.`);
+      } else if (p.act == 'close') {
+        const refund = r2(+p.refund || 0);
+        if (!(refund >= 0 && refund <= collected + 0.005))
+          return no('The refund must be between ₱0 and what was collected (' + peso(collected) + ').');
+        b.charged = r2(collected - refund);
+        b.cd = now();
+        b.split = h.splitOf(b);
+        h.ev(b, me.em, 'Cancelled', `Closed by an administrator: charged ${peso(b.charged)}, refund ${peso(refund)}. ${why}`);
+        if (refund > 0)
+          S.pay.push(h.payMk({ bid: b.id, kind: 'refund', method: '', amount: refund, ref: rid('RF'), payer: me.em, to: b.cu, status: 'Due', note: why }));
+      } else return no('Choose resume, reassign or close.');
+      b.int = { ...(b.int || {}), done: { act: p.act, by: me.em, t: now(), why } };
+      h.au(me.em, 'interrupted trip ' + p.act, { bk: b.id });
+      h.ntf(b.cu, 'Booking ' + b.id, 'ZamMove decided: ' + why);
+      return ok();
     },
     resubmit(me, p) {
       const b = own(me, p.id);

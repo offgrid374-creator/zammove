@@ -60,15 +60,11 @@
   const dueFor = b => r2(Math.max(0, gross(b) - split(b).drv));
   const done = b => b.st == 'Completed';
   const payT = p => p.ct || p.vt || p.t;
-  const ownerBal = em => {
-    const earned = r2(
-      (S.bk || []).filter(b => done(b) && split(b).owner == em).reduce((s, b) => s + split(b).own, 0)
-    );
-    const paid = r2(
-      (S.pay || []).filter(p => p.kind == 'owner_payout' && p.to == em).reduce((s, p) => s + p.amount, 0)
-    );
-    return { earned, paid, due: r2(earned - paid) };
-  };
+  /* owner balance from the server: payable only once ZamMove has the money (drivers' remittances verified,
+     rentals completed); "waiting" is earned but not yet payable */
+  const ownerBal = em =>
+    (S.ownerBals && S.ownerBals[em]) ||
+    (S.ownerBal && S.me && S.me.em == em ? S.ownerBal : null) || { earned: 0, earnedTrips: 0, earnedRent: 0, waiting: 0, paid: 0, due: 0 };
   /* the Monday of a trip's week (same rule as the server: Manila time) */
   const wk = t => {
     const d = new Date(new Date(t).getTime() + 8 * 36e5),
@@ -347,7 +343,7 @@ ${section('All vehicles', '', panel(table(['Vehicle', 'Status', 'Driver or rente
       }))
       .filter(x => x.value > 0);
     return `<div class="tw-pb-10">${head('Earnings', 'Your share of every completed trip on your vehicles, and the payouts ZamMove has sent you.')}
-${grid([kpi('This month', peso(month), last ? `${month >= last ? '▲' : '▼'} vs ${peso(last)} last month` : mLabel(m)), kpi('Earned (all time)', peso(bal.earned)), kpi('Paid to you', peso(bal.paid)), kpi('Unpaid balance', peso(bal.due), 'ZamMove pays this after drivers remit', bal.due > 0 ? 'tw-text-harbor-700' : 'tw-text-slate-900')])}
+${grid([kpi('This month (trips)', peso(month), last ? `${month >= last ? '▲' : '▼'} vs ${peso(last)} last month` : mLabel(m)), kpi('Waiting for remittance', peso(bal.waiting || 0), 'Payable once the driver remits'), kpi('Paid to you', peso(bal.paid), 'Rentals: ' + peso(bal.earnedRent || 0) + ' earned'), kpi('Payable now', peso(bal.due), 'ZamMove pays this to you', bal.due > 0 ? 'tw-text-harbor-700' : 'tw-text-slate-900')])}
 ${perVeh.length > 0 ? section('Earnings per vehicle', 'All time', panel(hBars(perVeh, peso))) : ''}
 ${section('How each fare is split', '', panel(`<p class="tw-m-0 tw-text-sm tw-text-slate-600">The customer’s 5% service fee goes to ZamMove. Of the rest, ZamMove keeps a ${S.cfg.comm == null ? 15 : S.cfg.comm}% commission, the driver gets the share in his driver agreement (default ${S.cfg.drvPct || 20}%), and you get the remainder. Each trip keeps the split it had when it was completed.</p>`))}
 ${section(
@@ -370,6 +366,22 @@ ${section(
     ) || empty('No completed trips yet.')
   )
 )}
+${(() => {
+  const rs = (S.rn || []).filter(r => r.owner == me() && r.split);
+  return rs.length
+    ? section(
+        'Rental income',
+        rs.length + ' completed rental' + (rs.length == 1 ? '' : 's'),
+        panel(
+          table(
+            ['Rental', 'Vehicle', 'Rental fee', 'ZamMove', 'Deposit kept', 'Your share'],
+            rs.map(r => [esc(r.id), esc(r.vn || ''), peso(r.split.fee), peso(r.split.zc) + ` <span class="tw-text-xs tw-text-slate-400">${r.split.comm}%</span>`, peso(r.split.kept || 0), `<b>${peso(r.split.own + (r.split.kept || 0))}</b>`]),
+            [2, 3, 4, 5]
+          )
+        )
+      )
+    : '';
+})()}
 ${section(
   'Payouts',
   '',
@@ -393,7 +405,7 @@ ${section(
     return `<div class="tw-mb-2">${grid([
       kpi('Earned this month', peso(month), mLabel(m), 'tw-text-slate-900', go('owner', 'earn')),
       kpi(
-        'Unpaid balance',
+        'Payable now',
         peso(bal.due),
         'Open Earnings',
         bal.due > 0 ? 'tw-text-harbor-700' : 'tw-text-slate-900',
@@ -870,13 +882,13 @@ ${section(
   panel(
     owners().length
       ? table(
-          ['Owner', 'Earned', 'Paid', 'Balance', 'Record a payout'],
+          ['Owner', 'Payable earned', 'Paid', 'Balance', 'Record a payout'],
           owners().map(u => {
             const b = ownerBal(u.em),
               id = esc(u.em);
             return [
               `<b>${esc(u.name)}</b><div class="tw-text-xs tw-text-slate-500">${esc(u.em)}</div>`,
-              peso(b.earned),
+              peso(b.earned) + (b.waiting ? `<div class="tw-text-xs tw-text-slate-500">+ ${peso(b.waiting)} waiting for remittance</div>` : ''),
               peso(b.paid),
               `<b class="${b.due > 0 ? 'tw-text-harbor-700' : ''}">${peso(b.due)}</b>`,
               b.due > 0

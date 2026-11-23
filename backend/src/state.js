@@ -23,7 +23,8 @@ const COLLECTIONS = {
 const TABLES = [...Object.values(COLLECTIONS), 'driver_status', 'settings'];
 const keyOf = (coll, x) => (coll == 'users' ? x.em : x.id);
 /* comm: ZamMove commission (% of the fare after the service fee); drvPct: driver's share when no agreement sets one */
-const DEFAULT_CFG = { coShare: 80, pendMin: 30, comm: 15, drvPct: 20 };
+/* cashCap: most company money (₱) a driver may hold before new jobs are blocked; rates: per-type fare overrides */
+const DEFAULT_CFG = { coShare: 80, pendMin: 30, comm: 15, drvPct: 20, cashCap: 5000 };
 
 const emptyState = () => ({
   ...Object.fromEntries(Object.keys(COLLECTIONS).map(k => [k, []])),

@@ -70,7 +70,7 @@ module.exports = (S, h) => {
     return { odo, fuel: p.fuel, ph, t: now() };
   };
   const paidUp = r =>
-    h.paySum(r.id, 'deposit') >= h.depOf(r) - 0.005 && h.paySum(r.id, 'rental') >= r.tot - 0.005;
+    h.paySum(r.id, 'deposit') >= h.depOf(r) - 0.005 && h.paySum(r.id, 'rental') >= h.rentDue(r) - 0.005;
   return {
     /* the customer picks one registered vehicle (p.veh) for s..e */
     createRental(me, p) {
@@ -134,6 +134,7 @@ module.exports = (S, h) => {
       const v = h.vOf(r.veh);
       if (!(v && v.owner == me.em && h.acct(me)) && !h.isAdmin(me))
         return no('Only the vehicle owner or an administrator can manage this rental.');
+      if (r.cu == me.em) return no('You cannot decide your own rental.');
       const act = p.act,
         note = str(p.note, 300),
         go = (st, msg) => {
@@ -199,9 +200,19 @@ module.exports = (S, h) => {
           return no('The odometer cannot be lower than at release (' + r.out.odo + ' km).');
         r.back = back;
         r.cond = note || 'No issues noted';
+        /* the contract: after a 2-hour grace period every late day or part of a day is charged at the daily rate.
+           The end date's return time is 6 PM, so the grace ends at 8 PM Manila time. */
+        const graceEnd = new Date(r.e + 'T20:00:00+08:00').getTime();
+        if (Date.now() > graceEnd) {
+          const days = Math.ceil((Date.now() - graceEnd) / 864e5);
+          r.late = { days, amt: r2(days * r.day), t: now() };
+        }
         delete r.trail; // the contract allows tracking only until the vehicle is returned
         delete r.gps;
-        return go('Returned', 'Return recorded. Condition: ' + r.cond + '.');
+        return go(
+          'Returned',
+          'Return recorded. Condition: ' + r.cond + '.' + (r.late ? ` Returned ${r.late.days} day${r.late.days > 1 ? 's' : ''} late: ${peso(r.late.amt)} late charge is due (contract).` : '')
+        );
       }
       if (act == 'complete') {
         if (r.st != 'Returned') return no('Record the return first.');
@@ -213,6 +224,14 @@ module.exports = (S, h) => {
         const dep = h.depOf(r),
           kept = r.claim ? r2(r.claim.final) : 0;
         r.settle = { dep, kept, refund: r2(dep - kept), t: now() };
+        /* rental income: ZamMove keeps its commission, the owner gets the rest plus any deposit kept for damage */
+        const fee = h.rentDue(r),
+          comm = S.cfg.comm == null ? 15 : +S.cfg.comm,
+          zc = r2((fee * comm) / 100);
+        r.split = { fee, comm, zc, own: r2(fee - zc), kept };
+        if (r.settle.refund > 0)
+          S.pay.push(h.payMk({ bid: r.id, kind: 'deposit_refund', method: '', amount: r.settle.refund, ref: rid('RF'), payer: me.em, to: r.cu, status: 'Due', note: 'Deposit refund' }));
+        h.ntf(r.owner, 'Rental income', `${r.id}: your share ${peso(r.split.own + kept)} is added to your payable balance.`);
         return go(
           'Completed',
           'Rental completed. ' +
@@ -220,8 +239,8 @@ module.exports = (S, h) => {
               ? peso(kept) +
                 ' of the deposit was kept for the claim; ' +
                 peso(dep - kept) +
-                ' will be refunded to you (simulated).'
-              : 'Your full ' + peso(dep) + ' deposit will be refunded (simulated).')
+                ' will be refunded to you by the cashier.'
+              : 'Your full ' + peso(dep) + ' deposit will be refunded to you by the cashier.')
         );
       }
       return no('Unknown action.');
@@ -319,6 +338,7 @@ module.exports = (S, h) => {
       if (!h.isAdmin(me)) return no('Only an administrator can decide deposit claims.');
       const r = S.rn.find(x => x.id == p.id);
       if (!r || !r.claim) return no('Claim not found.');
+      if (r && (r.cu == me.em || r.owner == me.em)) return no('You cannot decide a claim you are part of.');
       if (!['Open', 'Disputed'].includes(r.claim.st)) return no('This claim is already settled.');
       const amt = r2(p.amt),
         note = str(p.note, 1000);
@@ -508,11 +528,15 @@ module.exports = (S, h) => {
       return ok();
     },
     createIncident(me, p) {
-      const b = S.bk.find(x => x.id == p.bid && x.cu == me.em);
+      /* the customer or the driver of the booking can report */
+      const b = S.bk.find(x => x.id == p.bid && (x.cu == me.em || x.drvUser == me.em));
       if (!b) return no('You can only report on your own bookings.');
-      if (C.FLOW.indexOf(b.st) < C.FLOW.indexOf('On the Way to Pickup'))
+      if (C.FLOW.indexOf(b.st) < C.FLOW.indexOf('On the Way to Pickup') && b.st != 'Interrupted')
         return no('Reports must be linked to a booking in progress.');
-      const CATS = ['Vehicle accident', 'Damaged items', 'Driver conduct', 'Delay', 'Missing items', 'Other'];
+      const isD = b.drvUser == me.em;
+      const CATS = isD
+        ? ['Customer did not pay', 'Customer conduct', 'Vehicle accident', 'Damaged items', 'Unsafe or illegal cargo', 'Other']
+        : ['Vehicle accident', 'Damaged items', 'Driver conduct', 'Delay', 'Missing items', 'Other'];
       if (!CATS.includes(p.cat)) return no('Choose a category.');
       const cat = p.cat;
       const sev = ['Low', 'Medium', 'High'].includes(p.sev) ? p.sev : 'Low',
@@ -547,6 +571,8 @@ module.exports = (S, h) => {
       const c = S.inc.find(x => x.id == p.id);
       if (!c) return no('Case not found.');
       if (c.st == 'Closed') return no('This case is closed.');
+      const cb = S.bk.find(x => x.id == c.bid) || {};
+      if ([c.by, cb.cu, cb.drvUser].includes(me.em)) return no('You cannot investigate a case you are part of.');
       const note = str(p.note, 1000),
         act = p.act;
       if (act == 'note') {

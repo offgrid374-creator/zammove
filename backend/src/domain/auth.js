@@ -33,8 +33,9 @@ module.exports = (S, h) => {
       else if (!p.terms) e = 'Please accept the Terms and Privacy Policy.';
       else if (h.U(u.em)) e = 'Email already registered.';
       if (e) return no(e);
-      const rec = { ...u, pw: hashPassword(u.pw), ver: false, code: pin6(), roles: [], cr: now(), tv: 0 };
+      const rec = { ...u, pw: hashPassword(u.pw), ver: false, code: pin6(), codeT: Date.now(), roles: [], cr: now(), tv: 0 };
       S.users.push(rec);
+      h.sim(rec.ph, 'SMS', `ZamMove: your verification code is ${rec.code}. Do not share it.`, rec.em);
       h.au(rec.em, 'signup', null);
       return ok({ user: rec, me: meOf(rec) });
     },
@@ -64,13 +65,21 @@ module.exports = (S, h) => {
       h.au(em, 'login', null);
       return ok({ user: u, me: meOf(u) });
     },
+    /* the code goes to the account's email and phone (simulated inbox), never to the screen. The answer is the
+       same whether or not the email exists, so nobody can test which emails have accounts. */
     forgot(p) {
-      const u = h.U(str(p.em, 120).toLowerCase());
-      if (!u || u.dob != str(p.dob, 10)) return no('No account matches that email and date of birth.');
-      const code = pin6();
-      u.reset = { h: sha256(u.em + code), exp: Date.now() + 15 * 6e4, att: 0 };
-      h.au(u.em, 'password reset requested', null);
-      return ok({ demoCode: code }); // no SMS/email service: the code is shown on screen (prototype)
+      const em = str(p.em, 120).toLowerCase(),
+        u = h.U(em);
+      if (!EMAIL.test(em)) return no('Enter a valid email.');
+      if (u && !(u.reset && Date.now() - (u.reset.t || 0) < 60000)) {
+        const code = pin6();
+        u.reset = { h: sha256(u.em + code), exp: Date.now() + 15 * 6e4, att: 0, t: Date.now() };
+        const body = `ZamMove: your password reset code is ${code}. It expires in 15 minutes. If you did not ask for it, ignore this message.`;
+        h.sim(u.em, 'Email', body, u.em);
+        if (u.ph) h.sim(u.ph, 'SMS', body, u.em);
+        h.au(u.em, 'password reset requested', null);
+      }
+      return ok({ sent: true });
     },
     resetPassword(p) {
       const u = h.U(str(p.em, 120).toLowerCase()),
@@ -116,10 +125,26 @@ module.exports = (S, h) => {
     actions: {
       verifyAccount(me, p) {
         if (me.ver) return ok();
-        if (str(p.code, 6) !== me.code) return no('Incorrect code.');
+        if ((me.vatt || 0) >= 5) return no('Too many wrong codes. Send a new code.');
+        if (!me.code || str(p.code, 6) !== me.code) {
+          me.vatt = (me.vatt || 0) + 1;
+          return no('Incorrect code. ' + (5 - me.vatt) + ' attempt' + (5 - me.vatt == 1 ? '' : 's') + ' left.');
+        }
+        delete me.vatt;
         me.ver = true;
         delete me.code;
         h.au(me.em, 'account verified', null);
+        return ok();
+      },
+      /* send a new verification code to the phone (once a minute) */
+      resendCode(me) {
+        if (me.ver) return no('Your account is already verified.');
+        if (me.codeT && Date.now() - me.codeT < 60000) return no('Wait a minute before asking for another code.');
+        me.code = pin6();
+        me.codeT = Date.now();
+        delete me.vatt;
+        h.sim(me.ph, 'SMS', `ZamMove: your verification code is ${me.code}. Do not share it.`, me.em);
+        h.au(me.em, 'verification code sent', null);
         return ok();
       },
       saveProfile(me, p) {

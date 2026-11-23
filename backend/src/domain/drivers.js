@@ -56,8 +56,10 @@ module.exports = (S, h) => {
     if (dx.clr && dx.clr < t) out.push('NBI/police clearance expired on ' + dx.clr);
     return out;
   };
-  h.vehDocIssues = v =>
-    v && v.regExp && v.regExp < todayPH() ? ['Vehicle registration expired on ' + v.regExp] : [];
+  h.vehDocIssues = v => [
+    ...(v && v.regExp && v.regExp < todayPH() ? ['Vehicle registration expired on ' + v.regExp] : []),
+    ...(v ? h.legalIssues(v, C.VT.find(x => x.id == v.type), false) : []),
+  ];
   const ownerOk = (me, v) => v && v.owner == me.em && h.okr(me, 'owner') && h.acct(me);
   const driveable = v => {
     if (!v) return 'Vehicle not found.';
@@ -215,6 +217,8 @@ module.exports = (S, h) => {
       if (bad) return no(bad);
       const dr = h.U(str(p.driver, 120).toLowerCase());
       if (!dr || !h.okr(dr, 'driver') || !h.acct(dr)) return no('Choose an approved, active driver.');
+      if (dr.em == me.em || v.owner == me.em)
+        return no('You cannot assign yourself or your own vehicle. Another administrator must do it.');
       /* the owner's own vehicle: they drive it at once */
       if (dr.em == v.owner) {
         const r = h.selfDrive(dr, v, me.em);
@@ -245,6 +249,8 @@ module.exports = (S, h) => {
       const a = S.asg.find(x => x.id == p.id);
       if (!a || !['Pending Admin Review', 'Waiting for Application'].includes(a.st))
         return no('Request not found or already decided.');
+      if (a.driver == me.em || (h.vOf(a.vehicle) || {}).owner == me.em)
+        return no('You cannot decide an assignment you are part of. Another administrator must do it.');
       const reason = str(p.reason, 300),
         v = h.vOf(a.vehicle),
         dr = h.U(a.driver);
@@ -344,6 +350,8 @@ module.exports = (S, h) => {
       if (!h.isAdmin(me)) return no('Administrator access required.');
       const a = S.asg.find(x => x.id == p.id);
       if (!a || a.st != 'Pending Activation') return no('This assignment is not ready to activate.');
+      if (a.driver == me.em || (h.vOf(a.vehicle) || {}).owner == me.em)
+        return no('You cannot activate an assignment you are part of. Another administrator must do it.');
       const dr = h.U(a.driver),
         v = h.vOf(a.vehicle);
       if (!h.okr(dr, 'driver') || !h.acct(dr)) return no('The driver is no longer approved or active.');

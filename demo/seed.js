@@ -97,7 +97,7 @@ const users = [
   u('Olga Navarro', 'olga@zammove.ph', '09171234506', { roles: [OW] }), u('Ada Villanueva', 'ada@zammove.ph', '09171234507', { adm: 'super' }),
   u('Kim Bautista', 'kim@zammove.ph', '09171234508', { cash: true }), u('Leo Garcia', 'leo@zammove.ph', '09171234511', { roles: [DR], photo: IMG.leo }), u('Ana Lim', 'ana@zammove.ph', '09171234509', { roles: [{ t: 'driver', st: 'pending' }] }),
 ];
-const V = (id, type, brand, model, plate, color, year, x = {}) => ({ id, owner: 'olga@zammove.ph', type, brand, model, plate, color, year, approval: 'Approved', status: 'Available', regExp: day(400), docs: [{ name: 'OR/CR', file: IMG.id }], hist: [], seats: 3, trans: 'Manual', fuel: 'Diesel', ...x });
+const V = (id, type, brand, model, plate, color, year, x = {}) => ({ id, owner: 'olga@zammove.ph', type, brand, model, plate, color, year, approval: 'Approved', status: 'Available', regExp: day(400), legal: { ins: 'CTPL-' + plate.replace(/\D/g, ''), insExp: day(300), cpc: 'CPC-2025-' + plate.replace(/\D/g, ''), cpcExp: day(600) }, docs: [{ name: 'OR/CR', file: IMG.id }], hist: [], seats: 3, trans: 'Manual', fuel: 'Diesel', ...x });
 const vh = [
   V('VH-L300A', 'l3', 'Mitsubishi', 'L300', 'ZAM 4521', 'White', 2021, { cap: '1.5 tons · 10 ft', desc: 'Moving blankets and straps on board' }),
   V('VH-L300B', 'l3', 'Mitsubishi', 'L300', 'ZAM 7810', 'Silver', 2022, { cap: '1.5 tons · 10 ft', desc: 'Tarpaulin cover' }),
