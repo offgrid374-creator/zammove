@@ -9,7 +9,8 @@ frontend/
 ├── customer/              customer app + driver, owner, cashier and admin-console workspaces
 │   ├── index.html         loads the files below in order
 │   ├── css/app.css
-│   ├── js/01-core.js … 09-workspaces.js
+│   ├── css/auth.css       Auth screens design (Figma A01–A12), loaded after tailwind.css
+│   ├── js/01-core.js … 18-auth.js
 │   └── vendor/qrcode.min.js   third-party (MIT), not edited or formatted
 └── admin/                 separate staff Admin Panel (index.html, admin.css, admin.js)
 ```
@@ -31,6 +32,7 @@ The customer app's scripts are classic `<script>` files that share one global sc
 | –   | `vendor/qrcode.min.js` | QR codes for the Start PIN                                                                           |
 | 8   | `08-verification.js`   | Start PIN / QR, plate, cargo checklist, Delivery PIN panels                                          |
 | 9   | `09-workspaces.js`     | Driver, vehicle owner, cashier, admin console, staff, owner setup, polling                           |
+| 18  | `18-auth.js`           | Auth redesign (Figma A01–A12): sign up, field errors, verify modal, login lockout countdown          |
 
 ### How the layers work
 
