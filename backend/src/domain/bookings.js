@@ -475,6 +475,14 @@ module.exports = (S, h) => {
         return no('Invalid step: this booking is "' + b.st + '".');
       if (to == 'Items Loaded' && !note)
         return no('Describe the cargo loaded (items, count, condition) first.');
+      /* documents were checked when the job was accepted, possibly weeks ago: check them again before leaving */
+      if (to == 'On the Way to Pickup') {
+        const v = h.vOf(b.veh),
+          iss = [...h.driverDocIssues(me.em), ...h.vehDocIssues(v)];
+        if (!h.vOper(v) && !iss.length) iss.push('The vehicle is not approved and operational');
+        if (iss.length)
+          return no(`You cannot start this trip: ${iss[0]}. Renew it, or hand the job back so another driver can take it.`);
+      }
       h.ev(b, me.em, to, note);
       h.au(me.em, 'trip ' + to, { bk: b.id });
       h.ntf(b.cu, 'Booking ' + b.id, 'Status is now ' + to + '.');

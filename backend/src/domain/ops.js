@@ -19,6 +19,38 @@ const FLAG_KINDS = ['Unremitted money', 'Payment discrepancy', 'Fraud suspicion'
 module.exports = (S, h) => {
   const U = em => h.U(str(em, 120).toLowerCase());
   const admins = (head, body) => h.staffEms().forEach(em => h.ntf(em, head, body));
+
+  /* Taking a user out of service (suspension, or losing the driver / owner role).
+     - Trips already under way and rentals already approved or running must finish first (blocked).
+     - Upcoming accepted trips they drive, or that use their vehicles, go back to Pending for another driver.
+     - Rental requests still waiting on their vehicles are cancelled.
+     `driver` / `owner` say which side is being stopped. Returns an error message, or '' after the changes. */
+  const stopUser = (me, u, why, { driver, owner }) => {
+    const vids = owner ? S.vh.filter(v => v.owner == u.em).map(v => v.id) : [];
+    const hit = b => !h.done(b) && b.st != 'Pending' && ((driver && b.drvUser == u.em) || vids.includes(b.veh));
+    if (S.bk.some(b => hit(b) && b.st != 'Accepted'))
+      return driver && S.bk.some(b => hit(b) && b.st != 'Accepted' && b.drvUser == u.em)
+        ? 'This driver has a trip in progress. Do this after the trip.'
+        : 'A trip is in progress on one of this owner’s vehicles. Do this after the trip.';
+    if (owner && S.rn.some(r => r.owner == u.em && ['Approved', 'Active', 'Returned'].includes(r.st)))
+      return 'This owner has an approved or running rental. Finish or cancel it first.';
+    S.bk.filter(b => hit(b) && b.st == 'Accepted').forEach(b => {
+      const drv = b.drvUser;
+      Object.assign(b, { drvUser: '', drv: '', veh: '', acc: null, pendFrom: now() });
+      h.ev(b, me.em, 'Pending', 'Reopened by ZamMove: ' + why);
+      h.au(me.em, 'booking reopened', { bk: b.id, driver: drv, why });
+      h.ntf(b.cu, 'Booking ' + b.id, 'Your driver is no longer available. Your booking is open again for another driver.');
+      if (drv && drv != u.em) h.ntf(drv, 'Trip ' + b.id + ' removed', 'The vehicle owner is no longer active, so this trip was reopened.');
+    });
+    if (owner)
+      S.rn.filter(r => r.owner == u.em && r.st == 'Pending').forEach(r => {
+        r.st = 'Cancelled';
+        (r.hist = r.hist || []).push({ st: 'Cancelled', t: now(), by: me.em, note: why });
+        h.ntf(r.cu, 'Rental ' + r.id, 'This vehicle is no longer available, so your rental request was cancelled.');
+      });
+    return '';
+  };
+
   return {
     /* owner: report a driver who drives (or drove) one of his vehicles; goes to the admin's incident cases */
     ownerReport(me, p) {
@@ -150,8 +182,8 @@ module.exports = (S, h) => {
       if (reason.length < 5) return no('Write the reason (the user will see it).');
       if (p.status == 'suspended') {
         if (u.status == 'suspended') return no('This account is already suspended.');
-        if (S.bk.some(b => b.drvUser == u.em && !h.done(b) && b.st != 'Pending' && b.st != 'Accepted'))
-          return no('This driver has a trip in progress. Suspend the account after the trip.');
+        const err = stopUser(me, u, 'account suspended', { driver: true, owner: true });
+        if (err) return no(err.replace('Do this', 'Suspend the account'));
         u.status = 'suspended';
         u.susp = { reason, by: me.em, t: now() };
         u.tv = (u.tv || 0) + 1; // ends every session
@@ -179,8 +211,8 @@ module.exports = (S, h) => {
       if (!r) return no('This user does not have an approved ' + role + ' role.');
       const reason = str(p.reason, 300);
       if (reason.length < 5) return no('Write the reason (the user will see it).');
-      if (role == 'driver' && S.bk.some(b => b.drvUser == u.em && !h.done(b) && b.st != 'Pending'))
-        return no('This driver has an accepted or active booking. Reassign it first.');
+      const err = stopUser(me, u, role + ' role removed', { driver: role == 'driver', owner: role == 'owner' });
+      if (err) return no(err.replace('Do this', 'Remove the role'));
       Object.assign(r, { st: 'revoked', revokedBy: me.em, revokedAt: now(), reason });
       if (role == 'driver')
         S.asg.forEach(a => {

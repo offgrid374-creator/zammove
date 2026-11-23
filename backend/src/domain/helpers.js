@@ -21,7 +21,12 @@ module.exports = function makeHelpers(S) {
   h.asgOf = em => S.asg.find(a => a.driver == em && a.st == 'Active');
   h.vAsg = id => S.asg.find(a => a.vehicle == id && a.st == 'Active');
   h.dAv = em => (S.dp[em] || {}).avail || 'Unavailable';
-  h.vOper = v => !!v && v.approval == 'Approved' && v.status == 'Available';
+  /* a vehicle works only while its owner's account is active and the owner role was not taken away */
+  h.ownerActive = v => {
+    const o = v && h.U(v.owner);
+    return !!o && h.acct(o) && !(o.roles || []).some(r => r.t == 'owner' && r.st == 'revoked');
+  };
+  h.vOper = v => !!v && v.approval == 'Approved' && v.status == 'Available' && h.ownerActive(v);
 
   h.done = b => ['Completed', 'Cancelled', 'Rejected'].includes(b.st);
   /* fares per vehicle type: the built-in rates, overridden by the administrator's settings */
@@ -91,6 +96,7 @@ module.exports = function makeHelpers(S) {
   h.rentable = v =>
     !!v &&
     v.approval == 'Approved' &&
+    h.ownerActive(v) &&
     !!v.rent &&
     !!v.rent.on &&
     +v.rent.day > 0 &&
@@ -145,7 +151,7 @@ module.exports = function makeHelpers(S) {
   /* capacity: usable vehicles of a type minus overlapping bookings of that type */
   h.fleetOf = type =>
     S.vh.filter(v => {
-      if (v.type != type || v.approval != 'Approved' || v.status == 'Maintenance') return false;
+      if (v.type != type || v.approval != 'Approved' || v.status == 'Maintenance' || !h.ownerActive(v)) return false;
       const a = h.vAsg(v.id),
         u = a && h.U(a.driver);
       return !!u && h.okr(u, 'driver') && h.acct(u) && h.dAv(u.em) != 'Temporarily Suspended';
