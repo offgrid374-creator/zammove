@@ -1,0 +1,4295 @@
+[
+ {
+  "section": "A",
+  "role": "Public",
+  "id": "A01-landing",
+  "title": "Landing page",
+  "purpose": "The first page anyone sees. It explains the service in one line and lets visitors check a price before creating an account.",
+  "example": "Prices come from the real price list (base fare + per-km rate). Rental cards come from vehicles owners have offered.",
+  "next": [
+   [
+    "A02-sign-up",
+    "Create account"
+   ],
+   [
+    "A08-log-in",
+    "Log in"
+   ]
+  ],
+  "callouts": [
+   {
+    "x": 161.84375,
+    "y": 127.1875,
+    "w": 588.15625,
+    "h": 211.640625,
+    "title": "Headline",
+    "text": "Says exactly what ZamMove does and where: van and truck booking in Zamboanga City."
+   },
+   {
+    "x": 827,
+    "y": 195.375,
+    "w": 112.578125,
+    "h": 40,
+    "title": "Quick price checker",
+    "text": "Tabs to get a hauling estimate, check a rental price, or track a trip with a booking reference."
+   },
+   {
+    "x": 827,
+    "y": 443.375,
+    "w": 428,
+    "h": 52,
+    "title": "Instant estimate",
+    "text": "Visitors pick two places and see the fare right away, no sign-up needed."
+   },
+   {
+    "x": 164,
+    "y": 934.078125,
+    "w": 704,
+    "h": 46.1875,
+    "title": "Vehicle types and prices",
+    "text": "From 3-wheelers to 6-wheeler trucks, each with capacity and price."
+   },
+   {
+    "x": 164,
+    "y": 1592.453125,
+    "w": 1112,
+    "h": 32,
+    "title": "Self-drive rental",
+    "text": "Rental models offered by verified owners, with the lowest daily rate."
+   },
+   {
+    "x": 1130.640625,
+    "y": 45.1875,
+    "w": 145.359375,
+    "h": 44,
+    "title": "Create account",
+    "text": "Starts sign-up."
+   }
+  ],
+  "file": "screens/A01-landing.jpg",
+  "svg": "vector/A01-landing.svg",
+  "w": 1440,
+  "h": 4161,
+  "scale": 1,
+  "device": "desktop"
+ },
+ {
+  "section": "A",
+  "role": "Public",
+  "id": "A02-sign-up",
+  "title": "Create an account (empty form)",
+  "purpose": "New customers register with their personal details. Everyone starts as a customer; driver and vehicle-owner roles are applied for later from the account page.",
+  "example": "All fields are required. The customer must be 18 or older and accept the Terms and Privacy Policy.",
+  "next": [
+   [
+    "A03-sign-up-filled",
+    "Fill in the form"
+   ]
+  ],
+  "callouts": [
+   {
+    "x": 520,
+    "y": 315.859375,
+    "w": 400,
+    "h": 52,
+    "title": "Full name and birthday",
+    "text": "Used on receipts and to check the customer is 18 or older."
+   },
+   {
+    "x": 520,
+    "y": 512.640625,
+    "w": 400,
+    "h": 52,
+    "title": "Mobile number",
+    "text": "Philippine number (09…). The verification code is sent here."
+   },
+   {
+    "x": 520,
+    "y": 611.03125,
+    "w": 400,
+    "h": 52,
+    "title": "Email",
+    "text": "Used to log in and for booking updates."
+   },
+   {
+    "x": 520,
+    "y": 807.8125,
+    "w": 400,
+    "h": 52,
+    "title": "Password",
+    "text": "At least 8 characters with a letter and a number; stored encrypted."
+   },
+   {
+    "x": 524,
+    "y": 1039.59375,
+    "w": 18,
+    "h": 52,
+    "title": "Terms and privacy",
+    "text": "Must be accepted before an account is created."
+   }
+  ],
+  "file": "screens/A02-sign-up.jpg",
+  "svg": "vector/A02-sign-up.svg",
+  "w": 1440,
+  "h": 1422,
+  "scale": 1,
+  "device": "desktop"
+ },
+ {
+  "section": "A",
+  "role": "Public",
+  "id": "A03-sign-up-filled",
+  "title": "Create an account (filled in)",
+  "purpose": "The same form completed. Password rules are checked as the customer types, and both passwords must match.",
+  "example": "Mika Torres, born 1995, 0917 123 4510, Sta. Catalina, mika@zammove.ph.",
+  "next": [
+   [
+    "A04-verify-account",
+    "Create account"
+   ]
+  ],
+  "callouts": [
+   {
+    "x": 520,
+    "y": 946.59375,
+    "w": 400,
+    "h": 52,
+    "title": "Confirm password",
+    "text": "Must match; mistakes are caught before sending."
+   },
+   {
+    "x": 520,
+    "y": 1132.984375,
+    "w": 400,
+    "h": 52,
+    "title": "Create account",
+    "text": "Creates the account and logs the customer in. The account starts as “not verified”."
+   }
+  ],
+  "file": "screens/A03-sign-up-filled.jpg",
+  "svg": "vector/A03-sign-up-filled.svg",
+  "w": 1440,
+  "h": 1424,
+  "scale": 1,
+  "device": "desktop"
+ },
+ {
+  "section": "A",
+  "role": "Customer",
+  "id": "A04-verify-account",
+  "title": "Verify the account (6-digit code)",
+  "purpose": "Right after sign-up the customer must enter a 6-digit code sent to their phone and email. This proves the number and email are real before anyone can book a truck.",
+  "example": "SMS is not connected in this prototype, so the code is shown on screen. In production it arrives by SMS.",
+  "next": [
+   [
+    "A05-booking-blocked",
+    "Try to book first"
+   ],
+   [
+    "A06-code-entered",
+    "Enter the code"
+   ]
+  ],
+  "callouts": [
+   {
+    "x": 204,
+    "y": 131.1875,
+    "w": 1032,
+    "h": 25,
+    "title": "Verification banner",
+    "text": "Stays on Home until the account is verified."
+   },
+   {
+    "x": 204,
+    "y": 201.78125,
+    "w": 1032,
+    "h": 42.46875,
+    "title": "Where the code comes from",
+    "text": "In the real service this is the SMS / email message."
+   },
+   {
+    "x": 204,
+    "y": 254.25,
+    "w": 200,
+    "h": 52,
+    "title": "Code box",
+    "text": "The customer types the 6 digits here."
+   }
+  ],
+  "file": "screens/A04-verify-account.jpg",
+  "svg": "vector/A04-verify-account.svg",
+  "w": 1440,
+  "h": 4803,
+  "scale": 1,
+  "device": "desktop"
+ },
+ {
+  "section": "A",
+  "role": "Customer",
+  "id": "A05-booking-blocked",
+  "title": "Before verification: booking is blocked",
+  "purpose": "If the customer tries to book before verifying, the server refuses and explains why. Rentals are blocked the same way.",
+  "example": "Mika filled in a move from Sta. Catalina to Tumaga, but has not entered her code yet.",
+  "next": [
+   [
+    "A06-code-entered",
+    "Go back and verify"
+   ]
+  ],
+  "callouts": [
+   {
+    "x": 722.078125,
+    "y": 1065.859375,
+    "w": 501.90625,
+    "h": 23.1875,
+    "title": "Clear message",
+    "text": "“Verify your account first”: nothing is booked and no driver is notified."
+   },
+   {
+    "x": 722.078125,
+    "y": 1097.046875,
+    "w": 501.90625,
+    "h": 52,
+    "title": "Submit",
+    "text": "Works only for verified accounts."
+   }
+  ],
+  "file": "screens/A05-booking-blocked.jpg",
+  "svg": "vector/A05-booking-blocked.svg",
+  "w": 1440,
+  "h": 2281,
+  "scale": 1,
+  "device": "desktop"
+ },
+ {
+  "section": "A",
+  "role": "Customer",
+  "id": "A06-code-entered",
+  "title": "Entering the verification code",
+  "full": true,
+  "purpose": "The customer types the code and taps Verify. Wrong codes are rejected.",
+  "example": "Code 300652.",
+  "next": [
+   [
+    "A07-verified",
+    "Verify"
+   ]
+  ],
+  "callouts": [
+   {
+    "x": 204,
+    "y": 254.25,
+    "w": 200,
+    "h": 52,
+    "title": "Code entered",
+    "text": "Exactly 6 digits."
+   },
+   {
+    "x": 412,
+    "y": 254.25,
+    "w": 84.734375,
+    "h": 52,
+    "title": "Verify",
+    "text": "Checks the code on the server."
+   }
+  ],
+  "file": "screens/A06-code-entered.jpg",
+  "svg": "vector/A06-code-entered.svg",
+  "w": 1440,
+  "h": 4803,
+  "scale": 1,
+  "device": "desktop"
+ },
+ {
+  "section": "A",
+  "role": "Customer",
+  "id": "A07-verified",
+  "title": "After verification: ready to book",
+  "purpose": "The banner disappears and booking and renting are unlocked. This is the customer home from now on.",
+  "example": "Mika Torres, verified.",
+  "next": [
+   [
+    "B01-book-a-haul",
+    "Book a haul"
+   ]
+  ],
+  "callouts": [
+   {
+    "x": 181.84375,
+    "y": 119.1875,
+    "w": 548.15625,
+    "h": 211.640625,
+    "title": "Unlocked",
+    "text": "No more verification banner; every action is available."
+   },
+   {
+    "x": 807,
+    "y": 187.375,
+    "w": 112.578125,
+    "h": 40,
+    "title": "Book a haul",
+    "text": "Start the first booking."
+   }
+  ],
+  "file": "screens/A07-verified.jpg",
+  "svg": "vector/A07-verified.svg",
+  "w": 1440,
+  "h": 4570,
+  "scale": 1,
+  "device": "desktop"
+ },
+ {
+  "section": "A",
+  "role": "Public",
+  "id": "A08-log-in",
+  "title": "Log in",
+  "purpose": "Returning users log in. One account can hold several roles (customer, driver, vehicle owner); the workspace switcher moves between them.",
+  "example": "The same login page is used by customers, drivers, owners, cashiers and administrators.",
+  "next": [
+   [
+    "A09-wrong-password",
+    "Wrong password"
+   ],
+   [
+    "A11-forgot-password",
+    "Forgot password?"
+   ]
+  ],
+  "callouts": [
+   {
+    "x": 520,
+    "y": 290.265625,
+    "w": 400,
+    "h": 52,
+    "title": "Email",
+    "text": "The email used at sign-up."
+   },
+   {
+    "x": 520,
+    "y": 388.65625,
+    "w": 400,
+    "h": 52,
+    "title": "Password",
+    "text": "Hidden by default."
+   },
+   {
+    "x": 520,
+    "y": 460.65625,
+    "w": 126.234375,
+    "h": 24,
+    "title": "Forgot password",
+    "text": "Reset with a code."
+   }
+  ],
+  "file": "screens/A08-log-in.jpg",
+  "svg": "vector/A08-log-in.svg",
+  "w": 1440,
+  "h": 931,
+  "scale": 1,
+  "device": "desktop"
+ },
+ {
+  "section": "A",
+  "role": "Public",
+  "id": "A09-wrong-password",
+  "title": "Wrong password",
+  "purpose": "A wrong password shows how many tries are left, without saying whether the email exists.",
+  "example": "“Invalid email or password. 4 attempts left.”",
+  "next": [
+   [
+    "A10-locked",
+    "After 5 wrong tries"
+   ]
+  ],
+  "callouts": [
+   {
+    "x": 520,
+    "y": 452.65625,
+    "w": 400,
+    "h": 19.59375,
+    "title": "Attempts left",
+    "text": "Protects accounts from password guessing."
+   }
+  ],
+  "file": "screens/A09-wrong-password.jpg",
+  "svg": "vector/A09-wrong-password.svg",
+  "w": 1440,
+  "h": 931,
+  "scale": 1,
+  "device": "desktop"
+ },
+ {
+  "section": "A",
+  "role": "Public",
+  "id": "A10-locked",
+  "title": "Locked after 5 wrong tries",
+  "purpose": "After 5 wrong passwords the account is locked for 60 seconds.",
+  "example": "“Too many failed attempts. Login is locked for 60 seconds.”",
+  "next": [
+   [
+    "A11-forgot-password",
+    "Forgot password?"
+   ]
+  ],
+  "callouts": [
+   {
+    "x": 520,
+    "y": 452.65625,
+    "w": 400,
+    "h": 19.59375,
+    "title": "Temporary lock",
+    "text": "Slows down anyone trying to guess a password."
+   }
+  ],
+  "file": "screens/A10-locked.jpg",
+  "svg": "vector/A10-locked.svg",
+  "w": 1440,
+  "h": 931,
+  "scale": 1,
+  "device": "desktop"
+ },
+ {
+  "section": "A",
+  "role": "Public",
+  "id": "A11-forgot-password",
+  "title": "Forgot password: step 1",
+  "purpose": "To reset a password the user enters their email and date of birth. A one-time code is then sent to them.",
+  "example": "ana@zammove.ph, born 1990-01-01.",
+  "next": [
+   [
+    "A12-reset-code",
+    "Send code"
+   ]
+  ],
+  "callouts": [
+   {
+    "x": 520,
+    "y": 290.265625,
+    "w": 400,
+    "h": 52,
+    "title": "Email",
+    "text": "The account to reset."
+   },
+   {
+    "x": 520,
+    "y": 388.65625,
+    "w": 400,
+    "h": 52,
+    "title": "Date of birth",
+    "text": "A second check that this is the owner of the account."
+   }
+  ],
+  "file": "screens/A11-forgot-password.jpg",
+  "svg": "vector/A11-forgot-password.svg",
+  "w": 1440,
+  "h": 931,
+  "scale": 1,
+  "device": "desktop"
+ },
+ {
+  "section": "A",
+  "role": "Public",
+  "id": "A12-reset-code",
+  "title": "Forgot password: step 2 (code and new password)",
+  "purpose": "The user enters the code they received and chooses a new password. Old login sessions stop working.",
+  "example": "Code 607616 (shown on screen in this prototype; sent by SMS/email in production).",
+  "next": [
+   [
+    "A08-log-in",
+    "Update password → log in"
+   ]
+  ],
+  "callouts": [
+   {
+    "x": 520,
+    "y": 290.265625,
+    "w": 400,
+    "h": 52,
+    "title": "Reset code",
+    "text": "Expires after a short time; wrong codes are refused."
+   },
+   {
+    "x": 520,
+    "y": 388.65625,
+    "w": 400,
+    "h": 52,
+    "title": "New password",
+    "text": "Same rules as at sign-up."
+   },
+   {
+    "x": 520,
+    "y": 536.65625,
+    "w": 400,
+    "h": 52,
+    "title": "Update password",
+    "text": "Then log in with the new password."
+   }
+  ],
+  "file": "screens/A12-reset-code.jpg",
+  "svg": "vector/A12-reset-code.svg",
+  "w": 1440,
+  "h": 931,
+  "scale": 1,
+  "device": "desktop"
+ },
+ {
+  "section": "B",
+  "role": "Customer",
+  "id": "B01-book-a-haul",
+  "title": "Book a haul (truck with driver)",
+  "purpose": "The customer enters pickup, drop-off, vehicle, date and items. The fare is computed instantly; the request then goes to available drivers.",
+  "example": "Sta. Catalina → Tumaga, L300 Van, tomorrow 9:00, 1 extra mover, discount code WELCOME (5% off).",
+  "next": [
+   [
+    "C01-pending",
+    "Submit booking request"
+   ]
+  ],
+  "callouts": [
+   {
+    "x": 204,
+    "y": 268.96875,
+    "w": 452.078125,
+    "h": 52,
+    "title": "Pickup and drop-off",
+    "text": "Search a barangay or landmark, tap the map, or use the phone’s location. Zamboanga City only."
+   },
+   {
+    "x": 204,
+    "y": 965.515625,
+    "w": 222.03125,
+    "h": 210.390625,
+    "title": "Vehicle type",
+    "text": "Capacity and base fare for each type. Only types with a free vehicle at that time can be booked."
+   },
+   {
+    "x": 204,
+    "y": 1436.6875,
+    "w": 452.078125,
+    "h": 52,
+    "title": "Schedule",
+    "text": "The system checks a vehicle is free for the whole trip window."
+   },
+   {
+    "x": 204,
+    "y": 1753.859375,
+    "w": 452.078125,
+    "h": 77.1875,
+    "title": "Items and instructions",
+    "text": "What to carry and notes for the driver; this becomes the cargo checklist at pickup."
+   },
+   {
+    "x": 722.078125,
+    "y": 733.359375,
+    "w": 501.90625,
+    "h": 287.15625,
+    "title": "Fare estimate",
+    "text": "Base + distance + movers + 5% service fee − discount. Paid 50% at pickup and 50% after delivery."
+   },
+   {
+    "x": 722.078125,
+    "y": 1136.640625,
+    "w": 501.90625,
+    "h": 52,
+    "title": "Submit",
+    "text": "Sends the request to eligible drivers."
+   }
+  ],
+  "file": "screens/B01-book-a-haul.jpg",
+  "svg": "vector/B01-book-a-haul.svg",
+  "w": 1440,
+  "h": 2281,
+  "scale": 1,
+  "device": "desktop"
+ },
+ {
+  "section": "C",
+  "role": "Customer",
+  "id": "C01-pending",
+  "title": "Step 1 · Customer: waiting for a driver (before)",
+  "purpose": "The booking is sent. Until a driver accepts, the customer sees “Pending” and can cancel for free.",
+  "example": "BK-5DI0VV: Sta. Catalina → Tumaga, L300 Van, tomorrow 9:00.",
+  "next": [
+   [
+    "C02-driver-request",
+    "What the driver sees"
+   ]
+  ],
+  "callouts": [
+   {
+    "x": 294.828125,
+    "y": 366.046875,
+    "w": 69.546875,
+    "h": 24.796875,
+    "title": "Status: Pending",
+    "text": "Waiting for the first eligible driver to accept."
+   },
+   {
+    "x": 184,
+    "y": 222.578125,
+    "w": 1072,
+    "h": 42.46875,
+    "title": "Free cancellation",
+    "text": "No fee while Pending; 10% after a driver accepts."
+   },
+   {
+    "x": 204,
+    "y": 618.1875,
+    "w": 131.609375,
+    "h": 40,
+    "title": "Cancel",
+    "text": "The customer can still cancel at no charge."
+   }
+  ],
+  "file": "screens/C01-pending.jpg",
+  "svg": "vector/C01-pending.svg",
+  "w": 1440,
+  "h": 900,
+  "scale": 1,
+  "device": "desktop"
+ },
+ {
+  "section": "C",
+  "role": "Driver",
+  "id": "C02-driver-request",
+  "title": "Step 2 · Driver: new booking request",
+  "purpose": "Every eligible driver sees the request. The system shows why this driver may take it; the first to accept gets the job.",
+  "example": "Leo Garcia (white L300, ZAM 3388) is Available and free tomorrow morning.",
+  "next": [
+   [
+    "C03-accepted",
+    "Accept booking"
+   ]
+  ],
+  "callouts": [
+   {
+    "x": 1067.15625,
+    "y": 513.953125,
+    "w": 168.84375,
+    "h": 24,
+    "title": "Customer privacy",
+    "text": "The customer’s name and phone are shared only after the driver accepts."
+   },
+   {
+    "x": 204,
+    "y": 431.953125,
+    "w": 96.4375,
+    "h": 24,
+    "title": "Job details",
+    "text": "Route, schedule, cargo, movers and price. Eligibility (approved vehicle, right type, free schedule) is checked on the server."
+   },
+   {
+    "x": 204,
+    "y": 557.953125,
+    "w": 130.671875,
+    "h": 40,
+    "title": "Accept",
+    "text": "Assigns the booking to this driver and notifies the customer."
+   },
+   {
+    "x": 342.671875,
+    "y": 557.953125,
+    "w": 79.390625,
+    "h": 40,
+    "title": "Decline",
+    "text": "Hides it for this driver only."
+   }
+  ],
+  "file": "screens/C02-driver-request.jpg",
+  "svg": "vector/C02-driver-request.svg",
+  "w": 1440,
+  "h": 1146,
+  "scale": 1,
+  "device": "desktop"
+ },
+ {
+  "section": "C",
+  "role": "Customer",
+  "id": "C03-accepted",
+  "title": "Step 3 · Customer: driver assigned (after)",
+  "purpose": "As soon as a driver accepts, the customer sees who is coming: photo, name, rating, vehicle, plate and color.",
+  "example": "Leo Garcia · white Mitsubishi L300 · plate ZAM 3388.",
+  "next": [
+   [
+    "C04-driver-heading",
+    "Driver starts the trip"
+   ]
+  ],
+  "callouts": [
+   {
+    "x": 294.828125,
+    "y": 366.046875,
+    "w": 78.359375,
+    "h": 24.796875,
+    "title": "Status: Accepted",
+    "text": "The driver is committed to this schedule."
+   },
+   {
+    "x": 216,
+    "y": 641.390625,
+    "w": 169.890625,
+    "h": 25.59375,
+    "title": "Driver and vehicle card",
+    "text": "So the customer can recognise the truck at pickup."
+   },
+   {
+    "x": 1116.75,
+    "y": 636.1875,
+    "w": 107.25,
+    "h": 40,
+    "title": "View profile",
+    "text": "Full profile with reviews and the vehicle photo."
+   }
+  ],
+  "file": "screens/C03-accepted.jpg",
+  "svg": "vector/C03-accepted.svg",
+  "w": 1440,
+  "h": 1164,
+  "scale": 1,
+  "device": "desktop"
+ },
+ {
+  "section": "C",
+  "role": "Driver",
+  "id": "C04-driver-heading",
+  "title": "Step 4 · Driver: start heading to the pickup",
+  "purpose": "On the trip day the driver opens the Active trip page and taps “Heading to pickup”. Each tap moves the trip one step forward.",
+  "example": "BK-5DI0VV for Mika Torres, tomorrow 9:00.",
+  "next": [
+   [
+    "C05-on-the-way",
+    "Heading to pickup"
+   ]
+  ],
+  "callouts": [
+   {
+    "x": 204,
+    "y": 264.78125,
+    "w": 153.375,
+    "h": 40,
+    "title": "Navigate",
+    "text": "Opens Waze with the pickup address."
+   },
+   {
+    "x": 204,
+    "y": 320.78125,
+    "w": 147.390625,
+    "h": 40,
+    "title": "Next step button",
+    "text": "Only the next allowed status is offered."
+   }
+  ],
+  "file": "screens/C04-driver-heading.jpg",
+  "svg": "vector/C04-driver-heading.svg",
+  "w": 1440,
+  "h": 900,
+  "scale": 1,
+  "device": "desktop"
+ },
+ {
+  "section": "C",
+  "role": "Customer",
+  "id": "C05-on-the-way",
+  "title": "Step 5 · Customer: driver on the way (live map)",
+  "purpose": "The customer follows the truck on a live map and sees the estimated minutes to the pickup. A Waze link is a backup.",
+  "example": "Leo Garcia is near Sta. Maria, heading to Sta. Catalina.",
+  "next": [
+   [
+    "C06-driver-on-the-way",
+    "Driver’s screen"
+   ]
+  ],
+  "callouts": [
+   {
+    "x": 1113.59375,
+    "y": 142.78125,
+    "w": 130.40625,
+    "h": 40,
+    "title": "Follow on Waze",
+    "text": "Opens the driver’s Waze “Share drive”."
+   },
+   {
+    "x": 520,
+    "y": 208.375,
+    "w": 736,
+    "h": 380,
+    "title": "Live map",
+    "text": "Pickup, drop-off, driver position and route so far."
+   },
+   {
+    "x": 524,
+    "y": 596.375,
+    "w": 728,
+    "h": 22.390625,
+    "title": "Live status",
+    "text": "Last update, GPS accuracy, distance and minutes to the pickup."
+   }
+  ],
+  "file": "screens/C05-on-the-way.jpg",
+  "svg": "vector/C05-on-the-way.svg",
+  "w": 1440,
+  "h": 1369,
+  "scale": 1,
+  "device": "desktop"
+ },
+ {
+  "section": "C",
+  "role": "Driver",
+  "id": "C06-driver-on-the-way",
+  "title": "Step 6 · Driver: on the way, sharing location",
+  "purpose": "While driving, the phone shares its location for the customer’s map. On arrival the driver taps “I’ve arrived at pickup”.",
+  "example": "Live location: Sharing. Waze link: Shared.",
+  "next": [
+   [
+    "C07-pay-down",
+    "I’ve arrived at pickup"
+   ]
+  ],
+  "callouts": [
+   {
+    "x": 204,
+    "y": 320.78125,
+    "w": 1032,
+    "h": 212.375,
+    "title": "Live location",
+    "text": "Sent about every 10 seconds, only during the trip, only to this customer and staff."
+   },
+   {
+    "x": 204,
+    "y": 543.15625,
+    "w": 1032,
+    "h": 165.578125,
+    "title": "Waze link",
+    "text": "Optional backup for the customer."
+   },
+   {
+    "x": 204,
+    "y": 708.734375,
+    "w": 163.109375,
+    "h": 40,
+    "title": "Arrived at pickup",
+    "text": "Moves the trip to “Awaiting Down Payment”."
+   }
+  ],
+  "file": "screens/C06-driver-on-the-way.jpg",
+  "svg": "vector/C06-driver-on-the-way.svg",
+  "w": 1440,
+  "h": 900,
+  "scale": 1,
+  "device": "desktop"
+ },
+ {
+  "section": "C",
+  "role": "Customer",
+  "id": "C07-pay-down",
+  "title": "Step 7 · Customer: pay the 50% down payment",
+  "purpose": "Before loading, the customer pays half. They can pay the driver in cash, or send GCash and enter the reference number here.",
+  "example": "Down payment ₱1,240.00 by GCash, ref 7012398765432 (GCash is simulated in this prototype).",
+  "next": [
+   [
+    "C08-driver-collects",
+    "Submit GCash proof"
+   ]
+  ],
+  "callouts": [
+   {
+    "x": 294.828125,
+    "y": 366.046875,
+    "w": 167.0625,
+    "h": 24.796875,
+    "title": "Status",
+    "text": "Loading cannot start until the down payment is recorded."
+   },
+   {
+    "x": 221,
+    "y": 798.65625,
+    "w": 496.5,
+    "h": 52,
+    "title": "GCash amount and reference",
+    "text": "The reference is checked: 10–13 digits and never used before."
+   },
+   {
+    "x": 221,
+    "y": 952.34375,
+    "w": 159.828125,
+    "h": 40,
+    "title": "Submit GCash proof",
+    "text": "The driver confirms it arrived before it counts."
+   }
+  ],
+  "file": "screens/C07-pay-down.jpg",
+  "svg": "vector/C07-pay-down.svg",
+  "w": 1440,
+  "h": 1558,
+  "scale": 1,
+  "device": "desktop"
+ },
+ {
+  "section": "C",
+  "role": "Driver",
+  "id": "C08-driver-collects",
+  "title": "Step 8 · Driver: confirm the down payment",
+  "purpose": "The driver sees the customer’s GCash reference pre-filled, checks it arrived, adds any cash, and records the payment. GCash + cash must equal exactly 50%.",
+  "example": "GCash 7012398765432 pre-filled with the full down payment.",
+  "next": [
+   [
+    "C09-down-confirmed",
+    "Record payment"
+   ]
+  ],
+  "callouts": [
+   {
+    "x": 204,
+    "y": 718.734375,
+    "w": 1032,
+    "h": 42.46875,
+    "title": "Customer’s proof",
+    "text": "Shown so the driver can check the GCash app."
+   },
+   {
+    "x": 204,
+    "y": 818.796875,
+    "w": 1032,
+    "h": 52,
+    "title": "Amounts",
+    "text": "GCash, cash and reference; they must add up to the amount due."
+   },
+   {
+    "x": 204,
+    "y": 990.796875,
+    "w": 135.046875,
+    "h": 40,
+    "title": "Record payment",
+    "text": "Moves the trip to “Down Payment Confirmed”."
+   }
+  ],
+  "file": "screens/C08-driver-collects.jpg",
+  "svg": "vector/C08-driver-collects.svg",
+  "w": 1440,
+  "h": 1115,
+  "scale": 1,
+  "device": "desktop"
+ },
+ {
+  "section": "C",
+  "role": "Customer",
+  "id": "C09-down-confirmed",
+  "title": "Step 9 · Customer: down payment confirmed",
+  "purpose": "The payment shows as recorded by the driver, and the trip moves on to loading. Every payment appears in the customer’s payment history.",
+  "example": "Down: paid in full · Final: due after delivery.",
+  "next": [
+   [
+    "C10-driver-loads",
+    "Driver loads the items"
+   ]
+  ],
+  "callouts": [
+   {
+    "x": 294.828125,
+    "y": 366.046875,
+    "w": 177.921875,
+    "h": 24.796875,
+    "title": "Status",
+    "text": "Half is paid; loading can start."
+   },
+   {
+    "x": 1101.21875,
+    "y": 678.65625,
+    "w": 134.78125,
+    "h": 24.796875,
+    "title": "Payment record",
+    "text": "Method, reference, amount and who confirmed it."
+   }
+  ],
+  "file": "screens/C09-down-confirmed.jpg",
+  "svg": "vector/C09-down-confirmed.svg",
+  "w": 1440,
+  "h": 1266,
+  "scale": 1,
+  "device": "desktop"
+ },
+ {
+  "section": "C",
+  "role": "Driver",
+  "id": "C10-driver-loads",
+  "title": "Step 10 · Driver: load and describe the cargo",
+  "purpose": "After loading, the driver describes what was loaded and taps “Items loaded”. This note is part of the trip record.",
+  "example": "Sofa (wrapped), 4 boxes, refrigerator upright and strapped.",
+  "next": [
+   [
+    "C11-start-pin",
+    "Items loaded"
+   ]
+  ],
+  "callouts": [
+   {
+    "x": 204,
+    "y": 763.125,
+    "w": 1032,
+    "h": 77.1875,
+    "title": "Cargo description",
+    "text": "Required; what was loaded and in what condition."
+   },
+   {
+    "x": 204,
+    "y": 847.90625,
+    "w": 115.4375,
+    "h": 40,
+    "title": "Items loaded",
+    "text": "Opens the pre-departure verification."
+   }
+  ],
+  "file": "screens/C10-driver-loads.jpg",
+  "svg": "vector/C10-driver-loads.svg",
+  "w": 1440,
+  "h": 972,
+  "scale": 1,
+  "device": "desktop"
+ },
+ {
+  "section": "C",
+  "role": "Customer",
+  "id": "C11-start-pin",
+  "title": "Step 11 · Customer: Start PIN (pre-departure)",
+  "purpose": "The truck cannot leave without the customer’s one-time Start PIN. The customer shows it (or the QR) to the driver at the pickup — it proves the right driver is with the right customer.",
+  "example": "Start PIN 177160. Valid 30 minutes; locks after 5 wrong tries.",
+  "next": [
+   [
+    "C12-driver-enters-pin",
+    "Driver enters the PIN"
+   ]
+  ],
+  "callouts": [
+   {
+    "x": 204,
+    "y": 272.265625,
+    "w": 1032,
+    "h": 102.390625,
+    "title": "Start PIN",
+    "text": "Only on the customer’s phone; never sent to the driver."
+   },
+   {
+    "x": 204,
+    "y": 131.1875,
+    "w": 263.90625,
+    "h": 27.5,
+    "title": "Pre-departure verification",
+    "text": "PIN, plate, cargo checklist and both confirmations."
+   },
+   {
+    "x": 204,
+    "y": 604.25,
+    "w": 158.421875,
+    "h": 40,
+    "title": "New PIN",
+    "text": "Generate a new one if it expires."
+   }
+  ],
+  "file": "screens/C11-start-pin.jpg",
+  "svg": "vector/C11-start-pin.svg",
+  "w": 1440,
+  "h": 2451,
+  "scale": 1,
+  "device": "desktop"
+ },
+ {
+  "section": "C",
+  "role": "Driver",
+  "id": "C12-driver-enters-pin",
+  "title": "Step 12 · Driver: enter the Start PIN",
+  "purpose": "The driver types the PIN the customer shows (or scans the QR). A wrong PIN counts as an attempt.",
+  "example": "PIN 177160 entered.",
+  "next": [
+   [
+    "C13-driver-plate",
+    "Verify PIN"
+   ]
+  ],
+  "callouts": [
+   {
+    "x": 224,
+    "y": 981.796875,
+    "w": 891.5625,
+    "h": 52,
+    "title": "Start PIN",
+    "text": "From the customer’s phone."
+   },
+   {
+    "x": 1123.5625,
+    "y": 981.796875,
+    "w": 92.4375,
+    "h": 52,
+    "title": "Verify",
+    "text": "Checked on the server."
+   }
+  ],
+  "file": "screens/C12-driver-enters-pin.jpg",
+  "svg": "vector/C12-driver-enters-pin.svg",
+  "w": 1440,
+  "h": 1804,
+  "scale": 1,
+  "device": "desktop"
+ },
+ {
+  "section": "C",
+  "role": "Driver",
+  "id": "C13-driver-plate",
+  "title": "Step 13 · Driver: PIN verified, check the plate",
+  "purpose": "With the PIN verified, the driver confirms the plate of the vehicle being used. It must match the vehicle assigned to the booking.",
+  "example": "Plate ZAM 3388 (white L300).",
+  "next": [
+   [
+    "C14-driver-checklist",
+    "Verify plate"
+   ]
+  ],
+  "callouts": [
+   {
+    "x": 224,
+    "y": 989.796875,
+    "w": 992,
+    "h": 25.59375,
+    "title": "PIN verified",
+    "text": "Time-stamped; the PIN can’t be reused."
+   },
+   {
+    "x": 1113.359375,
+    "y": 1137.171875,
+    "w": 102.640625,
+    "h": 52,
+    "title": "Plate check",
+    "text": "Prevents using a different, unapproved vehicle."
+   }
+  ],
+  "file": "screens/C13-driver-plate.jpg",
+  "svg": "vector/C13-driver-plate.svg",
+  "w": 1440,
+  "h": 1734,
+  "scale": 1,
+  "device": "desktop"
+ },
+ {
+  "section": "C",
+  "role": "Driver",
+  "id": "C14-driver-checklist",
+  "title": "Step 14 · Driver: cargo checklist and confirmation",
+  "purpose": "The driver ticks every booked item, enters the piece count, confirms fragile items are padded and strapped, and confirms. A count that differs from the booking is reported automatically.",
+  "example": "6 pieces · every item ticked · fridge padded and strapped.",
+  "next": [
+   [
+    "C15-customer-confirms",
+    "Customer reviews"
+   ]
+  ],
+  "callouts": [
+   {
+    "x": 224,
+    "y": 1465.328125,
+    "w": 992,
+    "h": 52,
+    "title": "Piece count",
+    "text": "Compared with the booking."
+   },
+   {
+    "x": 228,
+    "y": 1544.328125,
+    "w": 18,
+    "h": 52,
+    "title": "Item checklist",
+    "text": "Every booked item must be ticked."
+   },
+   {
+    "x": 204,
+    "y": 820.71875,
+    "w": 1032,
+    "h": 1912.078125,
+    "title": "Progress",
+    "text": "The steps at the top turn complete one by one; next the customer confirms."
+   }
+  ],
+  "file": "screens/C14-driver-checklist.jpg",
+  "svg": "vector/C14-driver-checklist.svg",
+  "w": 1440,
+  "h": 2833,
+  "scale": 1,
+  "device": "desktop"
+ },
+ {
+  "section": "C",
+  "role": "Customer",
+  "id": "C15-customer-confirms",
+  "title": "Step 15 · Customer: review and confirm the cargo",
+  "purpose": "The customer sees the driver’s checklist and confirms it matches what was loaded — or reports a missing, extra or damaged item before departure.",
+  "example": "Sofa, 4 boxes, refrigerator: all ticked.",
+  "next": [
+   [
+    "C16-authorize",
+    "Confirm cargo"
+   ]
+  ],
+  "callouts": [
+   {
+    "x": 204,
+    "y": 546.84375,
+    "w": 1032,
+    "h": 27.1875,
+    "title": "Driver’s checklist",
+    "text": "Exactly what the driver recorded."
+   },
+   {
+    "x": 204,
+    "y": 776.21875,
+    "w": 120.875,
+    "h": 40,
+    "title": "Confirm cargo",
+    "text": "The customer’s consent to depart."
+   },
+   {
+    "x": 204,
+    "y": 853.21875,
+    "w": 1032,
+    "h": 44,
+    "title": "Report a problem",
+    "text": "Opens a discrepancy staff must resolve."
+   }
+  ],
+  "file": "screens/C15-customer-confirms.jpg",
+  "svg": "vector/C15-customer-confirms.svg",
+  "w": 1440,
+  "h": 2191,
+  "scale": 1,
+  "device": "desktop"
+ },
+ {
+  "section": "C",
+  "role": "Driver",
+  "id": "C16-authorize",
+  "title": "Step 16 · Driver: authorize departure",
+  "purpose": "Only when the PIN, plate, checklist and both confirmations are complete can the driver authorize departure.",
+  "example": "All five checks complete.",
+  "next": [
+   [
+    "C17-in-transit",
+    "Confirm & authorize departure"
+   ]
+  ],
+  "callouts": [
+   {
+    "x": 224,
+    "y": 2292.890625,
+    "w": 992,
+    "h": 56,
+    "title": "Authorize departure",
+    "text": "Moves the trip to “In Transit”. Without it, the truck may not leave."
+   }
+  ],
+  "file": "screens/C16-authorize.jpg",
+  "svg": "vector/C16-authorize.svg",
+  "w": 1440,
+  "h": 2841,
+  "scale": 1,
+  "device": "desktop"
+ },
+ {
+  "section": "C",
+  "role": "Customer",
+  "id": "C17-in-transit",
+  "title": "Step 17 · Customer: in transit",
+  "purpose": "The items are on the way. The live map now shows the minutes to the drop-off.",
+  "example": "Leo Garcia between Sta. Catalina and Tumaga.",
+  "next": [
+   [
+    "C18-driver-in-transit",
+    "Driver’s screen"
+   ]
+  ],
+  "callouts": [
+   {
+    "x": 520,
+    "y": 398.859375,
+    "w": 736,
+    "h": 380,
+    "title": "Live map",
+    "text": "Updates without reloading."
+   },
+   {
+    "x": 524,
+    "y": 786.859375,
+    "w": 728,
+    "h": 22.390625,
+    "title": "ETA to drop-off",
+    "text": "Distance and minutes to Tumaga."
+   }
+  ],
+  "file": "screens/C17-in-transit.jpg",
+  "svg": "vector/C17-in-transit.svg",
+  "w": 1440,
+  "h": 1560,
+  "scale": 1,
+  "device": "desktop"
+ },
+ {
+  "section": "C",
+  "role": "Driver",
+  "id": "C18-driver-in-transit",
+  "title": "Step 18 · Driver: in transit",
+  "purpose": "On arrival the driver taps “Arrived at destination”.",
+  "example": "Heading to Tumaga.",
+  "next": [
+   [
+    "C19-delivery-pin",
+    "Arrived at destination"
+   ]
+  ],
+  "callouts": [
+   {
+    "x": 204,
+    "y": 763.125,
+    "w": 167.953125,
+    "h": 40,
+    "title": "Arrived at destination",
+    "text": "Next the customer’s Delivery PIN is needed."
+   }
+  ],
+  "file": "screens/C18-driver-in-transit.jpg",
+  "svg": "vector/C18-driver-in-transit.svg",
+  "w": 1440,
+  "h": 900,
+  "scale": 1,
+  "device": "desktop"
+ },
+ {
+  "section": "C",
+  "role": "Customer",
+  "id": "C19-delivery-pin",
+  "title": "Step 19 · Customer: Delivery PIN",
+  "purpose": "At the drop-off the customer checks the items first, then gives the driver the Delivery PIN. Giving the PIN means “I received everything in good condition”.",
+  "example": "Delivery PIN 242596.",
+  "next": [
+   [
+    "C20-driver-delivers",
+    "Driver enters the PIN"
+   ]
+  ],
+  "callouts": [
+   {
+    "x": 204,
+    "y": 211.28125,
+    "w": 1032,
+    "h": 102.390625,
+    "title": "Delivery PIN",
+    "text": "Proof of delivery; only on the customer’s phone."
+   },
+   {
+    "x": 184,
+    "y": 111.1875,
+    "w": 1072,
+    "h": 481.859375,
+    "title": "Report instead",
+    "text": "If something is missing or damaged, report it instead of giving the PIN."
+   }
+  ],
+  "file": "screens/C19-delivery-pin.jpg",
+  "svg": "vector/C19-delivery-pin.svg",
+  "w": 1440,
+  "h": 2057,
+  "scale": 1,
+  "device": "desktop"
+ },
+ {
+  "section": "C",
+  "role": "Driver",
+  "id": "C20-driver-delivers",
+  "title": "Step 20 · Driver: confirm delivery with the PIN",
+  "purpose": "The driver enters the customer’s Delivery PIN and the delivery condition. An optional photo can be attached. This is the proof of delivery.",
+  "example": "PIN 242596 · “All 6 pieces delivered to the 3rd floor, no damage.”",
+  "next": [
+   [
+    "C21-delivered",
+    "Confirm delivery"
+   ]
+  ],
+  "callouts": [
+   {
+    "x": 224,
+    "y": 917.609375,
+    "w": 992,
+    "h": 52,
+    "title": "Delivery PIN",
+    "text": "Wrong PINs count as attempts and lock after 5."
+   },
+   {
+    "x": 204,
+    "y": 820.71875,
+    "w": 1032,
+    "h": 438.453125,
+    "title": "Delivery record",
+    "text": "Condition note, optional photo; saved with the time."
+   }
+  ],
+  "file": "screens/C20-driver-delivers.jpg",
+  "svg": "vector/C20-driver-delivers.svg",
+  "w": 1440,
+  "h": 1359,
+  "scale": 1,
+  "device": "desktop"
+ },
+ {
+  "section": "C",
+  "role": "Customer",
+  "id": "C21-delivered",
+  "title": "Step 21 · Customer: delivered, final payment due",
+  "purpose": "Delivery is confirmed and the remaining 50% is now due. The customer can pay the driver in cash or send GCash.",
+  "example": "Status: Awaiting Final Payment.",
+  "next": [
+   [
+    "C22-driver-final",
+    "Driver collects"
+   ]
+  ],
+  "callouts": [
+   {
+    "x": 294.828125,
+    "y": 366.046875,
+    "w": 161.671875,
+    "h": 24.796875,
+    "title": "Status",
+    "text": "Final half due."
+   },
+   {
+    "x": 221,
+    "y": 785.984375,
+    "w": 496.5,
+    "h": 52,
+    "title": "Pay by GCash",
+    "text": "Same as the down payment."
+   }
+  ],
+  "file": "screens/C21-delivered.jpg",
+  "svg": "vector/C21-delivered.svg",
+  "w": 1440,
+  "h": 1663,
+  "scale": 1,
+  "device": "desktop"
+ },
+ {
+  "section": "C",
+  "role": "Driver",
+  "id": "C22-driver-final",
+  "title": "Step 22 · Driver: collect the final payment",
+  "purpose": "The driver records the final 50%. Once recorded the trip is completed.",
+  "example": "Cash ₱1,240.00.",
+  "next": [
+   [
+    "C23-completed",
+    "Record payment"
+   ]
+  ],
+  "callouts": [
+   {
+    "x": 204,
+    "y": 476.765625,
+    "w": 1032,
+    "h": 52,
+    "title": "Cash amount",
+    "text": "GCash + cash must equal the amount due."
+   },
+   {
+    "x": 204,
+    "y": 588.765625,
+    "w": 135.046875,
+    "h": 40,
+    "title": "Record payment",
+    "text": "Completes the trip."
+   }
+  ],
+  "file": "screens/C22-driver-final.jpg",
+  "svg": "vector/C22-driver-final.svg",
+  "w": 1440,
+  "h": 900,
+  "scale": 1,
+  "device": "desktop"
+ },
+ {
+  "section": "C",
+  "role": "Customer",
+  "id": "C23-completed",
+  "title": "Step 23 · Customer: completed, rate the driver",
+  "purpose": "The move is complete and fully paid. The customer sees the proof of delivery and rates the driver.",
+  "example": "5 stars: “Very careful with the fridge and on time.”",
+  "next": [
+   [
+    "C24-reviewed",
+    "Submit review"
+   ]
+  ],
+  "callouts": [
+   {
+    "x": 294.828125,
+    "y": 366.046875,
+    "w": 86.875,
+    "h": 24.796875,
+    "title": "Completed",
+    "text": "Both halves paid; delivery confirmed by PIN."
+   },
+   {
+    "x": 204,
+    "y": 1189.734375,
+    "w": 1032,
+    "h": 35,
+    "title": "Rate the driver",
+    "text": "1–5 stars; ratings appear on the driver’s profile."
+   },
+   {
+    "x": 204,
+    "y": 1224.734375,
+    "w": 1032,
+    "h": 52,
+    "title": "Comment",
+    "text": "Shown to future customers without the reviewer’s name."
+   }
+  ],
+  "file": "screens/C23-completed.jpg",
+  "svg": "vector/C23-completed.svg",
+  "w": 1440,
+  "h": 1483,
+  "scale": 1,
+  "device": "desktop"
+ },
+ {
+  "section": "C",
+  "role": "Customer",
+  "id": "C24-reviewed",
+  "title": "Step 24 · Customer: review saved (after)",
+  "purpose": "The finished booking stays in the Past tab with its full history, payments, receipt and review.",
+  "example": "BK-5DI0VV · Completed · ★★★★★.",
+  "next": [
+   [
+    "C25-driver-earnings",
+    "Driver’s earnings"
+   ]
+  ],
+  "callouts": [
+   {
+    "x": 204,
+    "y": 1164.140625,
+    "w": 1032,
+    "h": 42.46875,
+    "title": "Review",
+    "text": "Saved and added to the driver’s rating."
+   },
+   {
+    "x": 545,
+    "y": 163.984375,
+    "w": 350,
+    "h": 43.59375,
+    "title": "Past bookings",
+    "text": "Every finished move with its records."
+   }
+  ],
+  "file": "screens/C24-reviewed.jpg",
+  "svg": "vector/C24-reviewed.svg",
+  "w": 1440,
+  "h": 1315,
+  "scale": 1,
+  "device": "desktop"
+ },
+ {
+  "section": "C",
+  "role": "Driver",
+  "id": "C25-driver-earnings",
+  "title": "Step 25 · Driver: earnings and weekly remittance",
+  "purpose": "The completed trip is added to the driver’s earnings. Each week the driver remits the company share (80%) and keeps 20%; a cashier verifies it.",
+  "example": "BK-5DI0VV collected in full.",
+  "next": [
+   [
+    "H01-cashier-remittances",
+    "Cashier verifies"
+   ]
+  ],
+  "callouts": [
+   {
+    "x": 741,
+    "y": 168.984375,
+    "w": 228.5,
+    "h": 22.390625,
+    "title": "Driver share",
+    "text": "20% of fares collected."
+   },
+   {
+    "x": 1011.5,
+    "y": 168.984375,
+    "w": 228.5,
+    "h": 22.390625,
+    "title": "Company share",
+    "text": "Rate set by the admin."
+   },
+   {
+    "x": 184,
+    "y": 314.96875,
+    "w": 1072,
+    "h": 25,
+    "title": "Weekly remittance",
+    "text": "Once a week by GCash reference or cash; a cashier verifies it."
+   }
+  ],
+  "file": "screens/C25-driver-earnings.jpg",
+  "svg": "vector/C25-driver-earnings.svg",
+  "w": 1440,
+  "h": 900,
+  "scale": 1,
+  "device": "desktop"
+ },
+ {
+  "section": "D",
+  "role": "Customer",
+  "id": "D01-rent-choose",
+  "title": "Rental step 1 · Renter: choose dates and a model",
+  "purpose": "Self-drive rental. The renter picks the dates first; each model then shows how many units are free on every one of those days.",
+  "example": "Carla needs a van for 2 days. Mitsubishi L300 shows “2 of 2 available”.",
+  "next": [
+   [
+    "D02-rent-model",
+    "Choose a model"
+   ]
+  ],
+  "callouts": [
+   {
+    "x": 204,
+    "y": 329.5625,
+    "w": 512,
+    "h": 52,
+    "title": "Rental dates",
+    "text": "Units booked on any of those days count as unavailable."
+   },
+   {
+    "x": 204,
+    "y": 501.75,
+    "w": 198.390625,
+    "h": 264.390625,
+    "title": "Model card",
+    "text": "Photo, type, seats and daily rate."
+   },
+   {
+    "x": 215,
+    "y": 730.34375,
+    "w": 112.6875,
+    "h": 24.796875,
+    "title": "Availability",
+    "text": "Free units for the chosen dates."
+   },
+   {
+    "x": 829.1875,
+    "y": 501.75,
+    "w": 198.40625,
+    "h": 264.390625,
+    "title": "Passenger vehicles",
+    "text": "Sedans, SUVs and vans too."
+   },
+   {
+    "x": 204,
+    "y": 820.140625,
+    "w": 1032,
+    "h": 25,
+    "title": "My rentals",
+    "text": "The renter’s rentals and their status."
+   }
+  ],
+  "file": "screens/D01-rent-choose.jpg",
+  "svg": "vector/D01-rent-choose.svg",
+  "w": 1440,
+  "h": 1528,
+  "scale": 1,
+  "device": "desktop"
+ },
+ {
+  "section": "D",
+  "role": "Customer",
+  "id": "D02-rent-model",
+  "title": "Rental step 2 · Renter: model information and units",
+  "purpose": "General information about the model, then every unit free on the chosen dates. Each unit shows its own rate and refundable deposit, set by its owner.",
+  "example": "L300: 1.5 tons · 10 ft, 3 seats, manual, diesel. Blue 2020 at ₱2,200/day (₱6,000 deposit); Pearl White 2023 at ₱2,500/day (₱8,000 deposit).",
+  "next": [
+   [
+    "D03-rent-request",
+    "Choose"
+   ]
+  ],
+  "callouts": [
+   {
+    "x": 378,
+    "y": 841.59375,
+    "w": 501.265625,
+    "h": 27.5,
+    "title": "Model and best use",
+    "text": "What the vehicle is good for."
+   },
+   {
+    "x": 204,
+    "y": 949.140625,
+    "w": 1032,
+    "h": 27.1875,
+    "title": "General information",
+    "text": "Capacity, seats, transmission, fuel, years, rate and deposit range."
+   },
+   {
+    "x": 204,
+    "y": 1497.890625,
+    "w": 1032,
+    "h": 125.5625,
+    "title": "Available unit",
+    "text": "Color, year, part of the plate, owner, deposit and total."
+   },
+   {
+    "x": 1145.3125,
+    "y": 1540.671875,
+    "w": 79.6875,
+    "h": 40,
+    "title": "Choose",
+    "text": "Opens the request form."
+   }
+  ],
+  "file": "screens/D02-rent-model.jpg",
+  "svg": "vector/D02-rent-model.svg",
+  "w": 1440,
+  "h": 2386,
+  "scale": 1,
+  "device": "desktop"
+ },
+ {
+  "section": "D",
+  "role": "Customer",
+  "id": "D03-rent-request",
+  "title": "Rental step 3 · Renter: request form",
+  "purpose": "The renter sees the full amount to pay before pickup, gives the pickup and return places and uploads ID and license photos. The rules of the rental are listed before submitting.",
+  "example": "Pearl White L300 · 2 days · ₱5,000 rental + ₱8,000 refundable deposit = ₱13,000 before pickup.",
+  "next": [
+   [
+    "D04-owner-offer",
+    "Submit rental request"
+   ]
+  ],
+  "callouts": [
+   {
+    "x": 204,
+    "y": 1722.453125,
+    "w": 1032,
+    "h": 221,
+    "title": "Price summary",
+    "text": "Rate × days + this vehicle’s deposit = total to pay before pickup."
+   },
+   {
+    "x": 204,
+    "y": 1985.84375,
+    "w": 1032,
+    "h": 52,
+    "title": "Pickup and return",
+    "text": "Within Zamboanga City."
+   },
+   {
+    "x": 204,
+    "y": 2222.625,
+    "w": 512,
+    "h": 52,
+    "title": "License check",
+    "text": "Must be valid until the return date."
+   },
+   {
+    "x": 204,
+    "y": 2317.015625,
+    "w": 1032,
+    "h": 52,
+    "title": "ID and license photos",
+    "text": "The owner compares them at pickup."
+   },
+   {
+    "x": 204,
+    "y": 2483.40625,
+    "w": 1032,
+    "h": 276.09375,
+    "title": "Before you rent",
+    "text": "Contract, full payment, 6 handover photos, location sharing, deposit claims."
+   },
+   {
+    "x": 204,
+    "y": 2763.5,
+    "w": 195.78125,
+    "h": 52,
+    "title": "Submit",
+    "text": "The dates are held while the request is pending."
+   }
+  ],
+  "file": "screens/D03-rent-request.jpg",
+  "svg": "vector/D03-rent-request.svg",
+  "w": 1440,
+  "h": 3578,
+  "scale": 1,
+  "device": "desktop"
+ },
+ {
+  "section": "D",
+  "role": "Vehicle owner",
+  "id": "D04-owner-offer",
+  "title": "Rental step 4 · Owner: offer vehicles (rate and deposit)",
+  "purpose": "Owners choose which approved vehicles to rent out and set, per vehicle, the daily rate, the refundable deposit (at least ₱5,000) and the details renters see.",
+  "example": "Olga’s Pearl White L300: ₱2,500/day and an ₱8,000 deposit. The hauling L300s are not offered.",
+  "next": [
+   [
+    "D05-owner-approve",
+    "Requests"
+   ]
+  ],
+  "cap": 2600,
+  "callouts": [
+   {
+    "x": 204,
+    "y": 1615.078125,
+    "w": 249,
+    "h": 52,
+    "title": "Daily rate",
+    "text": "₱300–₱50,000 per day."
+   },
+   {
+    "x": 465,
+    "y": 1637.46875,
+    "w": 249,
+    "h": 52,
+    "title": "Deposit per vehicle",
+    "text": "From ₱5,000; a more valuable vehicle can ask more."
+   },
+   {
+    "x": 987,
+    "y": 1615.078125,
+    "w": 249,
+    "h": 52,
+    "title": "Specifications",
+    "text": "Seats, transmission and fuel."
+   },
+   {
+    "x": 1147.390625,
+    "y": 311.28125,
+    "w": 88.609375,
+    "h": 25.59375,
+    "title": "Not offered",
+    "text": "Hauling-only vehicles stay off the Rent page."
+   },
+   {
+    "x": 204,
+    "y": 1793.859375,
+    "w": 149.34375,
+    "h": 40,
+    "title": "Save or stop",
+    "text": "Any time; existing rentals keep their deposit."
+   }
+  ],
+  "file": "screens/D04-owner-offer.jpg",
+  "svg": "vector/D04-owner-offer.svg",
+  "w": 1440,
+  "h": 2600,
+  "scale": 1,
+  "device": "desktop"
+ },
+ {
+  "section": "D",
+  "role": "Vehicle owner",
+  "id": "D05-owner-approve",
+  "title": "Rental step 5 · Owner: approve the request",
+  "purpose": "The owner sees the renter, phone, dates, price, license and the ID photos, then approves (dates re-checked) or rejects with a reason. Approving issues the rental contract.",
+  "example": "Carla Mendoza requested ZAM 5150 for 2 days.",
+  "next": [
+   [
+    "D06-renter-approved",
+    "Approve"
+   ]
+  ],
+  "from": "h2:has-text(\"Requests\")",
+  "cap": 1500,
+  "callouts": [
+   {
+    "x": 184,
+    "y": 61.546875,
+    "w": 1072,
+    "h": 289.75,
+    "title": "Request details",
+    "text": "Renter, phone, dates, price, deposit, license."
+   },
+   {
+    "x": 204,
+    "y": 195.703125,
+    "w": 84,
+    "h": 64,
+    "title": "ID and license photos",
+    "text": "Tap to enlarge."
+   },
+   {
+    "x": 204,
+    "y": 279.296875,
+    "w": 82.46875,
+    "h": 52,
+    "title": "Approve",
+    "text": "Re-checks the dates and issues the contract."
+   },
+   {
+    "x": 1163.875,
+    "y": 279.296875,
+    "w": 72.125,
+    "h": 52,
+    "title": "Reject",
+    "text": "With a written reason."
+   }
+  ],
+  "file": "screens/D05-owner-approve.jpg",
+  "svg": "vector/D05-owner-approve.svg",
+  "w": 1440,
+  "h": 1500,
+  "scale": 1,
+  "device": "desktop"
+ },
+ {
+  "section": "D",
+  "role": "Customer",
+  "id": "D06-renter-approved",
+  "title": "Rental step 6 · Renter: approved, contract waiting",
+  "purpose": "After approval the renter sees the full plate and the owner’s contact, the rental contract waiting for signatures, and the full amount to pay before pickup.",
+  "example": "Contract CT-… is issued. Carla must sign it and pay ₱13,000 before pickup.",
+  "next": [
+   [
+    "D07-contract",
+    "Read and sign"
+   ]
+  ],
+  "from": "h2:has-text(\"My rentals\")",
+  "cap": 1700,
+  "callouts": [
+   {
+    "x": 204,
+    "y": 299.3125,
+    "w": 1032,
+    "h": 166.578125,
+    "title": "Rental contract",
+    "text": "Status of both signatures."
+   },
+   {
+    "x": 216,
+    "y": 413.890625,
+    "w": 120.609375,
+    "h": 40,
+    "title": "Read and sign",
+    "text": "Opens the digital copy."
+   },
+   {
+    "x": 344.609375,
+    "y": 413.890625,
+    "w": 61.359375,
+    "h": 40,
+    "title": "Print",
+    "text": "For signing on paper at pickup."
+   },
+   {
+    "x": 204,
+    "y": 515.890625,
+    "w": 292.9375,
+    "h": 52,
+    "title": "Payment",
+    "text": "GCash or cash; the full amount before pickup."
+   },
+   {
+    "x": 204,
+    "y": 595.484375,
+    "w": 75.5625,
+    "h": 40,
+    "title": "Cancel",
+    "text": "Possible until the vehicle is released."
+   }
+  ],
+  "file": "screens/D06-renter-approved.jpg",
+  "svg": "vector/D06-renter-approved.svg",
+  "w": 1440,
+  "h": 1322,
+  "scale": 1,
+  "device": "desktop"
+ },
+ {
+  "section": "D",
+  "role": "Customer",
+  "id": "D07-contract",
+  "title": "Rental step 7 · The rental contract (digital copy)",
+  "purpose": "The same contract the owner prints. It freezes the parties, vehicle, dates and money at approval, lists 14 clauses, has a handover record and signature boxes, and ends with a fingerprint code that proves nothing was changed.",
+  "example": "Olga Navarro (owner) and Carla Mendoza (renter), Pearl White L300 ZAM 5150, ₱5,000 + ₱8,000 deposit.",
+  "next": [
+   [
+    "D08-renter-signs",
+    "Sign"
+   ]
+  ],
+  "callouts": [
+   {
+    "x": 329,
+    "y": 143,
+    "w": 782,
+    "h": 95,
+    "title": "Contract number",
+    "text": "Linked to the rental reference."
+   },
+   {
+    "x": 329,
+    "y": 343.875,
+    "w": 782,
+    "h": 186.609375,
+    "title": "Parties",
+    "text": "Names, phones, addresses and the renter’s license."
+   },
+   {
+    "x": 329,
+    "y": 783.25,
+    "w": 782,
+    "h": 170.609375,
+    "title": "Dates and money",
+    "text": "Total due before release."
+   },
+   {
+    "x": 329,
+    "y": 1006.359375,
+    "w": 782,
+    "h": 893.4375,
+    "title": "Terms and conditions",
+    "text": "Use, location sharing, photos, damage, deposit claims, late return, privacy."
+   },
+   {
+    "x": 329,
+    "y": 1952.296875,
+    "w": 782,
+    "h": 275.375,
+    "title": "Handover record",
+    "text": "Filled in at release and return."
+   },
+   {
+    "x": 329,
+    "y": 2312.3125,
+    "w": 782,
+    "h": 155.6875,
+    "title": "Signatures",
+    "text": "Blank lines when printed; drawn signatures when signed online."
+   },
+   {
+    "x": 329,
+    "y": 2488,
+    "w": 782,
+    "h": 63.75,
+    "title": "Fingerprint",
+    "text": "Any change to the terms would change this code."
+   },
+   {
+    "x": 1003.421875,
+    "y": 64,
+    "w": 61.359375,
+    "h": 40,
+    "title": "Print",
+    "text": "Two A4 pages."
+   }
+  ],
+  "file": "screens/D07-contract.jpg",
+  "svg": "vector/D07-contract.svg",
+  "w": 1440,
+  "h": 3190,
+  "scale": 1,
+  "device": "desktop"
+ },
+ {
+  "section": "D",
+  "role": "Customer",
+  "id": "D08-renter-signs",
+  "title": "Rental step 8 · Renter: sign electronically",
+  "purpose": "To sign, the renter ticks “I agree”, types the full name exactly as on the account and draws the signature with a finger or mouse.",
+  "example": "Carla Mendoza signs before pickup.",
+  "next": [
+   [
+    "D09-owner-signs",
+    "Sign contract"
+   ]
+  ],
+  "from": "#ct-sign",
+  "callouts": [
+   {
+    "x": 320,
+    "y": 106.140625,
+    "w": 800,
+    "h": 57,
+    "title": "Agreement",
+    "text": "Required."
+   },
+   {
+    "x": 320,
+    "y": 205.53125,
+    "w": 800,
+    "h": 52,
+    "title": "Full name",
+    "text": "Must match the account name."
+   },
+   {
+    "x": 320,
+    "y": 299.921875,
+    "w": 800,
+    "h": 172,
+    "title": "Signature pad",
+    "text": "Saved as an image on the contract."
+   },
+   {
+    "x": 393.15625,
+    "y": 483.921875,
+    "w": 138.625,
+    "h": 52,
+    "title": "Sign",
+    "text": "Records the time and the fingerprint signed."
+   }
+  ],
+  "file": "screens/D08-renter-signs.jpg",
+  "svg": "vector/D08-renter-signs.svg",
+  "w": 1440,
+  "h": 620,
+  "scale": 1,
+  "device": "desktop"
+ },
+ {
+  "section": "D",
+  "role": "Vehicle owner",
+  "id": "D09-owner-signs",
+  "title": "Rental step 9 · Owner: sign (or record a paper copy)",
+  "purpose": "The owner signs the same way. Instead, both can sign the printed contract at pickup; the owner then uploads a photo of the signed page and it counts as signed by both.",
+  "example": "Carla has signed; Olga signs online.",
+  "next": [
+   [
+    "D10-contract-signed",
+    "Sign contract"
+   ]
+  ],
+  "from": "#ct-sign",
+  "callouts": [
+   {
+    "x": 320,
+    "y": 299.921875,
+    "w": 800,
+    "h": 172,
+    "title": "Owner’s signature",
+    "text": "Same rules as the renter."
+   },
+   {
+    "x": 393.15625,
+    "y": 483.921875,
+    "w": 138.625,
+    "h": 52,
+    "title": "Sign",
+    "text": "Completes the contract."
+   },
+   {
+    "x": 320,
+    "y": 591.921875,
+    "w": 800,
+    "h": 25.59375,
+    "title": "Paper option",
+    "text": "For renters who prefer to sign on paper."
+   },
+   {
+    "x": 320,
+    "y": 690.296875,
+    "w": 800,
+    "h": 52,
+    "title": "Photo of the signed page",
+    "text": "Kept with the rental."
+   }
+  ],
+  "file": "screens/D09-owner-signs.jpg",
+  "svg": "vector/D09-owner-signs.svg",
+  "w": 1440,
+  "h": 3273,
+  "scale": 1,
+  "device": "desktop"
+ },
+ {
+  "section": "D",
+  "role": "Vehicle owner",
+  "id": "D10-contract-signed",
+  "title": "Rental step 10 · Contract signed by both",
+  "purpose": "Both signatures appear on the contract with the time they were made. The vehicle cannot be released before this point.",
+  "example": "Signed electronically by Olga Navarro and Carla Mendoza.",
+  "next": [
+   [
+    "D11-renter-pays",
+    "Renter pays"
+   ]
+  ],
+  "from": ".ct-doc h3:has-text(\"6. Signatures\")",
+  "callouts": [
+   {
+    "x": 329,
+    "y": 89.3125,
+    "w": 379,
+    "h": 155.6875,
+    "title": "Owner’s signature",
+    "text": "Name, time, method."
+   },
+   {
+    "x": 732,
+    "y": 89.3125,
+    "w": 379,
+    "h": 155.6875,
+    "title": "Renter’s signature",
+    "text": "Name, time, method."
+   },
+   {
+    "x": 499.34375,
+    "y": 278,
+    "w": 404.65625,
+    "h": 14,
+    "title": "Fingerprint",
+    "text": "Each signature records the code it agreed to."
+   },
+   {
+    "x": 300,
+    "y": 369.75,
+    "w": 840,
+    "h": 23.1875,
+    "title": "Confirmation",
+    "text": "Both parties are notified."
+   }
+  ],
+  "file": "screens/D10-contract-signed.jpg",
+  "svg": "vector/D10-contract-signed.svg",
+  "w": 1440,
+  "h": 3568,
+  "scale": 1,
+  "device": "desktop"
+ },
+ {
+  "section": "D",
+  "role": "Customer",
+  "id": "D11-renter-pays",
+  "title": "Rental step 11 · Renter: pay the full amount",
+  "purpose": "The renter pays the rental fee and the deposit before pickup. The first part of any payment fills the deposit; a cashier verifies each payment.",
+  "example": "Carla pays ₱13,000 by GCash (reference 7055501234567).",
+  "next": [
+   [
+    "D12-owner-release",
+    "Submit payment"
+   ]
+  ],
+  "from": "h2:has-text(\"My rentals\")",
+  "cap": 1700,
+  "callouts": [
+   {
+    "x": 1112.546875,
+    "y": 311.3125,
+    "w": 111.453125,
+    "h": 25.59375,
+    "title": "Contract signed",
+    "text": "Signed by both."
+   },
+   {
+    "x": 204,
+    "y": 486.703125,
+    "w": 292.9375,
+    "h": 52,
+    "title": "Amount",
+    "text": "Full ₱13,000."
+   },
+   {
+    "x": 801.890625,
+    "y": 486.703125,
+    "w": 292.9375,
+    "h": 52,
+    "title": "GCash reference",
+    "text": "Checked for duplicates."
+   },
+   {
+    "x": 1100.828125,
+    "y": 486.703125,
+    "w": 135.171875,
+    "h": 52,
+    "title": "Submit payment",
+    "text": "Waits for the cashier."
+   }
+  ],
+  "file": "screens/D11-renter-pays.jpg",
+  "svg": "vector/D11-renter-pays.svg",
+  "w": 1440,
+  "h": 1293,
+  "scale": 1,
+  "device": "desktop"
+ },
+ {
+  "section": "D",
+  "role": "Vehicle owner",
+  "id": "D12-owner-release",
+  "title": "Rental step 12 · Owner: release with readings and 6 photos",
+  "purpose": "At pickup the owner checks the renter’s license and ID, walks around the vehicle with the renter, records the odometer, fuel level and condition, and takes 6 photos. Release is refused until full payment is verified and the contract is signed.",
+  "example": "52,310 km, fuel 3/4, small scratch on the rear bumper.",
+  "next": [
+   [
+    "D13-renter-check",
+    "Release vehicle"
+   ]
+  ],
+  "from": "h2:has-text(\"Requests\")",
+  "cap": 2200,
+  "callouts": [
+   {
+    "x": 204,
+    "y": 427.578125,
+    "w": 1032,
+    "h": 46.375,
+    "title": "Payments verified",
+    "text": "Deposit and rental fee in full."
+   },
+   {
+    "x": 204,
+    "y": 516.84375,
+    "w": 249,
+    "h": 52,
+    "title": "Odometer and fuel",
+    "text": "Copied into the contract’s handover record."
+   },
+   {
+    "x": 204,
+    "y": 609.234375,
+    "w": 1032,
+    "h": 52,
+    "title": "Condition",
+    "text": "Existing scratches and included items."
+   },
+   {
+    "x": 204,
+    "y": 708.828125,
+    "w": 1032,
+    "h": 201.59375,
+    "title": "6 required photos",
+    "text": "Front, back, both sides, odometer, fuel gauge."
+   },
+   {
+    "x": 204,
+    "y": 922.421875,
+    "w": 130.65625,
+    "h": 40,
+    "title": "Release vehicle",
+    "text": "Starts the rental."
+   }
+  ],
+  "file": "screens/D12-owner-release.jpg",
+  "svg": "vector/D12-owner-release.svg",
+  "w": 1440,
+  "h": 2200,
+  "scale": 1,
+  "device": "desktop"
+ },
+ {
+  "section": "D",
+  "role": "Customer",
+  "id": "D13-renter-check",
+  "title": "Rental step 13 · Renter: check the release record (before)",
+  "purpose": "The renter sees the 6 photos and the readings and either confirms them or reports what is different. The contract also asks the renter to share location while driving.",
+  "example": "The vehicle is Active. Carla has not answered yet and is not sharing location.",
+  "next": [
+   [
+    "D14-renter-sharing",
+    "Everything matches"
+   ]
+  ],
+  "from": "h2:has-text(\"My rentals\")",
+  "cap": 2000,
+  "callouts": [
+   {
+    "x": 204,
+    "y": 356.09375,
+    "w": 1032,
+    "h": 93.1875,
+    "title": "Release photos",
+    "text": "Tap to enlarge."
+   },
+   {
+    "x": 216,
+    "y": 588.84375,
+    "w": 157.890625,
+    "h": 48,
+    "title": "Everything matches",
+    "text": "Recorded on the contract."
+   },
+   {
+    "x": 1069.484375,
+    "y": 588.84375,
+    "w": 154.515625,
+    "h": 48,
+    "title": "Report a difference",
+    "text": "With a note, sent to the owner."
+   },
+   {
+    "x": 204,
+    "y": 802.234375,
+    "w": 1032,
+    "h": 141.984375,
+    "title": "Share location",
+    "text": "Required by the contract while driving."
+   }
+  ],
+  "file": "screens/D13-renter-check.jpg",
+  "svg": "vector/D13-renter-check.svg",
+  "w": 1440,
+  "h": 1675,
+  "scale": 1,
+  "device": "desktop"
+ },
+ {
+  "section": "D",
+  "role": "Customer",
+  "id": "D14-renter-sharing",
+  "title": "Rental step 14 · Renter: confirmed and sharing location (after)",
+  "purpose": "The release record is confirmed and the phone shares the location while the renter drives. Only the owner and ZamMove staff can see it, and only until the return.",
+  "example": "Carla confirmed the record; location sent every 15 seconds.",
+  "next": [
+   [
+    "D15-owner-map",
+    "Owner follows the vehicle"
+   ]
+  ],
+  "from": "h2:has-text(\"My rentals\")",
+  "cap": 2000,
+  "callouts": [
+   {
+    "x": 204,
+    "y": 455.28125,
+    "w": 1032,
+    "h": 23.1875,
+    "title": "Record confirmed",
+    "text": "Protects both sides later."
+   },
+   {
+    "x": 327.484375,
+    "y": 645.859375,
+    "w": 67.078125,
+    "h": 24.796875,
+    "title": "Sharing",
+    "text": "Keep the page open while driving."
+   },
+   {
+    "x": 216,
+    "y": 761.84375,
+    "w": 1008,
+    "h": 42.390625,
+    "title": "Last sent",
+    "text": "Time and accuracy."
+   },
+   {
+    "x": 216,
+    "y": 709.84375,
+    "w": 122.34375,
+    "h": 40,
+    "title": "Pause sharing",
+    "text": "The owner is notified."
+   }
+  ],
+  "file": "screens/D14-renter-sharing.jpg",
+  "svg": "vector/D14-renter-sharing.svg",
+  "w": 1440,
+  "h": 1547,
+  "scale": 1,
+  "device": "desktop"
+ },
+ {
+  "section": "D",
+  "role": "Vehicle owner",
+  "id": "D15-owner-map",
+  "title": "Rental step 15 · Owner: rental map",
+  "purpose": "The owner follows each rented-out vehicle on a live map with its recent route, pickup and return points. Leaving Zamboanga City turns the marker red and notifies the owner.",
+  "example": "ZAM 5150 driven by Carla, heading towards Pasonanca.",
+  "next": [
+   [
+    "D16-owner-return",
+    "Record the return"
+   ]
+  ],
+  "callouts": [
+   {
+    "x": 184,
+    "y": 232.171875,
+    "w": 1072,
+    "h": 480,
+    "title": "Live map",
+    "text": "Vehicle, route, pickup and return."
+   },
+   {
+    "x": 184,
+    "y": 720.171875,
+    "w": 1072,
+    "h": 20.796875,
+    "title": "Legend",
+    "text": "Live, paused, outside the city."
+   },
+   {
+    "x": 705.484375,
+    "y": 800.359375,
+    "w": 44.625,
+    "h": 24.796875,
+    "title": "Status",
+    "text": "Live and when it last updated."
+   },
+   {
+    "x": 906.65625,
+    "y": 800.359375,
+    "w": 69.359375,
+    "h": 40,
+    "title": "Focus",
+    "text": "Zoom to one vehicle."
+   },
+   {
+    "x": 1108.21875,
+    "y": 800.359375,
+    "w": 87.515625,
+    "h": 40,
+    "title": "Contract",
+    "text": "Opens the signed contract."
+   }
+  ],
+  "file": "screens/D15-owner-map.jpg",
+  "svg": "vector/D15-owner-map.svg",
+  "w": 1440,
+  "h": 918,
+  "scale": 1,
+  "device": "desktop"
+ },
+ {
+  "section": "D",
+  "role": "Vehicle owner",
+  "id": "D16-owner-return",
+  "title": "Rental step 16 · Owner: record the return",
+  "purpose": "At return the owner records the odometer, fuel and condition again with 6 new photos. Tracking stops and the route is deleted.",
+  "example": "52,480 km (170 km driven), fuel 3/4, a new scratch on the left door.",
+  "next": [
+   [
+    "D17-owner-claim",
+    "Record return"
+   ]
+  ],
+  "from": "h2:has-text(\"Requests\")",
+  "cap": 2600,
+  "callouts": [
+   {
+    "x": 204,
+    "y": 300.484375,
+    "w": 1032,
+    "h": 153.96875,
+    "title": "Release photos",
+    "text": "To compare."
+   },
+   {
+    "x": 204,
+    "y": 607.84375,
+    "w": 1032,
+    "h": 100.796875,
+    "title": "Location",
+    "text": "Live until the return."
+   },
+   {
+    "x": 204,
+    "y": 745.03125,
+    "w": 249,
+    "h": 52,
+    "title": "Readings at return",
+    "text": "Cannot be lower than at release."
+   },
+   {
+    "x": 204,
+    "y": 937.015625,
+    "w": 1032,
+    "h": 201.59375,
+    "title": "Return photos",
+    "text": "All 6 required again."
+   },
+   {
+    "x": 204,
+    "y": 1150.609375,
+    "w": 117.75,
+    "h": 40,
+    "title": "Record return",
+    "text": "Ends tracking."
+   }
+  ],
+  "file": "screens/D16-owner-return.jpg",
+  "svg": "vector/D16-owner-return.svg",
+  "w": 1440,
+  "h": 2538,
+  "scale": 1,
+  "device": "desktop"
+ },
+ {
+  "section": "D",
+  "role": "Vehicle owner",
+  "id": "D17-owner-claim",
+  "title": "Rental step 17 · Owner: complete, or claim part of the deposit",
+  "purpose": "After inspecting the vehicle the owner either completes the rental (full deposit refunded) or, within 3 days, claims part of the deposit with photos and the amount.",
+  "example": "Olga claims ₱4,500 of the ₱8,000 deposit for repainting the left door.",
+  "next": [
+   [
+    "D18-renter-claim",
+    "Send claim"
+   ]
+  ],
+  "from": "h2:has-text(\"Requests\")",
+  "cap": 2600,
+  "callouts": [
+   {
+    "x": 204,
+    "y": 511.21875,
+    "w": 1032,
+    "h": 173.25,
+    "title": "Return photos",
+    "text": "With the renter’s answer."
+   },
+   {
+    "x": 204,
+    "y": 882.046875,
+    "w": 222.09375,
+    "h": 40,
+    "title": "Complete",
+    "text": "Refunds the full deposit."
+   },
+   {
+    "x": 224,
+    "y": 1004.03125,
+    "w": 239,
+    "h": 52,
+    "title": "Amount",
+    "text": "Up to the deposit."
+   },
+   {
+    "x": 224,
+    "y": 1188.8125,
+    "w": 992,
+    "h": 52,
+    "title": "Evidence",
+    "text": "Damage photos, quotation or receipt."
+   },
+   {
+    "x": 224,
+    "y": 1252.8125,
+    "w": 188.125,
+    "h": 40,
+    "title": "Send claim",
+    "text": "The renter must answer."
+   }
+  ],
+  "file": "screens/D17-owner-claim.jpg",
+  "svg": "vector/D17-owner-claim.svg",
+  "w": 1440,
+  "h": 2600,
+  "scale": 1,
+  "device": "desktop"
+ },
+ {
+  "section": "D",
+  "role": "Customer",
+  "id": "D18-renter-claim",
+  "title": "Rental step 18 · Renter: accept or dispute the claim",
+  "purpose": "The renter sees the claim with the owner’s photos and either accepts it or disputes it with a reason. A dispute goes to a ZamMove administrator.",
+  "example": "Carla disputes: the scratch is in the release photos.",
+  "next": [
+   [
+    "D19-admin-decides",
+    "Dispute"
+   ]
+  ],
+  "from": "h2:has-text(\"My rentals\")",
+  "cap": 2400,
+  "callouts": [
+   {
+    "x": 204,
+    "y": 716.09375,
+    "w": 1032,
+    "h": 273.421875,
+    "title": "Deposit claim",
+    "text": "Amount and reason."
+   },
+   {
+    "x": 216,
+    "y": 788.078125,
+    "w": 1008,
+    "h": 99.84375,
+    "title": "Owner’s evidence",
+    "text": "Tap to enlarge."
+   },
+   {
+    "x": 216,
+    "y": 903.921875,
+    "w": 149.3125,
+    "h": 48,
+    "title": "Accept",
+    "text": "That amount is kept."
+   },
+   {
+    "x": 373.3125,
+    "y": 899.921875,
+    "w": 762.09375,
+    "h": 52,
+    "title": "Reason",
+    "text": "Required to dispute."
+   },
+   {
+    "x": 1143.40625,
+    "y": 903.921875,
+    "w": 80.59375,
+    "h": 48,
+    "title": "Dispute",
+    "text": "An administrator decides."
+   }
+  ],
+  "file": "screens/D18-renter-claim.jpg",
+  "svg": "vector/D18-renter-claim.svg",
+  "w": 1440,
+  "h": 1865,
+  "scale": 1,
+  "device": "desktop"
+ },
+ {
+  "section": "D",
+  "role": "Administrator",
+  "id": "D19-admin-decides",
+  "title": "Rental step 19 · Administrator: decide the dispute",
+  "purpose": "The administrator compares the release and return photos with both explanations and decides how much of the deposit is kept (up to the claimed amount).",
+  "example": "Ada decides ₱1,500 instead of ₱4,500.",
+  "next": [
+   [
+    "D20-completed",
+    "Decide claim"
+   ]
+  ],
+  "from": ".card:has([data-a=\"fx-cd\"][data-id=\"RN-M1FWBL\"])",
+  "cap": 2200,
+  "callouts": [
+   {
+    "x": 204,
+    "y": 309.890625,
+    "w": 1032,
+    "h": 153.96875,
+    "title": "Release photos",
+    "text": "Evidence from pickup."
+   },
+   {
+    "x": 216,
+    "y": 832.9375,
+    "w": 1008,
+    "h": 42.46875,
+    "title": "Renter’s reason",
+    "text": "Why the claim is disputed."
+   },
+   {
+    "x": 216,
+    "y": 913.796875,
+    "w": 243,
+    "h": 52,
+    "title": "Amount to keep",
+    "text": "₱0 up to the claimed amount."
+   },
+   {
+    "x": 216,
+    "y": 1006.1875,
+    "w": 1008,
+    "h": 52,
+    "title": "Reason",
+    "text": "Sent to both parties."
+   },
+   {
+    "x": 216,
+    "y": 1074.1875,
+    "w": 112.53125,
+    "h": 40,
+    "title": "Decide",
+    "text": "Final."
+   }
+  ],
+  "file": "screens/D19-admin-decides.jpg",
+  "svg": "vector/D19-admin-decides.svg",
+  "w": 1440,
+  "h": 2200,
+  "scale": 1,
+  "device": "desktop"
+ },
+ {
+  "section": "D",
+  "role": "Customer",
+  "id": "D20-completed",
+  "title": "Rental step 20 · Renter: completed and deposit refunded",
+  "purpose": "The rental is completed. The settlement shows the deposit, the amount kept for the claim and the refund.",
+  "example": "₱8,000 deposit − ₱1,500 kept = ₱6,500 refunded.",
+  "next": [
+   [
+    "D21-final-contract",
+    "View contract"
+   ]
+  ],
+  "from": "h2:has-text(\"My rentals\")",
+  "cap": 2600,
+  "callouts": [
+   {
+    "x": 204,
+    "y": 842.578125,
+    "w": 1032,
+    "h": 23.1875,
+    "title": "Settlement",
+    "text": "Deposit, kept and refunded."
+   },
+   {
+    "x": 216,
+    "y": 799.390625,
+    "w": 1008,
+    "h": 23.1875,
+    "title": "Decision",
+    "text": "ZamMove’s decision and reason."
+   },
+   {
+    "x": 204,
+    "y": 1011.15625,
+    "w": 1032,
+    "h": 44,
+    "title": "Status",
+    "text": "Completed."
+   },
+   {
+    "x": 216,
+    "y": 959.15625,
+    "w": 120.84375,
+    "h": 40,
+    "title": "Contract",
+    "text": "Signed copy with everything recorded."
+   }
+  ],
+  "file": "screens/D20-completed.jpg",
+  "svg": "vector/D20-completed.svg",
+  "w": 1440,
+  "h": 1742,
+  "scale": 1,
+  "device": "desktop"
+ },
+ {
+  "section": "D",
+  "role": "Customer",
+  "id": "D21-final-contract",
+  "title": "Rental step 21 · The finished contract",
+  "purpose": "The contract now holds the whole rental: readings and photos at release and return, the renter’s answers, the deposit settlement and both signatures. Both parties can read or print it any time.",
+  "example": "Released at 52,310 km, returned at 52,480 km; ₱6,500 refunded.",
+  "next": [
+   [
+    "D01-rent-choose",
+    "Back to the start"
+   ]
+  ],
+  "from": ".ct-doc h3:has-text(\"5. Handover\")",
+  "callouts": [
+   {
+    "x": 329,
+    "y": 57.296875,
+    "w": 782,
+    "h": 425.03125,
+    "title": "Handover record",
+    "text": "Date, odometer, fuel, condition."
+   },
+   {
+    "x": 598.328125,
+    "y": 270.828125,
+    "w": 243.328125,
+    "h": 149.65625,
+    "title": "Photos",
+    "text": "Release and return."
+   },
+   {
+    "x": 850.15625,
+    "y": 426.984375,
+    "w": 260.34375,
+    "h": 54.84375,
+    "title": "Renter’s check",
+    "text": "Confirmed or disputed."
+   },
+   {
+    "x": 329,
+    "y": 496.328125,
+    "w": 782,
+    "h": 16.890625,
+    "title": "Deposit settlement",
+    "text": "Claim, answer, decision, refund."
+   },
+   {
+    "x": 329,
+    "y": 829.3125,
+    "w": 782,
+    "h": 155.6875,
+    "title": "Signatures",
+    "text": "Both parties."
+   }
+  ],
+  "file": "screens/D21-final-contract.jpg",
+  "svg": "vector/D21-final-contract.svg",
+  "w": 1440,
+  "h": 1158,
+  "scale": 1,
+  "device": "desktop"
+ },
+ {
+  "section": "E",
+  "role": "Customer",
+  "id": "E01-customer-home",
+  "title": "Customer home (returning customer)",
+  "purpose": "A returning customer’s home: start a booking or rental, follow trips in progress, popular routes.",
+  "example": "Carla Mendoza has a trip in progress and a completed trip.",
+  "next": [
+   [
+    "B01-book-a-haul",
+    "Book a haul"
+   ],
+   [
+    "D01-rent-choose",
+    "Rent"
+   ]
+  ],
+  "callouts": [
+   {
+    "x": 184,
+    "y": 886.078125,
+    "w": 1072,
+    "h": 46.1875,
+    "title": "Your trips",
+    "text": "Active and completed trips, amount paid, Track button."
+   },
+   {
+    "x": 747,
+    "y": 1092.65625,
+    "w": 489,
+    "h": 23.09375,
+    "title": "Popular routes",
+    "text": "One tap fills the booking form."
+   }
+  ],
+  "file": "screens/E01-customer-home.jpg",
+  "svg": "vector/E01-customer-home.svg",
+  "w": 1440,
+  "h": 4589,
+  "scale": 1,
+  "device": "desktop"
+ },
+ {
+  "section": "E",
+  "role": "Customer",
+  "id": "E02-driver-profile",
+  "title": "Driver profile",
+  "full": false,
+  "purpose": "Who accepted the booking: photo, rating, trips, vehicle and recent reviews. Address, birthday and license number are never shown.",
+  "example": "Ramon Cruz · ★5.0 · silver Mitsubishi L300, plate ZAM 7810.",
+  "next": [
+   [
+    "C05-on-the-way",
+    "Back to tracking"
+   ]
+  ],
+  "callouts": [
+   {
+    "x": 480,
+    "y": 58.515625,
+    "w": 72,
+    "h": 72,
+    "title": "Photo and rating",
+    "text": "Verified badge, stars, trips, driving since."
+   },
+   {
+    "x": 480,
+    "y": 439.046875,
+    "w": 94.046875,
+    "h": 24,
+    "title": "Vehicle",
+    "text": "Make, model, plate, color, capacity."
+   },
+   {
+    "x": 480,
+    "y": 664.046875,
+    "w": 480,
+    "h": 27.1875,
+    "title": "Reviews",
+    "text": "Latest reviews, no reviewer names."
+   }
+  ],
+  "file": "screens/E02-driver-profile.jpg",
+  "svg": "vector/E02-driver-profile.svg",
+  "w": 1440,
+  "h": 900,
+  "scale": 1,
+  "device": "desktop"
+ },
+ {
+  "section": "E",
+  "role": "Customer",
+  "id": "E03-report-incident",
+  "title": "Report an incident",
+  "purpose": "Report a problem on a trip (delay, damage, missing items, driver conduct). Staff investigate each case.",
+  "example": "IN-4RT6YB: driver arrived 40 minutes late (Medium), under review.",
+  "next": [
+   [
+    "I08-admin-incidents",
+    "Staff handle it"
+   ]
+  ],
+  "callouts": [
+   {
+    "x": 204,
+    "y": 186.984375,
+    "w": 489,
+    "h": 22.390625,
+    "title": "Linked booking",
+    "text": "Gives staff the full context."
+   },
+   {
+    "x": 204,
+    "y": 281.375,
+    "w": 489,
+    "h": 22.390625,
+    "title": "Category and severity",
+    "text": "High severity alerts staff immediately."
+   },
+   {
+    "x": 747,
+    "y": 172.984375,
+    "w": 489,
+    "h": 25,
+    "title": "Your reports",
+    "text": "Status of each report."
+   }
+  ],
+  "file": "screens/E03-report-incident.jpg",
+  "svg": "vector/E03-report-incident.svg",
+  "w": 1440,
+  "h": 963,
+  "scale": 1,
+  "device": "desktop"
+ },
+ {
+  "section": "E",
+  "role": "Customer",
+  "id": "E04-payments",
+  "title": "Payment history and receipts",
+  "purpose": "Every payment, how it was paid and whether it is confirmed. Receipts open from here.",
+  "example": "BK-7Q2M4X down payment: ₱1,000 GCash + ₱270.50 cash.",
+  "next": [
+   [
+    "E01-customer-home",
+    "Home"
+   ]
+  ],
+  "callouts": [
+   {
+    "x": 901,
+    "y": 163.984375,
+    "w": 350,
+    "h": 43.59375,
+    "title": "Payments tab",
+    "text": "Part of My bookings."
+   }
+  ],
+  "file": "screens/E04-payments.jpg",
+  "svg": "vector/E04-payments.svg",
+  "w": 1440,
+  "h": 923,
+  "scale": 1,
+  "device": "desktop"
+ },
+ {
+  "section": "E",
+  "role": "Customer",
+  "id": "E05-notifications",
+  "title": "Notifications",
+  "full": false,
+  "purpose": "Updates about bookings, payments and rentals appear under the bell.",
+  "example": "Items loaded · Payment confirmed · Rental approved.",
+  "next": [
+   [
+    "E01-customer-home",
+    "Close"
+   ]
+  ],
+  "callouts": [
+   {
+    "x": 1184,
+    "y": 45.1875,
+    "w": 44,
+    "h": 44,
+    "title": "Bell",
+    "text": "Unread count."
+   }
+  ],
+  "file": "screens/E05-notifications.jpg",
+  "svg": "vector/E05-notifications.svg",
+  "w": 1440,
+  "h": 900,
+  "scale": 1,
+  "device": "desktop"
+ },
+ {
+  "section": "E",
+  "role": "Customer / Driver",
+  "id": "E06-profile",
+  "title": "Profile and photo",
+  "purpose": "Personal details, profile photo, alerts and shortcuts. Drivers’ photos are shown to customers.",
+  "example": "Dina Reyes with a profile photo.",
+  "next": [
+   [
+    "E02-driver-profile",
+    "Seen by customers"
+   ]
+  ],
+  "callouts": [
+   {
+    "x": 184,
+    "y": 164.984375,
+    "w": 72,
+    "h": 72,
+    "title": "Profile photo",
+    "text": "On the driver card and profile."
+   },
+   {
+    "x": 204,
+    "y": 394.171875,
+    "w": 101.796875,
+    "h": 40,
+    "title": "Upload or remove",
+    "text": "Resized automatically."
+   },
+   {
+    "x": 184,
+    "y": 1286.5625,
+    "w": 1072,
+    "h": 25,
+    "title": "Edit details",
+    "text": "Name, phone, address, appearance."
+   }
+  ],
+  "file": "screens/E06-profile.jpg",
+  "svg": "vector/E06-profile.svg",
+  "w": 1440,
+  "h": 2406,
+  "scale": 1,
+  "device": "desktop"
+ },
+ {
+  "section": "F",
+  "role": "Driver",
+  "id": "F01-driver-dashboard",
+  "title": "Driver dashboard",
+  "purpose": "Availability switch, assigned vehicle, open requests and active trips.",
+  "example": "Dina Reyes, white L300 ZAM 4521, one active trip.",
+  "next": [
+   [
+    "C02-driver-request",
+    "Requests"
+   ],
+   [
+    "C04-driver-heading",
+    "Active trip"
+   ]
+  ],
+  "callouts": [
+   {
+    "x": 1019.734375,
+    "y": 47.1875,
+    "w": 156.265625,
+    "h": 40,
+    "title": "Workspace switcher",
+    "text": "Switch between Customer, Driver and Owner."
+   },
+   {
+    "x": 300.28125,
+    "y": 45.1875,
+    "w": 600.046875,
+    "h": 44,
+    "title": "Driver menu",
+    "text": "Dashboard, Requests, Active trip, My vehicle, Earnings."
+   },
+   {
+    "x": 204,
+    "y": 379.96875,
+    "w": 87.640625,
+    "h": 40,
+    "title": "Availability",
+    "text": "Only Available drivers get requests."
+   }
+  ],
+  "file": "screens/F01-driver-dashboard.jpg",
+  "svg": "vector/F01-driver-dashboard.svg",
+  "w": 1440,
+  "h": 900,
+  "scale": 1,
+  "device": "desktop"
+ },
+ {
+  "section": "F",
+  "role": "Driver",
+  "id": "F02-driver-vehicle",
+  "title": "Driver: my vehicle",
+  "purpose": "The vehicle the admin assigned to this driver, with its details and status.",
+  "example": "Mitsubishi L300, ZAM 4521, owned by Olga Navarro.",
+  "next": [
+   [
+    "F01-driver-dashboard",
+    "Dashboard"
+   ]
+  ],
+  "callouts": [
+   {
+    "x": 184,
+    "y": 111.1875,
+    "w": 1072,
+    "h": 37.796875,
+    "title": "My vehicle",
+    "text": "Plate, type, capacity, owner and status."
+   }
+  ],
+  "file": "screens/F02-driver-vehicle.jpg",
+  "svg": "vector/F02-driver-vehicle.svg",
+  "w": 1440,
+  "h": 900,
+  "scale": 1,
+  "device": "desktop"
+ },
+ {
+  "section": "F",
+  "role": "Any user",
+  "id": "F03-apply-role",
+  "title": "Apply to be a driver or vehicle owner",
+  "purpose": "Any customer can apply by uploading documents. Staff verify, interview and orient applicants before approval.",
+  "example": "Pending review → Under verification → Interview → Orientation → Approved.",
+  "next": [
+   [
+    "I05-admin-applications",
+    "Staff review"
+   ]
+  ],
+  "callouts": [
+   {
+    "x": 204,
+    "y": 298.171875,
+    "w": 75.765625,
+    "h": 58,
+    "title": "Choose roles",
+    "text": "Driver, owner or both."
+   },
+   {
+    "x": 204,
+    "y": 505.359375,
+    "w": 249,
+    "h": 22.390625,
+    "title": "Documents",
+    "text": "License, ID, clearance, proof of address."
+   },
+   {
+    "x": 204,
+    "y": 724.9375,
+    "w": 175.28125,
+    "h": 52,
+    "title": "Submit",
+    "text": "Goes to staff."
+   }
+  ],
+  "file": "screens/F03-apply-role.jpg",
+  "svg": "vector/F03-apply-role.svg",
+  "w": 1440,
+  "h": 900,
+  "scale": 1,
+  "device": "desktop"
+ },
+ {
+  "section": "G",
+  "role": "Vehicle owner",
+  "id": "G01-owner-dashboard",
+  "title": "Vehicle owner dashboard",
+  "purpose": "Fleet summary: registered, approved, pending and assigned vehicles.",
+  "example": "Olga Navarro owns 9 vehicles.",
+  "callouts": [
+   {
+    "x": 300.28125,
+    "y": 45.1875,
+    "w": 585.046875,
+    "h": 44,
+    "title": "Owner menu",
+    "text": "Dashboard, Vehicles, Rentals, Drivers, Trip history."
+   },
+   {
+    "x": 200,
+    "y": 176.984375,
+    "w": 228.5,
+    "h": 22.390625,
+    "title": "Fleet summary",
+    "text": "Counts at a glance."
+   }
+  ],
+  "next": [
+   [
+    "G01-owner-dashboard",
+    "Dashboard"
+   ]
+  ],
+  "file": "screens/G01-owner-dashboard.jpg",
+  "svg": "vector/G01-owner-dashboard.svg",
+  "w": 1440,
+  "h": 1003,
+  "scale": 1,
+  "device": "desktop"
+ },
+ {
+  "section": "G",
+  "role": "Vehicle owner",
+  "id": "G02-owner-vehicles",
+  "title": "Vehicles",
+  "purpose": "Every registered vehicle, its approval and operating status. New vehicles need admin approval.",
+  "example": "Isuzu Forward (ZAM 9902) is waiting for verification.",
+  "callouts": [
+   {
+    "x": 204,
+    "y": 180.984375,
+    "w": 147.6875,
+    "h": 25,
+    "title": "Vehicle card",
+    "text": "Plate, type, color, year, registration, driver."
+   },
+   {
+    "x": 204,
+    "y": 344.375,
+    "w": 87.640625,
+    "h": 40,
+    "title": "Operating status",
+    "text": "Available, Unavailable, Maintenance."
+   },
+   {
+    "x": 204,
+    "y": 2485.09375,
+    "w": 1032,
+    "h": 44,
+    "title": "Register",
+    "text": "Opens the form."
+   }
+  ],
+  "next": [
+   [
+    "G01-owner-dashboard",
+    "Dashboard"
+   ]
+  ],
+  "file": "screens/G02-owner-vehicles.jpg",
+  "svg": "vector/G02-owner-vehicles.svg",
+  "w": 1440,
+  "h": 2613,
+  "scale": 1,
+  "device": "desktop"
+ },
+ {
+  "section": "G",
+  "role": "Vehicle owner",
+  "id": "G03-owner-register",
+  "title": "Register a vehicle",
+  "purpose": "Vehicle details and the OR/CR. Hauling vehicles take bookings with a driver; passenger types are rental-only.",
+  "example": "Hauling: 3-Wheeler, Pickup, L300, Closed Van, 6-Wheeler. Rental only: Sedan, SUV, Passenger Van.",
+  "next": [
+   [
+    "I06-admin-vehicles",
+    "Admin approves"
+   ]
+  ],
+  "from": "summary:has-text(\"Register a vehicle\")",
+  "callouts": [
+   {
+    "x": 204,
+    "y": 96.484375,
+    "w": 249,
+    "h": 52,
+    "title": "Vehicle type",
+    "text": "Hauling or rental-only."
+   },
+   {
+    "x": 465,
+    "y": 96.484375,
+    "w": 249,
+    "h": 52,
+    "title": "Specifications",
+    "text": "Seats, transmission, fuel."
+   },
+   {
+    "x": 987,
+    "y": 281.265625,
+    "w": 249,
+    "h": 52,
+    "title": "OR/CR",
+    "text": "Checked by the admin."
+   },
+   {
+    "x": 204,
+    "y": 373.65625,
+    "w": 249,
+    "h": 52,
+    "title": "Photo",
+    "text": "Shown to customers."
+   }
+  ],
+  "file": "screens/G03-owner-register.jpg",
+  "svg": "vector/G03-owner-register.svg",
+  "w": 1440,
+  "h": 574,
+  "scale": 1,
+  "device": "desktop"
+ },
+ {
+  "section": "G",
+  "role": "Vehicle owner",
+  "id": "G04-owner-drivers",
+  "title": "Drivers",
+  "purpose": "Assign an approved driver to a vehicle or recommend one; an admin approves each assignment.",
+  "example": "Dina, Ramon and Leo drive Olga’s L300s.",
+  "callouts": [
+   {
+    "x": 204,
+    "y": 226.578125,
+    "w": 1032,
+    "h": 25,
+    "title": "Driver pool",
+    "text": "Approved drivers without a vehicle."
+   },
+   {
+    "x": 204,
+    "y": 594.15625,
+    "w": 178.546875,
+    "h": 40,
+    "title": "Assign or recommend",
+    "text": "Vehicle + driver email."
+   }
+  ],
+  "next": [
+   [
+    "G01-owner-dashboard",
+    "Dashboard"
+   ]
+  ],
+  "file": "screens/G04-owner-drivers.jpg",
+  "svg": "vector/G04-owner-drivers.svg",
+  "w": 1440,
+  "h": 981,
+  "scale": 1,
+  "device": "desktop"
+ },
+ {
+  "section": "G",
+  "role": "Vehicle owner",
+  "id": "G05-owner-trip-history",
+  "title": "Trip history",
+  "purpose": "Every trip made with the owner’s vehicles.",
+  "example": "Completed trips by Dina, Ramon and Leo.",
+  "callouts": [
+   {
+    "x": 184,
+    "y": 111.1875,
+    "w": 1072,
+    "h": 37.796875,
+    "title": "Trip history",
+    "text": "Date, booking, driver, fare."
+   }
+  ],
+  "next": [
+   [
+    "G01-owner-dashboard",
+    "Dashboard"
+   ]
+  ],
+  "file": "screens/G05-owner-trip-history.jpg",
+  "svg": "vector/G05-owner-trip-history.svg",
+  "w": 1440,
+  "h": 900,
+  "scale": 1,
+  "device": "desktop"
+ },
+ {
+  "section": "H",
+  "role": "Cashier",
+  "id": "H01-cashier-remittances",
+  "title": "Remittance queue",
+  "purpose": "Check each driver’s weekly remittance against GCash or cash received; verify or record a shortfall.",
+  "example": "Dina Reyes remitted ₱1,739.20.",
+  "callouts": [
+   {
+    "x": 650.828125,
+    "y": 443.765625,
+    "w": 66.015625,
+    "h": 40,
+    "title": "Verify",
+    "text": "A shortfall becomes a discrepancy."
+   }
+  ],
+  "next": [
+   [
+    "H01-cashier-remittances",
+    "Remittances"
+   ]
+  ],
+  "file": "screens/H01-cashier-remittances.jpg",
+  "svg": "vector/H01-cashier-remittances.svg",
+  "w": 1440,
+  "h": 900,
+  "scale": 1,
+  "device": "desktop"
+ },
+ {
+  "section": "H",
+  "role": "Cashier",
+  "id": "H02-cashier-payments",
+  "title": "Payments to verify",
+  "purpose": "Rental payments and deposits count only after a cashier verifies them.",
+  "example": "Carla’s ₱2,000 GCash deposit.",
+  "callouts": [
+   {
+    "x": 950.109375,
+    "y": 343.5625,
+    "w": 66.015625,
+    "h": 40,
+    "title": "Verify or reject",
+    "text": "Rejection needs a reason."
+   }
+  ],
+  "next": [
+   [
+    "H01-cashier-remittances",
+    "Remittances"
+   ]
+  ],
+  "file": "screens/H02-cashier-payments.jpg",
+  "svg": "vector/H02-cashier-payments.svg",
+  "w": 1440,
+  "h": 900,
+  "scale": 1,
+  "device": "desktop"
+ },
+ {
+  "section": "H",
+  "role": "Cashier",
+  "id": "H03-cashier-ledger",
+  "title": "Payment ledger",
+  "purpose": "Every payment record in one list.",
+  "example": "Only “Recorded by driver” and “Verified” count as paid.",
+  "callouts": [
+   {
+    "x": 184,
+    "y": 232.171875,
+    "w": 125.296875,
+    "h": 40,
+    "title": "Download CSV",
+    "text": "For accounting."
+   }
+  ],
+  "next": [
+   [
+    "H01-cashier-remittances",
+    "Remittances"
+   ]
+  ],
+  "file": "screens/H03-cashier-ledger.jpg",
+  "svg": "vector/H03-cashier-ledger.svg",
+  "w": 1440,
+  "h": 900,
+  "scale": 1,
+  "device": "desktop"
+ },
+ {
+  "section": "H",
+  "role": "Cashier",
+  "id": "H04-cashier-settlements",
+  "title": "Driver settlements",
+  "purpose": "Per driver: collected, owed, remitted and balance.",
+  "example": "Week by week.",
+  "callouts": [
+   {
+    "x": 184,
+    "y": 111.1875,
+    "w": 1072,
+    "h": 37.796875,
+    "title": "Settlements",
+    "text": "Who still owes and how much."
+   }
+  ],
+  "next": [
+   [
+    "H01-cashier-remittances",
+    "Remittances"
+   ]
+  ],
+  "file": "screens/H04-cashier-settlements.jpg",
+  "svg": "vector/H04-cashier-settlements.svg",
+  "w": 1440,
+  "h": 900,
+  "scale": 1,
+  "device": "desktop"
+ },
+ {
+  "section": "I",
+  "role": "Administrator",
+  "id": "I01-admin-overview",
+  "title": "Admin overview",
+  "purpose": "Users, applications, bookings, active trips, incidents and remittances at a glance.",
+  "example": "Every tile is a to-do list for staff.",
+  "callouts": [
+   {
+    "x": 300.28125,
+    "y": 45.1875,
+    "w": 1139.71875,
+    "h": 44,
+    "title": "Admin menu",
+    "text": "All admin pages."
+   },
+   {
+    "x": 354.5625,
+    "y": 168.984375,
+    "w": 112.578125,
+    "h": 44.78125,
+    "title": "Key numbers",
+    "text": "What needs attention."
+   }
+  ],
+  "next": [
+   [
+    "I01-admin-overview",
+    "Overview"
+   ]
+  ],
+  "file": "screens/I01-admin-overview.jpg",
+  "svg": "vector/I01-admin-overview.svg",
+  "w": 1440,
+  "h": 900,
+  "scale": 1,
+  "device": "desktop"
+ },
+ {
+  "section": "I",
+  "role": "Administrator",
+  "id": "I02-admin-bookings",
+  "title": "Bookings",
+  "purpose": "Every booking with its timeline; an admin can assign a driver if nobody accepts.",
+  "example": "BK-9KX2PQ is waiting for a driver.",
+  "callouts": [
+   {
+    "x": 184,
+    "y": 152.984375,
+    "w": 1072,
+    "h": 25,
+    "title": "Waiting",
+    "text": "Not yet accepted."
+   },
+   {
+    "x": 801.84375,
+    "y": 360.5625,
+    "w": 72.34375,
+    "h": 40,
+    "title": "Assign",
+    "text": "Same eligibility rules."
+   },
+   {
+    "x": 184,
+    "y": 409.5625,
+    "w": 1072,
+    "h": 25,
+    "title": "All bookings",
+    "text": "With event history."
+   }
+  ],
+  "next": [
+   [
+    "I01-admin-overview",
+    "Overview"
+   ]
+  ],
+  "file": "screens/I02-admin-bookings.jpg",
+  "svg": "vector/I02-admin-bookings.svg",
+  "w": 1440,
+  "h": 900,
+  "scale": 1,
+  "device": "desktop"
+ },
+ {
+  "section": "I",
+  "role": "Administrator",
+  "id": "I03-admin-live-map",
+  "title": "Live map",
+  "purpose": "Every active trip whose driver shares location.",
+  "example": "Ramon Cruz heading to Sta. Maria.",
+  "callouts": [
+   {
+    "x": 184,
+    "y": 206.578125,
+    "w": 1072,
+    "h": 520,
+    "title": "Fleet map",
+    "text": "Updates every ~10 s."
+   },
+   {
+    "x": 184,
+    "y": 738.578125,
+    "w": 1072,
+    "h": 78.78125,
+    "title": "Trip list",
+    "text": "Driver, status, last update."
+   }
+  ],
+  "next": [
+   [
+    "I01-admin-overview",
+    "Overview"
+   ]
+  ],
+  "file": "screens/I03-admin-live-map.jpg",
+  "svg": "vector/I03-admin-live-map.svg",
+  "w": 1440,
+  "h": 900,
+  "scale": 1,
+  "device": "desktop"
+ },
+ {
+  "section": "I",
+  "role": "Administrator",
+  "id": "I04-admin-verification",
+  "title": "Trip verification",
+  "purpose": "Review any trip’s pre-departure checks; waive a PIN with a reason or suspend a vehicle.",
+  "example": "BK-7Q2M4X at Items Loaded.",
+  "callouts": [
+   {
+    "x": 184,
+    "y": 232.171875,
+    "w": 187.875,
+    "h": 40,
+    "title": "Choose a trip",
+    "text": "Trips at verification."
+   },
+   {
+    "x": 204,
+    "y": 292.171875,
+    "w": 263.90625,
+    "h": 27.5,
+    "title": "Verification record",
+    "text": "PIN attempts, plate, checklist, confirmations; staff can waive with a reason or suspend a vehicle."
+   }
+  ],
+  "next": [
+   [
+    "I01-admin-overview",
+    "Overview"
+   ]
+  ],
+  "file": "screens/I04-admin-verification.jpg",
+  "svg": "vector/I04-admin-verification.svg",
+  "w": 1440,
+  "h": 900,
+  "scale": 1,
+  "device": "desktop"
+ },
+ {
+  "section": "I",
+  "role": "Administrator",
+  "id": "I05-admin-applications",
+  "title": "Applications",
+  "purpose": "Verification, interview and orientation before approval.",
+  "example": "Ana Lim applied as a driver.",
+  "callouts": [
+   {
+    "x": 660,
+    "y": 539.96875,
+    "w": 153.328125,
+    "h": 52,
+    "title": "Interview",
+    "text": "Date, time, place."
+   },
+   {
+    "x": 1049.328125,
+    "y": 539.96875,
+    "w": 154.046875,
+    "h": 52,
+    "title": "Request a document",
+    "text": "Applicant uploads more."
+   }
+  ],
+  "next": [
+   [
+    "I01-admin-overview",
+    "Overview"
+   ]
+  ],
+  "file": "screens/I05-admin-applications.jpg",
+  "svg": "vector/I05-admin-applications.svg",
+  "w": 1440,
+  "h": 900,
+  "scale": 1,
+  "device": "desktop"
+ },
+ {
+  "section": "I",
+  "role": "Administrator",
+  "id": "I06-admin-vehicles",
+  "title": "Vehicle approvals",
+  "purpose": "Check each new vehicle’s OR/CR and details.",
+  "example": "Isuzu Forward 6-wheeler, ZAM 9902.",
+  "callouts": [
+   {
+    "x": 204,
+    "y": 223.78125,
+    "w": 160,
+    "h": 21,
+    "title": "Vehicle",
+    "text": "Owner, color, year, documents."
+   },
+   {
+    "x": 204,
+    "y": 259.375,
+    "w": 82.46875,
+    "h": 52,
+    "title": "Approve or reject",
+    "text": "With a reason."
+   }
+  ],
+  "next": [
+   [
+    "I01-admin-overview",
+    "Overview"
+   ]
+  ],
+  "file": "screens/I06-admin-vehicles.jpg",
+  "svg": "vector/I06-admin-vehicles.svg",
+  "w": 1440,
+  "h": 900,
+  "scale": 1,
+  "device": "desktop"
+ },
+ {
+  "section": "I",
+  "role": "Administrator",
+  "id": "I07-admin-rentals",
+  "title": "Rentals",
+  "purpose": "All self-drive rentals; admins can step in at any stage.",
+  "example": "RN-8JD3KA pending · RN-5TV8WQ approved · Carla’s L300 rental completed with a decided claim.",
+  "callouts": [
+   {
+    "x": 204,
+    "y": 424.328125,
+    "w": 82.46875,
+    "h": 52,
+    "title": "Owner actions",
+    "text": "Approve, reject, release, return, complete."
+   }
+  ],
+  "next": [
+   [
+    "I01-admin-overview",
+    "Overview"
+   ]
+  ],
+  "file": "screens/I07-admin-rentals.jpg",
+  "svg": "vector/I07-admin-rentals.svg",
+  "w": 1440,
+  "h": 1560,
+  "scale": 1,
+  "device": "desktop"
+ },
+ {
+  "section": "I",
+  "role": "Administrator",
+  "id": "I08-admin-incidents",
+  "title": "Incident cases",
+  "purpose": "Review, request evidence, record statements, decide and close; every step logged.",
+  "example": "IN-4RT6YB (Delay, Medium).",
+  "callouts": [
+   {
+    "x": 204,
+    "y": 228.578125,
+    "w": 82.546875,
+    "h": 21,
+    "title": "Case",
+    "text": "Booking, category, description."
+   },
+   {
+    "x": 204,
+    "y": 433.34375,
+    "w": 89.171875,
+    "h": 40,
+    "title": "Case actions",
+    "text": "Note, evidence, statement, decision."
+   }
+  ],
+  "next": [
+   [
+    "I01-admin-overview",
+    "Overview"
+   ]
+  ],
+  "file": "screens/I08-admin-incidents.jpg",
+  "svg": "vector/I08-admin-incidents.svg",
+  "w": 1440,
+  "h": 900,
+  "scale": 1,
+  "device": "desktop"
+ },
+ {
+  "section": "I",
+  "role": "Administrator",
+  "id": "I09-admin-payments",
+  "title": "Payments",
+  "purpose": "The full payment ledger, as the cashier sees it.",
+  "example": "All bookings and rentals.",
+  "callouts": [
+   {
+    "x": 184,
+    "y": 232.171875,
+    "w": 125.296875,
+    "h": 40,
+    "title": "Download CSV",
+    "text": "For accounting."
+   }
+  ],
+  "next": [
+   [
+    "I01-admin-overview",
+    "Overview"
+   ]
+  ],
+  "file": "screens/I09-admin-payments.jpg",
+  "svg": "vector/I09-admin-payments.svg",
+  "w": 1440,
+  "h": 900,
+  "scale": 1,
+  "device": "desktop"
+ },
+ {
+  "section": "I",
+  "role": "Administrator",
+  "id": "I10-admin-settings",
+  "title": "Settings",
+  "purpose": "Business settings without code changes.",
+  "example": "Company share 80% · 30 minutes to accept.",
+  "callouts": [
+   {
+    "x": 204,
+    "y": 172.984375,
+    "w": 1032,
+    "h": 25,
+    "title": "Remittance rate",
+    "text": "Company share of fares."
+   },
+   {
+    "x": 204,
+    "y": 433.171875,
+    "w": 1032,
+    "h": 25,
+    "title": "Response time",
+    "text": "Then “No driver found”."
+   }
+  ],
+  "next": [
+   [
+    "I01-admin-overview",
+    "Overview"
+   ]
+  ],
+  "file": "screens/I10-admin-settings.jpg",
+  "svg": "vector/I10-admin-settings.svg",
+  "w": 1440,
+  "h": 986,
+  "scale": 1,
+  "device": "desktop"
+ },
+ {
+  "section": "I",
+  "role": "Administrator",
+  "id": "I11-admin-staff",
+  "title": "Staff and administrators",
+  "purpose": "The owner admin appoints administrators, secondary admins and cashiers.",
+  "example": "Kim Bautista is a cashier.",
+  "callouts": [
+   {
+    "x": 184,
+    "y": 337.765625,
+    "w": 79.359375,
+    "h": 40,
+    "title": "Appoint",
+    "text": "Immediate."
+   }
+  ],
+  "next": [
+   [
+    "I01-admin-overview",
+    "Overview"
+   ]
+  ],
+  "file": "screens/I11-admin-staff.jpg",
+  "svg": "vector/I11-admin-staff.svg",
+  "w": 1440,
+  "h": 900,
+  "scale": 1,
+  "device": "desktop"
+ },
+ {
+  "section": "I",
+  "role": "Administrator",
+  "id": "I12-admin-audit-log",
+  "title": "Audit log",
+  "purpose": "Every important action with who did it and when.",
+  "example": "Rental approved by Olga · trip steps by drivers.",
+  "callouts": [
+   {
+    "x": 184,
+    "y": 111.1875,
+    "w": 1072,
+    "h": 37.796875,
+    "title": "Audit log",
+    "text": "Read-only."
+   }
+  ],
+  "next": [
+   [
+    "I01-admin-overview",
+    "Overview"
+   ]
+  ],
+  "file": "screens/I12-admin-audit-log.jpg",
+  "svg": "vector/I12-admin-audit-log.svg",
+  "w": 1440,
+  "h": 3236,
+  "scale": 1,
+  "device": "desktop"
+ },
+ {
+  "section": "M",
+  "role": "Phone",
+  "id": "M01-landing",
+  "title": "Phone: landing page",
+  "purpose": "ZamMove runs in the phone’s browser; nothing to install.",
+  "example": "The desktop content, stacked for small screens.",
+  "next": [
+   [
+    "M02-sign-up",
+    "Create account"
+   ]
+  ],
+  "cap": 5200,
+  "callouts": [
+   {
+    "x": 22.8125,
+    "y": 146.375,
+    "w": 343.1875,
+    "h": 117.5625,
+    "title": "Mobile layout",
+    "text": "Large text and buttons."
+   }
+  ],
+  "file": "screens/M01-landing.jpg",
+  "svg": "vector/M01-landing.svg",
+  "w": 390,
+  "h": 5200,
+  "scale": 2,
+  "device": "phone"
+ },
+ {
+  "section": "M",
+  "role": "Phone",
+  "id": "M02-sign-up",
+  "title": "Phone: create an account",
+  "purpose": "The full sign-up form on a phone.",
+  "example": "Same fields and rules as desktop.",
+  "next": [
+   [
+    "M03-home",
+    "After sign-up"
+   ]
+  ],
+  "callouts": [
+   {
+    "x": 20,
+    "y": 335.046875,
+    "w": 350,
+    "h": 52,
+    "title": "Form",
+    "text": "One column, native date and number keyboards."
+   }
+  ],
+  "file": "screens/M02-sign-up.jpg",
+  "svg": "vector/M02-sign-up.svg",
+  "w": 390,
+  "h": 1502,
+  "scale": 2,
+  "device": "phone"
+ },
+ {
+  "section": "M",
+  "role": "Phone",
+  "id": "M03-home",
+  "title": "Phone: customer home",
+  "purpose": "Home with the bottom navigation bar.",
+  "example": "Carla Mendoza.",
+  "next": [
+   [
+    "M04-book",
+    "Book"
+   ]
+  ],
+  "cap": 5200,
+  "callouts": [
+   {
+    "x": 14.8125,
+    "y": 130.375,
+    "w": 359.1875,
+    "h": 78.375,
+    "title": "Quick actions",
+    "text": "Book, rent, track."
+   }
+  ],
+  "file": "screens/M03-home.jpg",
+  "svg": "vector/M03-home.svg",
+  "w": 390,
+  "h": 5200,
+  "scale": 2,
+  "device": "phone"
+ },
+ {
+  "section": "M",
+  "role": "Phone",
+  "id": "M04-book",
+  "title": "Phone: book a haul",
+  "purpose": "The booking form on a phone.",
+  "example": "Empty form.",
+  "next": [
+   [
+    "M05-rent",
+    "Rent"
+   ]
+  ],
+  "callouts": [
+   {
+    "x": 36,
+    "y": 297.34375,
+    "w": 318,
+    "h": 52,
+    "title": "Places",
+    "text": "Search or use current location."
+   }
+  ],
+  "file": "screens/M04-book.jpg",
+  "svg": "vector/M04-book.svg",
+  "w": 390,
+  "h": 3902,
+  "scale": 2,
+  "device": "phone"
+ },
+ {
+  "section": "M",
+  "role": "Phone",
+  "id": "M05-rent",
+  "title": "Phone: rent a vehicle",
+  "purpose": "Dates first, then models with availability.",
+  "example": "2 days.",
+  "next": [
+   [
+    "M06-track",
+    "Track"
+   ]
+  ],
+  "callouts": [
+   {
+    "x": 36,
+    "y": 383.53125,
+    "w": 318,
+    "h": 52,
+    "title": "Dates",
+    "text": "Native date picker."
+   },
+   {
+    "x": 36,
+    "y": 681.296875,
+    "w": 318,
+    "h": 306.078125,
+    "title": "Model cards",
+    "text": "Tap for details and units."
+   }
+  ],
+  "file": "screens/M05-rent.jpg",
+  "svg": "vector/M05-rent.svg",
+  "w": 390,
+  "h": 4617,
+  "scale": 2,
+  "device": "phone"
+ },
+ {
+  "section": "M",
+  "role": "Phone",
+  "id": "M06-track",
+  "title": "Phone: live tracking",
+  "purpose": "Following the truck from a phone.",
+  "example": "Bea Santos waiting for Ramon Cruz.",
+  "next": [
+   [
+    "M07-driver-trip",
+    "Driver view"
+   ]
+  ],
+  "callouts": [
+   {
+    "x": 16,
+    "y": 488.125,
+    "w": 358,
+    "h": 380,
+    "title": "Live map",
+    "text": "Pinch to zoom."
+   },
+   {
+    "x": 231.59375,
+    "y": 384.140625,
+    "w": 130.40625,
+    "h": 40,
+    "title": "Waze",
+    "text": "Opens the Waze app."
+   }
+  ],
+  "file": "screens/M06-track.jpg",
+  "svg": "vector/M06-track.svg",
+  "w": 390,
+  "h": 2453,
+  "scale": 2,
+  "device": "phone"
+ },
+ {
+  "section": "M",
+  "role": "Phone",
+  "id": "M07-driver-trip",
+  "title": "Phone: driver active trip",
+  "purpose": "Drivers run the whole trip from their phone.",
+  "example": "Ramon Cruz sharing his location.",
+  "next": [
+   [
+    "M06-track",
+    "Customer view"
+   ]
+  ],
+  "callouts": [
+   {
+    "x": 36,
+    "y": 464.75,
+    "w": 318,
+    "h": 263.5625,
+    "title": "Live location",
+    "text": "Keep the page open."
+   },
+   {
+    "x": 36,
+    "y": 738.3125,
+    "w": 318,
+    "h": 262.359375,
+    "title": "Waze link",
+    "text": "Paste the Share drive link."
+   }
+  ],
+  "file": "screens/M07-driver-trip.jpg",
+  "svg": "vector/M07-driver-trip.svg",
+  "w": 390,
+  "h": 1157,
+  "scale": 2,
+  "device": "phone"
+ }
+]

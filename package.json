@@ -1,0 +1,20 @@
+{
+  "name": "zammove",
+  "private": true,
+  "description": "ZamMove project tooling (formatting). The app itself lives in backend/ and frontend/.",
+  "scripts": {
+    "start": "npm --prefix backend start",
+    "seed:demo": "npm --prefix backend run seed:demo",
+    "https-cert": "npm --prefix backend run https-cert",
+    "reset-password": "npm --prefix backend run reset-password",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "css": "tailwindcss -c tailwind.config.js -i frontend/customer/css/tw.css -o frontend/customer/css/tailwind.css --minify",
+    "css:watch": "tailwindcss -c tailwind.config.js -i frontend/customer/css/tw.css -o frontend/customer/css/tailwind.css --watch",
+    "demo": "node demo/build-demo.js"
+  },
+  "devDependencies": {
+    "prettier": "3.9.10",
+    "tailwindcss": "3.4.19"
+  }
+}

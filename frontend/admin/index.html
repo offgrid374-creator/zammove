@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en" data-mode="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>ZamMove Admin</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%228%22 fill=%22%230f5c53%22/%3E%3Ctext x=%2216%22 y=%2222%22 font-family=%22Arial%22 font-weight=%22700%22 font-size=%2216%22 fill=%22white%22 text-anchor=%22middle%22%3EZ%3C/text%3E%3C/svg%3E" />
+    <!-- the same design system as the customer app, so both look and behave alike -->
+    <link rel="stylesheet" href="../customer/css/app.css" />
+    <link rel="stylesheet" href="../customer/css/tailwind.css" />
+    <link rel="stylesheet" href="admin.css" />
+    <script>
+      /* follow the light/dark choice made in the customer app (same browser) */
+      try {
+        var m = (JSON.parse(localStorage.getItem('zm5') || '{}') || {}).mode || 'light';
+        if (m == 'system') m = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        document.documentElement.setAttribute('data-mode', m);
+      } catch (e) {}
+      window.ZM_TOKEN_KEY = 'zm_admin_token';
+    </script>
+  </head>
+  <body>
+    <header id="hd" hidden>
+      <div class="bar">
+        <div class="logo">
+          <span class="lm"
+            ><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M2 6h12v11H2z" />
+              <path d="M14 10h4l4 4v3h-8z" />
+              <circle cx="7" cy="18" r="2" />
+              <circle cx="17" cy="18" r="2" /></svg></span
+          >ZamMove<span class="ad-badge">Admin</span>
+        </div>
+        <nav id="nav" aria-label="Admin sections"></nav>
+        <div id="who"></div>
+      </div>
+    </header>
+    <main id="app"></main>
+    <div id="mod" hidden data-a="close" role="dialog" aria-modal="true" aria-label="Document"></div>
+    <script src="../shared/api.js"></script>
+    <script src="admin.js"></script>
+  </body>
+</html>

@@ -1,0 +1,378 @@
+/* ZamMove design system on Tailwind CSS.
+   Source file: edit this, then run `npm run css` (writes tailwind.css, which index.html loads after app.css).
+   1. tokens   – the colour variables every screen already uses, re-themed (light + dark)
+   2. components – the shared building blocks (buttons, cards, inputs, tags, tables, notices, header) rebuilt with @apply
+   3. utilities – any tw-* class used in the JS screens (the driver assignment screens use them directly) */
+/* base: only Tailwind's internal variables (preflight is off in tailwind.config.js) */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ---------- 1. tokens ---------- */
+html[data-mode='light'] {
+  --bg: theme('colors.sand.50');
+  --s: #ffffff;
+  --s2: theme('colors.slate.100');
+  --bd: theme('colors.slate.200');
+  --bd2: theme('colors.slate.300');
+  --tx: theme('colors.slate.900');
+  --tx2: theme('colors.slate.600');
+  --mu: theme('colors.slate.500');
+  --ph: theme('colors.slate.400');
+  --ac: theme('colors.harbor.700');
+  --ac2: theme('colors.harbor.700');
+  --acd: theme('colors.harbor.600');
+  --acs: theme('colors.harbor.50');
+  --pri: theme('colors.harbor.700');
+  --onpri: #ffffff;
+  --nav: #ffffff;
+  --err: theme('colors.rose.700');
+  --shadow: theme('boxShadow.card');
+}
+html[data-mode='dark'] {
+  --bg: #0a1211;
+  --s: #111b1a;
+  --s2: #182423;
+  --bd: #233231;
+  --bd2: #2f4140;
+  --tx: #ecf3f2;
+  --tx2: #a9bab8;
+  --mu: #8aa09d;
+  --ph: #6b817e;
+  --ac: theme('colors.harbor.300');
+  --ac2: theme('colors.harbor.300');
+  --acd: theme('colors.harbor.400');
+  --acs: #12302d;
+  --pri: theme('colors.harbor.400');
+  --onpri: #04110f;
+  --nav: #111b1a;
+  --err: theme('colors.rose.400');
+  --shadow: none;
+}
+
+@layer components {
+  /* ---------- 2. components ---------- */
+  html body {
+    @apply tw-antialiased;
+  }
+  html h1 {
+    @apply tw-font-display tw-font-extrabold tw-tracking-tight;
+  }
+  html h2 {
+    @apply tw-font-display tw-font-bold tw-tracking-tight;
+  }
+
+  /* the vinta stripe: a 3 px band of Zamboanga sail colours on top of the header */
+  .vinta-stripe,
+  html header {
+    background-image: linear-gradient(
+      90deg,
+      theme('colors.vinta.red') 0 16.6%,
+      theme('colors.vinta.orange') 16.6% 33.3%,
+      theme('colors.vinta.yellow') 33.3% 50%,
+      theme('colors.vinta.green') 50% 66.6%,
+      theme('colors.vinta.blue') 66.6% 83.3%,
+      theme('colors.vinta.violet') 83.3% 100%
+    );
+    background-repeat: no-repeat;
+    background-size: 100% 3px;
+    background-position: top;
+  }
+  .vinta-stripe {
+    @apply tw-block tw-h-[3px] tw-w-16 tw-rounded-full;
+    background-size: 100% 100%;
+  }
+  html #zban {
+    @apply tw-bg-harbor-950 tw-text-harbor-100 tw-text-xs tw-tracking-wide;
+  }
+  html .logo {
+    @apply tw-text-harbor-700;
+  }
+  html[data-mode='dark'] .logo {
+    @apply tw-text-harbor-300;
+  }
+
+  /* buttons */
+  html .btn {
+    @apply tw-inline-flex tw-items-center tw-justify-center tw-gap-2 tw-rounded-xl tw-border-0 tw-bg-harbor-700 tw-px-5 tw-font-semibold tw-text-white tw-shadow-sm tw-transition tw-duration-150;
+    filter: none;
+  }
+  html .btn:hover {
+    @apply tw-bg-harbor-800 tw-shadow;
+    filter: none;
+  }
+  html .btn:focus-visible {
+    @apply tw-outline-none tw-ring-4 tw-ring-harbor-200;
+  }
+  html .btn:active {
+    @apply tw-scale-[.98];
+  }
+  html .btn.o {
+    @apply tw-bg-white tw-text-slate-800 tw-shadow-none tw-ring-1 tw-ring-inset tw-ring-slate-300;
+    border: 0;
+  }
+  html .btn.o:hover {
+    @apply tw-bg-slate-50 tw-ring-slate-400;
+  }
+  html .btn.d {
+    @apply tw-bg-white tw-text-rose-700 tw-shadow-none tw-ring-1 tw-ring-inset tw-ring-rose-300;
+    border: 0;
+  }
+  html .btn.d:hover {
+    @apply tw-bg-rose-50;
+  }
+  html .btn:disabled,
+  html .btn[aria-disabled='true'] {
+    @apply tw-cursor-not-allowed tw-opacity-50;
+  }
+  html[data-mode='dark'] .btn {
+    @apply tw-bg-harbor-400 tw-text-harbor-950;
+  }
+  html[data-mode='dark'] .btn:hover {
+    @apply tw-bg-harbor-300;
+  }
+  html[data-mode='dark'] .btn.o {
+    @apply tw-bg-transparent tw-text-slate-100 tw-ring-slate-600;
+  }
+  html[data-mode='dark'] .btn.d {
+    @apply tw-bg-transparent tw-text-rose-300 tw-ring-rose-800;
+  }
+  /* public pages (landing, home sections) keep their own accent variables */
+  html .pg,
+  html .pgi {
+    --ac: theme('colors.harbor.400');
+    --act: theme('colors.harbor.700');
+  }
+  html[data-mode='dark'] .pgi {
+    --act: theme('colors.harbor.300');
+  }
+  html .ticket .p-tabs button[aria-selected='true'],
+  html .p-chip[aria-pressed='true'],
+  html .band-t {
+    @apply tw-border-harbor-700 tw-bg-harbor-700 tw-text-white;
+  }
+  /* public pages use their own button classes */
+  html .p-pri {
+    @apply tw-rounded-xl tw-bg-harbor-700 tw-font-semibold tw-text-white tw-shadow-sm;
+  }
+  html .p-pri:hover {
+    @apply tw-bg-harbor-800;
+  }
+
+  /* surfaces */
+  html .card {
+    @apply tw-rounded-2xl tw-bg-white tw-shadow-card tw-ring-1 tw-ring-slate-900/5;
+  }
+  html .tile {
+    @apply tw-rounded-2xl tw-shadow-card tw-ring-1 tw-ring-slate-900/5;
+  }
+  html[data-mode='dark'] .card,
+  html[data-mode='dark'] .tile {
+    @apply tw-bg-[#111b1a] tw-shadow-none tw-ring-white/5;
+  }
+  html .vz-bc,
+  html .vz-g {
+    @apply tw-rounded-xl tw-bg-slate-50 tw-ring-1 tw-ring-slate-200;
+    border: 0;
+  }
+  html[data-mode='dark'] .vz-bc,
+  html[data-mode='dark'] .vz-g {
+    @apply tw-bg-white/[.03] tw-ring-white/10;
+  }
+
+  /* form fields */
+  html input:not([type='checkbox']):not([type='radio']):not([type='file']):not([type='range']),
+  html select,
+  html textarea {
+    @apply tw-rounded-xl tw-border tw-border-solid tw-border-slate-300 tw-shadow-sm tw-transition;
+  }
+  html input:not([type='checkbox']):not([type='radio']):not([type='file']):focus,
+  html select:focus,
+  html textarea:focus {
+    @apply tw-border-harbor-500 tw-outline-none tw-ring-4 tw-ring-harbor-100;
+    box-shadow: 0 0 0 4px theme('colors.harbor.100');
+  }
+  html[data-mode='dark'] input:not([type='checkbox']):not([type='radio']):not([type='file']),
+  html[data-mode='dark'] select,
+  html[data-mode='dark'] textarea {
+    @apply tw-border-[#2f4140] tw-bg-[#0d1716] tw-text-slate-100;
+  }
+  html input[type='file'] {
+    @apply tw-text-sm tw-text-slate-600;
+  }
+  html input[type='file']::file-selector-button {
+    @apply tw-mr-3 tw-cursor-pointer tw-rounded-lg tw-border-0 tw-bg-harbor-50 tw-px-3 tw-py-2 tw-font-semibold tw-text-harbor-800 hover:tw-bg-harbor-100;
+  }
+  html input[type='checkbox'] {
+    accent-color: theme('colors.harbor.700');
+  }
+  html label {
+    @apply tw-font-medium tw-text-slate-700;
+  }
+  html[data-mode='dark'] label {
+    @apply tw-text-slate-300;
+  }
+
+  /* status pills */
+  html .tag {
+    @apply tw-inline-flex tw-items-center tw-gap-1.5 tw-rounded-full tw-bg-slate-100 tw-px-2.5 tw-py-0.5 tw-text-xs tw-font-semibold tw-text-slate-700 tw-ring-1 tw-ring-inset tw-ring-slate-200;
+  }
+  html .tag::before {
+    @apply tw-h-1.5 tw-w-1.5 tw-rounded-full tw-bg-current tw-opacity-70;
+    content: '';
+  }
+  html .tag.g {
+    @apply tw-bg-emerald-50 tw-text-emerald-700 tw-ring-emerald-200;
+  }
+  html .tag.r {
+    @apply tw-bg-rose-50 tw-text-rose-700 tw-ring-rose-200;
+  }
+  html[data-mode='dark'] .tag {
+    @apply tw-bg-white/5 tw-text-slate-200 tw-ring-white/10;
+  }
+  html[data-mode='dark'] .tag.g {
+    @apply tw-bg-emerald-400/10 tw-text-emerald-300 tw-ring-emerald-400/20;
+  }
+  html[data-mode='dark'] .tag.r {
+    @apply tw-bg-rose-400/10 tw-text-rose-300 tw-ring-rose-400/20;
+  }
+
+  /* notices */
+  html .note {
+    @apply tw-rounded-xl tw-border-0 tw-bg-amber-50 tw-text-amber-900 tw-ring-1 tw-ring-amber-200;
+  }
+  html .ok:not(.wsc .ok) {
+    @apply tw-rounded-xl tw-bg-emerald-50 tw-px-3.5 tw-py-2.5 tw-text-emerald-800 tw-ring-1 tw-ring-emerald-200;
+  }
+  html[data-mode='dark'] .note {
+    @apply tw-bg-amber-400/10 tw-text-amber-100 tw-ring-amber-400/20;
+  }
+  html[data-mode='dark'] .ok:not(.wsc .ok) {
+    @apply tw-bg-emerald-400/10 tw-text-emerald-200 tw-ring-emerald-400/20;
+  }
+  html .err:not(:empty) {
+    @apply tw-text-rose-700;
+  }
+  html .vz-m.good:not(:empty) {
+    @apply tw-rounded-xl tw-bg-emerald-50 tw-text-emerald-800 tw-ring-1 tw-ring-emerald-200;
+  }
+  html .vz-m.bad:not(:empty) {
+    @apply tw-rounded-xl tw-bg-rose-50 tw-text-rose-800 tw-ring-1 tw-ring-rose-200;
+  }
+
+  /* progress steps */
+  html .st {
+    @apply tw-bg-slate-100 tw-font-medium tw-text-slate-500;
+  }
+  html .st.d {
+    @apply tw-bg-harbor-700 tw-text-white;
+  }
+
+  /* tables */
+  html .zt th,
+  html .wss th,
+  html .tbl th {
+    @apply tw-bg-slate-50 tw-text-[11px] tw-font-semibold tw-uppercase tw-tracking-wider tw-text-slate-500;
+  }
+  html .zt td,
+  html .wss td,
+  html .tbl td {
+    @apply tw-border-slate-100;
+  }
+  html .zt tr:hover td,
+  html .wss tr:hover td {
+    @apply tw-bg-slate-50/70;
+  }
+  html[data-mode='dark'] .zt th,
+  html[data-mode='dark'] .wss th,
+  html[data-mode='dark'] .tbl th {
+    @apply tw-bg-white/5 tw-text-slate-400;
+  }
+
+  /* avatars */
+  html .zav {
+    @apply tw-bg-harbor-100 tw-font-semibold tw-text-harbor-800;
+  }
+
+  /* flat vehicle illustrations follow the new teal */
+  html .zvb {
+    fill: theme('colors.harbor.400');
+  }
+  html .zvs {
+    fill: theme('colors.harbor.600');
+  }
+  html .zvw {
+    fill: theme('colors.harbor.100');
+  }
+  html .zlp {
+    fill: theme('colors.harbor.100');
+  }
+
+  /* toast */
+  html #toast {
+    @apply tw-rounded-xl tw-bg-slate-900 tw-shadow-lift;
+  }
+}
+
+/* header and navigation (desktop) */
+@media (min-width: 721px) {
+  html:not(.pubm) header {
+    @apply tw-border-b tw-border-solid tw-border-slate-200/80 tw-bg-white/90 tw-backdrop-blur;
+    background-image: linear-gradient(
+      90deg,
+      theme('colors.vinta.red') 0 16.6%,
+      theme('colors.vinta.orange') 16.6% 33.3%,
+      theme('colors.vinta.yellow') 33.3% 50%,
+      theme('colors.vinta.green') 50% 66.6%,
+      theme('colors.vinta.blue') 66.6% 83.3%,
+      theme('colors.vinta.violet') 83.3% 100%
+    );
+    background-repeat: no-repeat;
+    background-size: 100% 3px;
+    border-top: 0;
+    border-left: 0;
+    border-right: 0;
+  }
+  html[data-mode='dark']:not(.pubm) header {
+    @apply tw-border-white/10 tw-bg-[#0a1211]/90;
+  }
+  /* many tabs (admin console): the nav scrolls sideways instead of pushing the page wider */
+  html:not(.pubm) .bar {
+    @apply tw-min-w-0;
+  }
+  html:not(.pubm) nav {
+    @apply tw-min-w-0 tw-flex-1 tw-overflow-x-auto;
+    scrollbar-width: thin;
+    scrollbar-color: theme('colors.slate.300') transparent;
+  }
+  html:not(.pubm) nav a {
+    @apply tw-flex-none tw-rounded-lg tw-px-3 tw-font-semibold tw-text-slate-600 tw-transition-colors;
+  }
+  html:not(.pubm) nav a:hover {
+    @apply tw-bg-slate-100 tw-text-slate-900;
+  }
+  html:not(.pubm) nav a.on,
+  html:not(.pubm) nav a.on:hover {
+    @apply tw-bg-harbor-50 tw-text-harbor-800;
+  }
+  html:not(.pubm) nav a.on::after {
+    @apply tw-bottom-0 tw-h-[3px] tw-rounded-t-full tw-bg-harbor-600;
+  }
+  html[data-mode='dark']:not(.pubm) nav a {
+    @apply tw-text-slate-300;
+  }
+  html[data-mode='dark']:not(.pubm) nav a:hover {
+    @apply tw-bg-white/5 tw-text-white;
+  }
+  html[data-mode='dark']:not(.pubm) nav a.on {
+    @apply tw-bg-harbor-400/10 tw-text-harbor-200;
+  }
+}
+@media (max-width: 720px) {
+  html #nav {
+    @apply tw-border-slate-200 tw-shadow-lift;
+  }
+  html #nav a.on {
+    @apply tw-font-semibold tw-text-harbor-700;
+  }
+}

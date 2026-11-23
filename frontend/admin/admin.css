@@ -1,0 +1,269 @@
+/* Admin panel: only what the customer app's design system (../customer/css/app.css) does not already have. */
+.ad-badge {
+  margin-left: 10px;
+  padding: 2px 9px;
+  border-radius: 99px;
+  background: var(--acs);
+  color: var(--ac2);
+  font: 700 12px var(--body, Geist, system-ui, sans-serif);
+  letter-spacing: 0.02em;
+  vertical-align: 3px;
+}
+#who {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.nb {
+  display: inline-grid;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  margin-left: 6px;
+  border-radius: 99px;
+  background: #f28c28;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.tag.w {
+  background: rgba(217, 119, 6, 0.14);
+  color: #92400e;
+}
+html[data-mode='dark'] .tag.w {
+  color: #fbbf24;
+}
+.ad-sub {
+  display: inline-flex;
+  flex-wrap: wrap;
+  margin: 14px 0 6px;
+}
+.ad-sub .sgb {
+  flex: none;
+}
+.ad-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.ad-tw {
+  overflow-x: auto;
+}
+.ad-kv {
+  display: grid;
+  grid-template-columns: minmax(120px, 38%) 1fr;
+  gap: 8px 12px;
+  margin: 0;
+  font-size: 14.5px;
+}
+.ad-kv dt {
+  color: var(--mu);
+}
+.ad-kv dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.ad-att {
+  display: grid;
+  gap: 2px;
+}
+.ad-att button {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 52px;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--tx);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.ad-att button:hover {
+  background: var(--s2);
+}
+.ad-att b {
+  min-width: 36px;
+  font-size: 22px;
+  font-variant-numeric: tabular-nums;
+}
+.ad-att .z {
+  color: var(--mu);
+}
+.ad-att .go {
+  margin-left: auto;
+  color: var(--mu);
+}
+.tiles.ad-6 {
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+.ad-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  margin-top: 14px;
+}
+.ad-grid > .card,
+.ad-col > .card {
+  margin: 0;
+}
+.ad-col {
+  display: grid;
+  gap: 14px;
+  align-content: start;
+}
+.ad-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-top: 10px;
+}
+.ad-row input,
+.ad-row select {
+  width: auto;
+  min-width: 160px;
+  flex: 1 1 180px;
+}
+.ad-link {
+  border: 0;
+  background: none;
+  padding: 0;
+  color: var(--ac2);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+}
+.ad-link:hover {
+  text-decoration: underline;
+}
+.ad-user {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.ad-user .zav {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  font-size: 13px;
+}
+.ad-user small {
+  display: block;
+  color: var(--mu);
+}
+.ad-tags {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.ad-bad {
+  color: var(--err);
+  font-weight: 600;
+}
+.ad-login {
+  max-width: 420px;
+  margin: 8vh auto 0;
+}
+.ad-login .logo {
+  margin-bottom: 18px;
+}
+.ad-login label {
+  display: block;
+  margin: 14px 0 6px;
+}
+.ad-login .btn {
+  width: 100%;
+  margin-top: 18px;
+}
+.ad-ev {
+  font-size: 13.5px;
+  color: var(--mu);
+  padding: 2px 0;
+}
+#mod {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(15, 23, 42, 0.6);
+}
+#mod[hidden] {
+  display: none;
+}
+#mod img {
+  max-width: min(900px, 100%);
+  max-height: 86vh;
+  border-radius: 14px;
+  background: #fff;
+}
+#zsync {
+  position: fixed;
+  right: 16px;
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  z-index: 20;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+}
+@media (max-width: 720px) {
+  .ad-who-name {
+    display: none;
+  }
+  .ad-kv {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+  .ad-kv dd {
+    margin-bottom: 8px;
+  }
+}
+/* cards in a grid keep their own height, and long dropdown labels never widen a column */
+.ad-grid {
+  align-items: start;
+}
+.ad-grid > *,
+.ad-col > * {
+  min-width: 0;
+}
+.ad-row select {
+  max-width: 100%;
+  text-overflow: ellipsis;
+}
+.card .tiles {
+  grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+}
+.card .tile {
+  min-height: 84px;
+}
+.ad-s {
+  display: none;
+}
+@media (max-width: 720px) {
+  .ad-l {
+    display: none;
+  }
+  .ad-s {
+    display: inline;
+  }
+  nav .nb {
+    position: absolute;
+    top: 2px;
+    right: 50%;
+    margin-right: -22px;
+    min-width: 16px;
+    height: 16px;
+    font-size: 10.5px;
+  }
+  nav a {
+    position: relative;
+  }
+}

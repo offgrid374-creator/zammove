@@ -1,0 +1,11 @@
+# third-party, generated or archived files are not reformatted
+node_modules/
+backend/.data/
+backend/package-lock.json
+package-lock.json
+frontend/customer/vendor/
+legacy/
+docs/figma/*.svg
+docs/figma/diagrams/
+docs/figma/screens/
+docs/ZAMMOVE_FIX_PROMPT.md

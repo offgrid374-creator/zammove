@@ -1,0 +1,496 @@
+'use strict';
+/* Booking lifecycle: pricing and capacity at creation, cancellation, re-submit, customer GCash proof, reviews,
+   driver accept/steps/collection, admin assignment and driver availability. */
+const C = require('./constants');
+const { now, r2, rid, str, img, ok, no, peso, manilaMs } = require('../util');
+
+module.exports = (S, h) => {
+  const own = (me, id) => {
+    const b = S.bk.find(x => x.id == id);
+    return b && b.cu == me.em ? b : null;
+  };
+  const mine = (me, id) => {
+    const b = S.bk.find(x => x.id == id);
+    return b && b.drvUser == me.em ? b : null;
+  };
+
+  /* the single pricing rule (server-side): base + km x rate + movers + 5% service fee - discount */
+  const price = (v, km, mv, dc) => {
+    const dist = r2(km * v.km), // km can have one decimal (road distance), e.g. 4.4 x 25 = 110
+      mov = mv * C.MOVER_FEE,
+      sub = v.base + dist + mov,
+      fee = Math.round(sub * C.SERVICE_FEE),
+      disc = Math.round(sub * (C.DC[dc] || 0));
+    return { dist, mov, sub: r2(sub), fee, disc, tot: r2(sub + fee - disc) };
+  };
+
+  const A = {
+    quote(me, p) {
+      const v = C.HV.find(x => x.id == p.vid);
+      if (!v) return no('Choose a vehicle.');
+      const road = p.__road && +p.__road.km > 0 ? p.__road : null,
+        km = road ? road.km : C.kmBetween(str(p.pu, 200), str(p.dr, 200)),
+        mv = Math.max(0, Math.min(10, Math.round(+p.mv || 0))),
+        dc = str(p.dc, 20).toUpperCase();
+      return ok({
+        km,
+        min: road ? road.min : null,
+        road: !!road,
+        ...price(v, km, mv, dc),
+        validCode: !dc || !!C.DC[dc],
+      });
+    },
+    createBooking(me, p) {
+      if (!me.ver) return no('Verify your account first (see the banner on Home).');
+      const v = C.HV.find(x => x.id == p.vid);
+      if (!v) return no('Choose a vehicle.');
+      const d = {
+        pu: str(p.pu, 200),
+        dr: str(p.dr, 200),
+        dt: str(p.dt, 10),
+        tm: str(p.tm, 5),
+        it: str(p.it, 500),
+        si: str(p.si, 500),
+      };
+      const mv = Math.round(+p.mv || 0),
+        dc = str(p.dc, 20).toUpperCase();
+      if (d.pu.length < 5 || d.dr.length < 5) return no('Pickup and drop-off addresses are required.');
+      if (!C.inZC(d.pu))
+        return no(
+          'Pickup address must be within Zamboanga City. Choose a suggestion or add Zamboanga City to the address.'
+        );
+      if (!C.inZC(d.dr))
+        return no(
+          'Drop-off address must be within Zamboanga City. Choose a suggestion or add Zamboanga City to the address.'
+        );
+      if (d.pu.toLowerCase() == d.dr.toLowerCase())
+        return no('Pickup and drop-off must be different places.');
+      /* road distance from OpenStreetMap routing when available (added by app.js), otherwise straight line × 1.3 */
+      const road = p.__road && +p.__road.km > 0 ? p.__road : null;
+      const km = C.kmBetween(d.pu, d.dr) ? (road ? road.km : C.kmBetween(d.pu, d.dr)) : 0;
+      if (!km)
+        return no(
+          'Pick both locations from the suggestions, the map or “Use my current location” so the distance can be computed.'
+        );
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(d.dt) || !/^\d{2}:\d{2}$/.test(d.tm))
+        return no('Choose a pickup date and time.');
+      if (manilaMs(d.dt, d.tm) < Date.now()) return no('Schedule must be in the future.');
+      if (d.it.length < 3) return no('Describe the items to transport.');
+      if (!(mv >= 0 && mv <= 10)) return no('Movers must be between 0 and 10.');
+      if (dc && !C.DC[dc]) return no('Invalid discount code.');
+      if (h.capFree({ id: '', vid: v.id, dt: d.dt, tm: d.tm, km }) < 1)
+        return no('No vehicle of this type is free at that time. Choose another time or vehicle type.');
+      const pr = price(v, km, mv, dc),
+        t = now();
+      const b = {
+        id: rid('BK'),
+        cu: me.em,
+        ...d,
+        vid: v.id,
+        vn: v.n,
+        mv,
+        km,
+        kmBy: road ? 'road' : 'estimate',
+        ...(road ? { min: road.min } : {}),
+        tot: pr.tot,
+        bd: [v.base, pr.dist, pr.mov, pr.fee],
+        disc: pr.disc,
+        dc: pr.disc ? dc : '',
+        ph: img(p.ph),
+        st: 'Pending',
+        drv: '',
+        cr: t,
+        ev: [{ t, by: me.em, from: '', to: 'Pending', note: 'Booking requested' }],
+      };
+      S.bk.push(b);
+      h.au(me.em, 'booking created', { bk: b.id, tot: b.tot });
+      h.ntf(me.em, 'Booking submitted', b.id + ' is waiting for a driver to accept.');
+      h.tellDrivers(b);
+      return ok({ id: b.id });
+    },
+    cancelBooking(me, p) {
+      const b = own(me, p.id);
+      if (!b) return no('Booking not found.');
+      if (!C.CANCEL_OK.includes(b.st))
+        return no('This booking can no longer be cancelled here. Report an incident or contact support.');
+      const fee = h.cancelFee(b),
+        t = now(),
+        from = b.st,
+        drv = b.drvUser || '';
+      b.cf = fee;
+      b.cxl = { t, by: me.em, from, fee };
+      h.ev(
+        b,
+        me.em,
+        'Cancelled',
+        fee ? 'Cancelled by the customer. Cancellation fee ' + peso(fee) + '.' : 'Cancelled by the customer.'
+      );
+      if (fee)
+        S.pay.push(
+          h.payMk({
+            bid: b.id,
+            kind: 'cancel_fee',
+            method: 'Cash or GCash',
+            amount: fee,
+            ref: rid('FEE'),
+            payer: me.em,
+            status: 'Submitted',
+            note: '10% cancellation fee',
+          })
+        );
+      h.au(me.em, 'booking cancelled', { bk: b.id, from, fee, driver: drv || null, vehicle: b.veh || null });
+      h.ntf(
+        me.em,
+        'Booking cancelled',
+        b.id + ' was cancelled.' + (fee ? ' A cancellation fee of ' + peso(fee) + ' is due.' : '')
+      );
+      if (drv)
+        h.ntf(
+          drv,
+          'Booking cancelled',
+          'The customer cancelled ' + b.id + '. You and your vehicle are free for that slot.'
+        );
+      return ok({ fee });
+    },
+    resubmit(me, p) {
+      const b = own(me, p.id);
+      if (!b || b.st != 'No driver found') return no('This booking cannot be re-submitted.');
+      if (h.t0(b) < Date.now())
+        return no('The pickup time has passed. Cancel this booking and create a new one.');
+      if (h.capFree(b) < 1)
+        return no('No vehicle of this type is free at that time. Cancel and choose another time.');
+      h.ev(b, me.em, 'Pending', 'Re-submitted by the customer');
+      b.cr = now();
+      b.declined = [];
+      h.au(me.em, 'booking re-submitted', { bk: b.id });
+      h.tellDrivers(b);
+      return ok();
+    },
+    submitProof(me, p) {
+      const b = own(me, p.id),
+        k = p.kind == 'final' ? 'final' : 'down';
+      if (!b || b.drvUser == me.em)
+        return no('Only the customer who made this booking can submit a payment.');
+      if (b.st != (k == 'down' ? 'Awaiting Down Payment' : 'Awaiting Final Payment'))
+        return no('This payment is not due yet.');
+      const left = r2(h.due(b, k) - h.paySum(b.id, k)),
+        g = r2(p.amount),
+        ref = str(p.ref, 13);
+      if (!(g > 0) || g > left + 0.005) return no('Enter a GCash amount from ₱0.01 to ' + peso(left) + '.');
+      if (!/^\d{10,13}$/.test(ref)) return no('Enter the GCash reference number (10–13 digits).');
+      if (S.pay.some(x => x.ref == ref && x.status != 'Rejected'))
+        return no('This GCash reference was already submitted.');
+      if (S.pay.some(x => x.bid == b.id && x.kind == k && x.status == 'Submitted'))
+        return no('You already submitted a GCash proof for this payment. Wait for the driver to confirm it.');
+      const pay = h.payMk({
+        bid: b.id,
+        kind: k,
+        method: 'GCash',
+        amount: g,
+        ref,
+        payer: me.em,
+        status: 'Submitted',
+        pf: img(p.pf),
+      });
+      S.pay.push(pay);
+      h.au(me.em, 'gcash proof submitted', { bk: b.id, kind: k, amount: g });
+      h.ntf(me.em, 'GCash proof submitted', peso(g) + ' for ' + b.id + '. Your driver confirms it on site.');
+      if (b.drvUser)
+        h.ntf(
+          b.drvUser,
+          'GCash proof received',
+          `The customer submitted GCash ref ${ref} (${peso(g)}) for ${b.id}. Confirm it when you collect.`
+        );
+      return ok();
+    },
+    review(me, p) {
+      const b = own(me, p.id);
+      if (!b || b.st != 'Completed') return no('You can review a booking after it is completed.');
+      const r = Math.round(+p.r);
+      if (!(r >= 1 && r <= 5)) return no('Choose a star rating.');
+      if (S.rev.some(x => x.bid == b.id)) return no('You already reviewed this booking.');
+      S.rev.push({
+        id: rid('RV'),
+        bid: b.id,
+        by: me.em,
+        r,
+        t: str(p.t, 300) || 'No comment',
+        sv: str(p.sv, 300),
+        cr: now(),
+      });
+      h.au(me.em, 'review', { bk: b.id, r });
+      return ok();
+    },
+
+    /* ---- driver ---- */
+    setAvail(me, p) {
+      if (!h.okr(me, 'driver') || !h.acct(me)) return no('Only an approved driver can change availability.');
+      if (h.dAv(me.em) == 'Temporarily Suspended')
+        return no('Your account is suspended. Contact an administrator.');
+      if (!['Available', 'Unavailable'].includes(p.s)) return no('Invalid status.');
+      if (p.s == 'Available') {
+        const as = h.asgOf(me.em);
+        if (!as) return no('You need an approved vehicle assignment first.');
+        if (!h.vOper(h.vOf(as.vehicle))) return no('Your assigned vehicle is not approved and operational.');
+        if (h.onRoad(me.em)) return no('Finish the trip you are on first.');
+      }
+      S.dp[me.em] = { ...(S.dp[me.em] || {}), avail: p.s };
+      h.au(me.em, 'availability', { status: p.s });
+      return ok();
+    },
+    accept(me, p) {
+      const b = S.bk.find(x => x.id == p.id);
+      if (!b) return no('Booking not found.');
+      if (b.cu == me.em) return no('You cannot accept your own booking.');
+      if (b.st != 'Pending' || b.drvUser) return no('This booking was already taken or is no longer open.');
+      const bad = h.chk(me.em, b).filter(x => !x[1]);
+      if (bad.length) return no('Requirement not met: ' + bad[0][0] + '.');
+      const as = h.asgOf(me.em);
+      b.drvUser = me.em;
+      b.veh = as.vehicle;
+      b.drv = me.name;
+      b.acc = now();
+      h.ev(b, me.em, 'Accepted', 'Accepted by ' + me.name);
+      h.au(me.em, 'booking accepted', { booking: b.id, vehicle: as.vehicle });
+      h.ntf(b.cu, 'Booking accepted', b.id + ' was accepted by ' + b.drv + '.');
+      h.ntfOwner(
+        b,
+        'Trip booked on your vehicle',
+        `${b.id}: ${b.drv} accepted ${String(b.pu).split(',')[0]} → ${String(b.dr).split(',')[0]} on ${b.dt} ${b.tm}.`
+      );
+      return ok();
+    },
+    /* driver: give an accepted job back before heading to the pickup (it reopens for other drivers) */
+    handBack(me, p) {
+      const b = S.bk.find(x => x.id == p.id && x.drvUser == me.em);
+      if (!b) return no('Booking not found or not assigned to you.');
+      if (b.st != 'Accepted') return no('You can only hand back a job before you head to the pickup.');
+      const reason = str(p.reason, 300);
+      if (reason.length < 5) return no('Tell the customer why (at least 5 characters).');
+      const owner = (h.vOf(b.veh) || {}).owner;
+      Object.assign(b, { drvUser: '', drv: '', veh: '', acc: null, pendFrom: now() });
+      (b.declined = b.declined || []).push(me.em);
+      (b.hb = b.hb || []).push({ by: me.em, t: now(), reason });
+      h.ev(b, me.em, 'Pending', 'Handed back by the driver: ' + reason);
+      h.au(me.em, 'booking handed back', { bk: b.id, reason });
+      h.ntf(
+        b.cu,
+        'Your driver cancelled',
+        `${b.id}: ${me.name} can no longer take your booking (${reason}). It is open again for other drivers.`
+      );
+      if (owner) h.ntf(owner, 'Trip handed back', `${b.id}: ${me.name} handed back the job (${reason}).`);
+      return ok();
+    },
+    decline(me, p) {
+      const b = S.bk.find(x => x.id == p.id);
+      if (!h.okr(me, 'driver')) return no('Only an approved driver can do this.');
+      if (!b || b.st != 'Pending' || b.drvUser) return no('This booking is no longer open.');
+      (b.declined = b.declined || []).push(me.em);
+      h.au(me.em, 'booking declined', { booking: b.id });
+      return ok();
+    },
+    step(me, p) {
+      const b = mine(me, p.id),
+        to = str(p.to, 40),
+        note = str(p.note, 500);
+      if (!b) return no('Booking not found or not assigned to you.');
+      if (h.done(b)) return no('This booking is closed.');
+      if (to == 'Delivery Confirmation')
+        return no("Delivery is confirmed with the customer's Delivery PIN on the Active trip page.");
+      if (to == 'In Transit') return no('Departure is authorized through the pre-departure verification.');
+      if (!C.DRIVER_STEPS.includes(to) || C.FLOW[C.FLOW.indexOf(to) - 1] !== b.st)
+        return no('Invalid step: this booking is "' + b.st + '".');
+      if (to == 'Items Loaded' && !note)
+        return no('Describe the cargo loaded (items, count, condition) first.');
+      h.ev(b, me.em, to, note);
+      h.au(me.em, 'trip ' + to, { bk: b.id });
+      h.ntf(b.cu, 'Booking ' + b.id, 'Status is now ' + to + '.');
+      return ok();
+    },
+    driverPay(me, p) {
+      const b = mine(me, p.id),
+        kind = p.kind == 'final' ? 'final' : 'down';
+      if (!b) return no('Booking not found or not assigned to you.');
+      const need = h.due(b, kind),
+        nC = Math.round(need * 100),
+        g = r2(p.g),
+        c = r2(p.c),
+        ref = str(p.ref, 13);
+      if (kind == 'down' && b.st != 'Awaiting Down Payment')
+        return no('Down payment can only be recorded after you arrive at pickup.');
+      if (kind == 'final' && b.st != 'Awaiting Final Payment')
+        return no('Final payment can only be recorded after delivery is documented.');
+      if (h.paySum(b.id, kind) > 0) return no('This payment was already recorded.');
+      if (g < 0 || c < 0 || Math.round(g * 100) + Math.round(c * 100) !== nC)
+        return no('Amount must equal exactly ' + peso(need) + ' (GCash + Cash).');
+      /* a GCash proof the customer already submitted for this booking and stage is confirmed, not rejected as a duplicate */
+      const sub =
+        g > 0
+          ? S.pay.find(
+              x =>
+                x.bid == b.id &&
+                x.kind == kind &&
+                x.method == 'GCash' &&
+                x.status == 'Submitted' &&
+                x.ref == ref
+            )
+          : null;
+      if (g > 0) {
+        if (!/^\d{10,13}$/.test(ref)) return no('Enter the 10 to 13 digit GCash reference number.');
+        if (S.pay.some(x => x.ref == ref && x !== sub && x.status != 'Rejected'))
+          return no('That GCash reference was already used on another booking or payment.');
+        if (sub && Math.round(sub.amount * 100) !== Math.round(g * 100))
+          return no(
+            'The customer submitted this reference for ' +
+              peso(sub.amount) +
+              '. Enter that GCash amount, or ask the customer to correct it.'
+          );
+      }
+      const m = g && c ? 'Hybrid' : g ? 'GCash' : 'Cash',
+        t = now(),
+        base = {
+          bid: b.id,
+          kind,
+          payer: b.cu || '',
+          status: 'Recorded by driver',
+          by: me.em,
+          collectedBy: me.em,
+          t,
+        };
+      if (g) {
+        if (sub) Object.assign(sub, { status: 'Recorded by driver', by: me.em, collectedBy: me.em, ct: t });
+        else S.pay.push(h.payMk({ ...base, method: 'GCash', amount: g, ref }));
+      }
+      if (c) S.pay.push(h.payMk({ ...base, method: 'Cash', amount: c, ref: rid('CSH') }));
+      S.pay.forEach(x => {
+        if (x.bid == b.id && x.kind == kind && x.status == 'Submitted') {
+          x.status = 'Rejected';
+          x.note = 'Not confirmed by the driver at collection';
+        }
+      });
+      if (kind == 'down') h.ev(b, me.em, 'Down Payment Confirmed', 'Down payment ' + m);
+      else {
+        h.ev(b, me.em, 'Completed', 'Final payment ' + m);
+        b.cd = t;
+        b.split = h.splitOf(b); // frozen: later setting changes never rewrite this trip
+        h.ntf(
+          b.drvUser,
+          'Trip completed',
+          `${b.id}: your share is ${peso(b.split.drv)}. Remit ${peso(h.dueFor(b))} with this week’s remittance.`
+        );
+        h.ntfOwner(
+          b,
+          'Trip completed on your vehicle',
+          `${b.id}: fare ${peso(b.split.fare)}, your share ${peso(b.split.own)}.`
+        );
+      }
+      h.au(me.em, 'payment ' + kind, { bk: b.id, amount: need, method: m, linkedCustomerProof: !!sub });
+      h.ntf(
+        b.cu,
+        'Payment confirmed',
+        peso(need) +
+          ' ' +
+          (kind == 'down' ? 'down payment' : 'final payment') +
+          ' for ' +
+          b.id +
+          ' was recorded by your driver.'
+      );
+      return ok();
+    },
+    adminAssign(me, p) {
+      if (!h.isAdmin(me)) return no('Only an administrator can assign drivers.');
+      const b = S.bk.find(x => x.id == p.id);
+      if (!b || b.drvUser || !['Pending', 'No driver found'].includes(b.st))
+        return no('This booking is not waiting for a driver.');
+      const d = h.U(str(p.driver, 120).toLowerCase());
+      if (!d) return no('Choose a driver.');
+      const prev = b.st;
+      b.st = 'Pending';
+      const r = A.accept(d, { id: b.id });
+      if (!r.ok) {
+        b.st = prev;
+        return no(d.name + ': ' + r.err);
+      }
+      b.ev[b.ev.length - 1].note = 'Driver assigned by an administrator (was ' + prev + ')';
+      b.ev[b.ev.length - 1].by = me.em;
+      h.au(me.em, 'driver assigned by admin', { bk: b.id, driver: d.em, from: prev });
+      h.ntf(d.em, 'Booking assigned', `An administrator assigned ${b.id} to you (${b.dt} ${b.tm}).`);
+      return ok();
+    },
+
+    /* ---- live GPS (driver's phone -> server -> customer's map) ---- */
+    gpsPing(me, p) {
+      const b = mine(me, p.id);
+      if (!b) return no('Only the assigned driver can share location for this trip.');
+      if (!C.TRACK_ST.includes(b.st))
+        return no('Location sharing is only available during an active trip.', { stop: true });
+      const lat = +p.lat,
+        lng = +p.lng;
+      if (!(lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) || (lat == 0 && lng == 0))
+        return no('Invalid location.');
+      const ms = Date.now();
+      if (b.gps && !b.gps.off && ms - b.gps.ms < 4000) return ok({ skipped: true }); // at most one update every 4 s
+      const r6 = x => Math.round(x * 1e6) / 1e6;
+      const first = !b.gpsStart;
+      b.gps = {
+        lat: r6(lat),
+        lng: r6(lng),
+        acc: Math.max(0, Math.min(5000, Math.round(+p.acc || 0))),
+        spd: +p.spd >= 0 && +p.spd < 70 ? Math.round(+p.spd * 10) / 10 : null, // metres per second
+        hdg: +p.hdg >= 0 && +p.hdg <= 360 ? Math.round(+p.hdg) : null,
+        t: now(),
+        ms,
+        inArea: C.zcBox(lat, lng),
+      };
+      (b.trail = b.trail || []).push([r6(lat), r6(lng), ms]);
+      if (b.trail.length > 120) b.trail.splice(0, b.trail.length - 120);
+      if (first) {
+        b.gpsStart = now();
+        h.au(me.em, 'live location started', { bk: b.id });
+        h.ntf(b.cu, 'Live tracking started', b.id + ': you can follow your driver on the Track page.');
+      }
+      return ok();
+    },
+    /* driver: a Waze "Share drive" link the customer can open as a backup to the live map ('' removes it) */
+    wazeLink(me, p) {
+      const b = mine(me, p.id);
+      if (!b) return no('Booking not found or not assigned to you.');
+      if (!C.TRACK_ST.includes(b.st)) return no('A Waze link can only be shared during an active trip.');
+      const u = str(p.url, 400);
+      if (!u) {
+        delete b.wz;
+        return ok();
+      }
+      let host = '';
+      try {
+        const x = new URL(u);
+        host = x.protocol == 'https:' ? x.hostname.toLowerCase() : '';
+      } catch (e) {}
+      if (!/(^|\.)waze\.com$/.test(host))
+        return no(
+          'Paste the link from Waze → Share drive (it starts with https://waze.com or https://www.waze.com).'
+        );
+      b.wz = u;
+      h.au(me.em, 'waze link shared', { bk: b.id });
+      h.ntf(b.cu, 'Follow your driver on Waze', b.id + ': your driver shared a Waze link on the Track page.');
+      return ok();
+    },
+    gpsStop(me, p) {
+      const b = mine(me, p.id);
+      if (!b) return no('Booking not found or not assigned to you.');
+      if (b.gps) b.gps.off = now();
+      h.au(me.em, 'live location paused', { bk: b.id });
+      return ok();
+    },
+  };
+  /* public: a booking reference shows its status only (no names, no addresses beyond the area) */
+  A.publicTrack = p => {
+    const b = S.bk.find(x => x.id == str(p.ref, 20).toUpperCase());
+    return b
+      ? ok({
+          b: { id: b.id, st: b.st, pu: String(b.pu).split(',')[0], dr: String(b.dr).split(',')[0], dt: b.dt },
+        })
+      : no('No booking with that reference.');
+  };
+  return A;
+};
