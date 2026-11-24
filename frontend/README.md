@@ -39,6 +39,7 @@ The customer app's scripts are classic `<script>` files that share one global sc
 | 19  | `19-trips.js`          | Booking redesign (Figma B01, C01–C24): My bookings cards, track page layout, Book a haul sections     |
 | 20  | `20-driver-trip.js`    | Driver Active trip redesign (Figma C02–C22, C08c, C12c, C18, C18c): next-step banner, no-show timer  |
 | 21  | `21-home.js`           | Home, offline bar, Payments tab, Settings mode, header mode badge (Figma E00–E07)                    |
+| 22  | `22-roles.js`          | Driver, car owner, cashier workspaces (Figma F01–H04): bold plates, references and amounts           |
 
 ### How the layers work
 

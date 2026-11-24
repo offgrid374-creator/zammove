@@ -482,3 +482,13 @@ html[data-mode='dark'] .zh-now {
   box-shadow: none;
   outline: 0;
 }
+
+/* ---------- workspaces (F01–H04): bold info ---------- */
+.zw-b {
+  font-weight: 700;
+  color: var(--tx);
+}
+.mu .zw-b,
+.n .zw-b {
+  color: var(--tx);
+}

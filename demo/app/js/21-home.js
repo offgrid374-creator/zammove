@@ -278,12 +278,13 @@
   };
 
   /* ---------- header: "Customer mode · Switch" badge ---------- */
-  const BADGE = { customer: ['Customer mode', 'g'], driver: ['Driver mode', 'b'], owner: ['Car owner mode', 'o'], account: ['Account overview', 'm'], admin: ['Admin', 'm'], cashier: ['Cashier', 'm'] };
+  const BADGE = { customer: ['Customer mode', 'g'], driver: ['Driver mode', 'b'], owner: ['Car owner mode', 'o'], account: ['Account overview', 'm'], admin: ['Admin mode', 'm'], cashier: ['Cashier mode', 'm'] };
   const badge = () => {
     const sm = document.querySelector('#wsm > summary');
     if (!sm || !S.me) return;
     const [t, c] = BADGE[S.ws || 'customer'] || [S.ws, 'm'];
-    const html = `<span class="zh-badge ${c}"><i aria-hidden="true"></i><b>${esc(t)}</b><u>Switch</u></span>`;
+    /* staff workspaces have a long menu: the badge drops the "Switch" word there (as in Figma F01 / H01) */
+    const html = `<span class="zh-badge ${c}"><i aria-hidden="true"></i><b>${esc(t)}</b>${(S.ws || 'customer') == 'customer' ? '<u>Switch</u>' : ''}</span>`;
     if (sm.dataset.zh != t) {
       sm.innerHTML = html;
       sm.dataset.zh = t;
