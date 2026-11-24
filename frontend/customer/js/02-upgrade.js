@@ -407,7 +407,7 @@ settings = function () {
             .join('')
         : '<div class="empty" style="padding:16px">No reviews yet.</div>'
     }</div></div>
-<div class="faq" style="margin-top:14px"><details><summary>Cancellation policy</summary><p>Free while a booking is Pending. After a driver accepts, a 10% fee of the total applies. Rental requests can be cancelled before they become Active.</p></details></div>`
+<div class="faq" style="margin-top:14px"><details><summary>Cancellation policy</summary><p>Free until the driver heads to your pickup. After that, a 10% fee of the total applies. Rental requests can be cancelled before they become Active.</p></details></div>`
   );
 };
 

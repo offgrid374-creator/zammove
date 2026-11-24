@@ -60,7 +60,7 @@ const FQ = [
   ],
   [
     'Can I cancel?',
-    'Free while a booking is Pending. After a driver accepts, a 10% fee of the total applies.',
+    'Free until the driver heads to your pickup. After that, a 10% fee of the total applies.',
   ],
   [
     'What do I need to rent a vehicle?',
