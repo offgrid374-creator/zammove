@@ -1,0 +1,494 @@
+/* home.css — customer home, payments, settings mode and header badge (Figma E00–E07), plus the
+   app-wide restyle for the UPDATED screens (D01–D03 rentals, E02, E03, E05, E06): primary buttons
+   #0f766e with bold white text, white secondary buttons, status pills without the dot. */
+
+/* ---------- app-wide restyle (logged-in pages) ---------- */
+html body .btn {
+  border-radius: 8px;
+  background-color: #0f766e;
+  font-weight: 700;
+  box-shadow: none;
+}
+html body .btn:hover {
+  background-color: #115e59;
+}
+html body .btn.o {
+  background-color: var(--s, #fff);
+  color: var(--tx, #111827);
+  border: 1px solid var(--bd2, #c9cfd9);
+}
+html body .btn.o:hover {
+  background-color: var(--s2, #f5f7fa);
+}
+html body .btn.d {
+  background-color: #b3202f;
+  color: #fff;
+}
+html body .btn:disabled {
+  background-color: #e3e8ef;
+  color: #5f6779;
+}
+html body .tag {
+  padding: 4px 10px;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.2;
+  box-shadow: none;
+  background-color: var(--zb-wait-bg, #fbf0d9);
+  color: var(--zb-wait, #8a5a12);
+}
+html body .tag::before {
+  display: none;
+}
+html body .tag.g {
+  background-color: var(--zb-ok-bg, #e2f3ea);
+  color: var(--zb-ok, #1d6b47);
+}
+html body .tag.r {
+  background-color: var(--zb-bad-bg, #fde8ea);
+  color: var(--zb-bad, #b3202f);
+}
+.zb-pill.mute {
+  background: var(--s2, #eef0f4);
+  color: var(--tx2, #4b5565);
+}
+
+/* ---------- header badge ---------- */
+#wsm > summary {
+  padding: 0;
+  border: 0;
+  background: none;
+  box-shadow: none;
+}
+.zh-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px 8px 12px;
+  border-radius: 999px;
+  background: #e6f4f2;
+  color: #0f766e;
+  font-size: 14px;
+  white-space: nowrap;
+}
+.zh-badge i {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: currentColor;
+}
+.zh-badge u {
+  font-weight: 400;
+}
+.zh-badge.b {
+  background: #e6eefb;
+  color: #1e4fb8;
+}
+.zh-badge.o {
+  background: #fdeedd;
+  color: #a14a0b;
+}
+.zh-badge.m {
+  background: var(--s2, #eef0f4);
+  color: var(--tx, #111827);
+}
+html[data-mode='dark'] .zh-badge {
+  background: rgba(15, 118, 110, 0.22);
+  color: #7fd6c8;
+}
+@media (max-width: 720px) {
+  .zh-badge u {
+    display: none;
+  }
+}
+
+/* ---------- offline bar (E01c) ---------- */
+.zh-off {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 0 0 16px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  background: #374151;
+  color: #fff;
+  font-size: 14px;
+}
+.zh-off i {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 8px;
+  border-radius: 999px;
+  background: #f0b429;
+}
+.zh-off button {
+  margin: 0;
+  border: 0;
+  background: none;
+  color: #7fe0cf;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* ---------- home (E01) ---------- */
+.zh-hero {
+  position: relative;
+  margin: 0 calc(50% - 50vw) 32px;
+  padding: 32px calc(50vw - 50%) 0;
+  background: #eaf4f2;
+  overflow: hidden;
+}
+html[data-mode='dark'] .zh-hero {
+  background: rgba(15, 118, 110, 0.12);
+}
+.zh-in {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  gap: 32px;
+  align-items: start;
+}
+.zh-in.solo {
+  grid-template-columns: minmax(0, 1fr);
+}
+.zh-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 14px;
+  max-width: 640px;
+  padding-bottom: 8px;
+}
+.zh-copy h1 {
+  margin: 0;
+  font-family: var(--display, 'Bricolage Grotesque'), system-ui, sans-serif;
+  font-size: 40px;
+  line-height: 1.12;
+  letter-spacing: -0.02em;
+}
+.zh-copy p {
+  margin: 0;
+  font-size: 17px;
+  color: var(--tx2);
+}
+.zh-copy p b {
+  color: var(--tx);
+}
+.zh-map .zmap {
+  height: 250px;
+  border-radius: 12px;
+  border: 1px solid var(--bd);
+}
+.zh-map #zmap-info {
+  display: none;
+}
+.zh-band {
+  height: 130px;
+  margin: -20px calc(50% - 50vw) 0;
+  color: #0f766e;
+  opacity: 0.38;
+  pointer-events: none;
+}
+.zh-band svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.zh-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.75fr) minmax(280px, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+.zh-side {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.zh-act .zt-h a {
+  font-weight: 700;
+  color: #0f766e;
+  text-decoration: none;
+}
+.zh-act ul,
+.zh-trips ul {
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.zh-act li {
+  display: grid;
+  grid-template-columns: 72px 1fr auto;
+  gap: 12px;
+  align-items: start;
+  padding: 12px 0;
+}
+.zh-act li > .n {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--tx2);
+}
+.zh-act li b,
+.zh-trips b {
+  display: block;
+  font-size: 15px;
+}
+.zh-act li small,
+.zh-trips small {
+  display: block;
+  margin-top: 2px;
+  font-size: 13px;
+  color: var(--tx2);
+}
+.zh-new h2,
+.zh-trips h2 {
+  margin: 0 0 12px;
+  font-size: 20px;
+}
+.zh-go {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 8px;
+  padding: 12px 14px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--s2);
+  color: var(--tx);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.zh-go:hover {
+  background: var(--bd);
+}
+.zh-go b {
+  display: block;
+  font-size: 15px;
+}
+.zh-go small {
+  display: block;
+  font-size: 13px;
+  color: var(--tx2);
+}
+.zh-go i {
+  font-style: normal;
+  font-size: 18px;
+  font-weight: 700;
+  color: #0f766e;
+}
+.zh-trips li button {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0;
+  padding: 10px 0;
+  border: 0;
+  background: none;
+  color: var(--tx);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+/* ---------- payments (E04) ---------- */
+.zh-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 280px));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.zh-tiles > div {
+  padding: 16px 20px;
+  border-radius: 12px;
+  border: 1px solid var(--zb-done-ln);
+  background: var(--zb-done-bg);
+}
+.zh-tiles > .wait {
+  border-color: var(--zb-act-ln);
+  background: var(--zb-act-bg);
+}
+.zh-tiles span {
+  display: block;
+  font-size: 14px;
+  color: var(--tx2);
+}
+.zh-tiles b {
+  display: block;
+  margin-top: 4px;
+  font-size: 26px;
+  font-weight: 700;
+}
+.zh-pay {
+  padding: 0;
+  overflow-x: auto;
+}
+.zh-pay table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.zh-pay th {
+  padding: 12px 16px;
+  text-align: left;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--tx2);
+  background: var(--s2);
+}
+.zh-pay td {
+  padding: 12px 16px;
+  border-top: 1px solid var(--s2);
+}
+
+/* ---------- settings → mode (E07) ---------- */
+.zh-modes {
+  margin: 8px 0 28px;
+}
+.zh-now {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 18px;
+  border-radius: 10px;
+  background: #e6f4f2;
+  color: var(--tx);
+  font-size: 15px;
+}
+html[data-mode='dark'] .zh-now {
+  background: rgba(15, 118, 110, 0.18);
+}
+.zh-now i {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #0f766e;
+}
+.zh-modes h2 {
+  margin: 24px 0 6px;
+  font-size: 24px;
+}
+.zh-mgrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+  align-items: start;
+}
+.zh-mode {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 18px;
+  border-radius: 12px;
+  border: 1px solid var(--bd);
+  background: var(--s);
+}
+.zh-mode.on {
+  border: 2px solid #0f766e;
+  background: var(--zb-done-bg);
+}
+.zh-mode h3 {
+  margin: 4px 0 0;
+  font-size: 18px;
+}
+.zh-mode p {
+  margin: 0;
+  font-size: 14px;
+  color: var(--tx2);
+}
+.zh-mode .zb-btn {
+  width: 100%;
+  margin: 4px 0 0;
+}
+.zh-dot {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 8px;
+  background: #e6f4f2;
+}
+.zh-dot i {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: #0f766e;
+}
+.zh-dot.b {
+  background: #e6eefb;
+}
+.zh-dot.b i {
+  background: #1e4fb8;
+}
+.zh-dot.o {
+  background: #fdeedd;
+}
+.zh-dot.o i {
+  background: #c2410c;
+}
+.zh-fine {
+  font-size: 13px !important;
+}
+.zh-warn {
+  margin: 16px 0 0;
+  padding: 12px 16px;
+  border-radius: 10px;
+  background: var(--zb-wait-bg);
+  color: var(--zb-act-h);
+  font-size: 14px;
+}
+
+@media (max-width: 900px) {
+  .zh-in,
+  .zh-grid,
+  .zh-mgrid {
+    grid-template-columns: 1fr;
+  }
+  .zh-copy h1 {
+    font-size: 30px;
+  }
+  .zh-act li {
+    grid-template-columns: 64px 1fr;
+  }
+  .zh-act li > .zb-pill {
+    grid-column: 2;
+    justify-self: start;
+  }
+}
+
+/* other layers style ".ok" and links inside cards; keep pills and button rows clean */
+.zb-pill {
+  border: 0;
+}
+.zb-acts > * {
+  margin: 0;
+}
+.zh-now b {
+  margin: 0;
+  padding: 0;
+  display: inline;
+}
+.zb-pill {
+  box-shadow: none;
+  outline: 0;
+}
+
+/* ---------- workspaces (F01–H04): bold info ---------- */
+.zw-b {
+  font-weight: 700;
+  color: var(--tx);
+}
+.mu .zw-b,
+.n .zw-b {
+  color: var(--tx);
+}

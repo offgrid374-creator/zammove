@@ -1,0 +1,397 @@
+/* auth.css — Auth redesign from Figma (A01–A12). Loaded after tailwind.css so it wins over the older layers.
+   Tokens from the Figma components: primary #0f766e, secondary white with #c9cfd9 border, disabled #e3e8ef,
+   inputs 48px with 8px radius, bold labels, errors #b3202f. Plain CSS on purpose: no Tailwind rebuild needed. */
+:root {
+  --zu-pri: #0f766e;
+  --zu-pri-h: #115e59;
+  --zu-ink: #111827;
+  --zu-ink2: #4b5565;
+  --zu-lab: #374151;
+  --zu-mu: #5f6779;
+  --zu-ph: #8a93a3;
+  --zu-ln: #c9cfd9;
+  --zu-card-ln: #e3e8ef;
+  --zu-err: #b3202f;
+  --zu-wash: #eaf4f2;
+}
+
+/* ---------- buttons (UPDATED screens: new button colours, bold labels) ---------- */
+html .pg .p-pri,
+.zu-pri {
+  background: var(--zu-pri);
+  color: #fff;
+  font-weight: 700;
+  border-radius: 8px;
+  border-color: transparent;
+  box-shadow: none;
+  filter: none;
+}
+html .pg .p-pri:hover,
+.zu-pri:hover:not(:disabled) {
+  background: var(--zu-pri-h);
+  filter: none;
+}
+html .pg .p-sec,
+.zu-sec {
+  background: #fff;
+  color: var(--zu-ink);
+  border: 1px solid var(--zu-ln);
+  font-weight: 700;
+  border-radius: 8px;
+}
+html .pg .p-sec:hover,
+.zu-sec:hover {
+  background: #f5f7fa;
+}
+html .pg .p-b:disabled,
+.zu-btn:disabled {
+  background: #e3e8ef;
+  color: var(--zu-mu);
+  cursor: not-allowed;
+  transform: none;
+}
+.zu-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 0 20px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.zu-btn.zu-sec {
+  border-color: var(--zu-ln);
+}
+
+/* ---------- form fields (bold labels, 48px inputs, red error state) ---------- */
+.pg .p-au .p-f label,
+.pg .zu-card .p-f label {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--zu-lab);
+  margin-bottom: 6px;
+}
+.pg .p-au input:not([type='checkbox']),
+.pg .zu-card input:not([type='checkbox']) {
+  min-height: 48px;
+  border: 1px solid var(--zu-ln);
+  border-radius: 8px;
+  padding: 0 14px;
+  font-size: 16px;
+  background: #fff;
+}
+.pg .p-au input::placeholder,
+.pg .zu-card input::placeholder {
+  color: var(--zu-ph);
+}
+.pg .p-au input:focus,
+.pg .zu-card input:focus {
+  border-color: var(--zu-pri);
+  box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.18);
+}
+.pg input.is-bad,
+.pg input.is-bad:focus,
+.zu-ph.is-bad {
+  border-color: var(--zu-err) !important;
+}
+.pg input.is-bad:focus,
+.zu-ph.is-bad:focus-within {
+  box-shadow: 0 0 0 3px rgba(179, 32, 47, 0.15);
+}
+.pg input:disabled {
+  background: #f0f2f5 !important;
+  cursor: not-allowed;
+}
+.pg .p-err {
+  color: var(--zu-err);
+}
+.pg .p-fo a {
+  color: var(--zu-pri);
+  text-decoration: underline;
+  font-weight: 400;
+}
+.z-alt a,
+.pg .p-au .p-ck a,
+.pg .zu-card .p-ck a {
+  color: var(--zu-pri);
+}
+
+/* ---------- A02 / A03 / A03b: sign up ---------- */
+.zu-top .p-bar {
+  justify-content: space-between;
+}
+.zu-top .p-lg {
+  color: var(--zu-pri);
+  font-family: 'Bricolage Grotesque', 'Segoe UI', system-ui, sans-serif;
+  font-weight: 700;
+  font-size: 24px;
+}
+.zu-have {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 15px;
+  color: var(--zu-ink2);
+}
+.pg:has(.zu-wrap) {
+  background: #f5f7fa;
+}
+.pg:has(.zu-wrap) .p-ft {
+  display: none;
+}
+.zu-wrap {
+  position: relative;
+  padding: 40px 20px 0;
+  min-height: calc(100vh - 72px);
+  background: linear-gradient(to bottom, transparent calc(100% - 240px), var(--zu-wash) calc(100% - 240px));
+}
+.zu-band {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 240px;
+  height: 130px;
+  color: var(--zu-pri);
+  opacity: 0.45;
+  pointer-events: none;
+  overflow: hidden;
+}
+.zu-band svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.zu-card {
+  position: relative;
+  z-index: 1;
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 36px 40px;
+  background: #fff;
+  border: 1px solid var(--zu-card-ln);
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(15, 51, 46, 0.08);
+}
+.zu-card h1 {
+  font-family: 'Bricolage Grotesque', 'Segoe UI', system-ui, sans-serif;
+  font-weight: 700;
+  font-size: 32px;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  color: var(--zu-ink);
+  margin: 0 0 6px;
+}
+.zu-card .z-sub {
+  font-size: 15px;
+  color: var(--zu-ink2);
+  margin-bottom: 4px;
+}
+.zu-card .p-f {
+  margin-top: 20px;
+}
+.zu-card .p-2 {
+  gap: 16px;
+}
+.zu-opt {
+  font-weight: 400;
+  color: var(--zu-mu);
+}
+.zu-ph {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 48px;
+  padding-left: 14px;
+  border: 1px solid var(--zu-ln);
+  border-radius: 8px;
+  background: #fff;
+}
+.zu-ph:focus-within {
+  border-color: var(--zu-pri);
+  box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.18);
+}
+.zu-ph span {
+  color: var(--zu-mu);
+  font-size: 16px;
+}
+.pg .zu-card .zu-ph input {
+  border: 0 !important;
+  box-shadow: none !important;
+  padding-left: 0;
+  min-height: 46px;
+  background: transparent;
+}
+.zu-card .zu-hint,
+.zu-card .p-h {
+  font-size: 13px;
+  color: var(--zu-mu);
+  margin-top: 6px;
+  min-height: 0;
+}
+.zu-fe {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: var(--zu-err);
+}
+.zu-card .zu-ck {
+  margin-top: 20px;
+  color: var(--zu-lab);
+}
+.zu-ck input {
+  align-self: center;
+  height: 20px;
+  width: 20px;
+}
+.zu-ck.is-bad input {
+  border-radius: 4px;
+  box-shadow: 0 0 0 2px var(--zu-err);
+}
+.zu-card .p-full {
+  margin-top: 20px;
+  min-height: 48px;
+}
+.zu-card .p-err:empty {
+  display: none;
+}
+@media (max-width: 640px) {
+  .zu-have span {
+    display: none;
+  }
+  .zu-card {
+    padding: 28px 20px;
+  }
+  .zu-card .p-2 {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+}
+
+/* ---------- A04: verify account modal ---------- */
+html.zv-open,
+html.zv-open body {
+  overflow: hidden;
+}
+.zv-ov {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(17, 24, 39, 0.55);
+  font-family: 'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  color-scheme: light;
+}
+.zv-m {
+  width: 100%;
+  max-width: 480px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 32px;
+  background: #fff;
+  color: var(--zu-ink);
+  border: 1px solid var(--zu-card-ln);
+  border-radius: 16px;
+  box-shadow: 0 16px 40px rgba(18, 23, 38, 0.25);
+}
+.zv-m * {
+  box-sizing: border-box;
+}
+.zv-pill {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #fbf0d9;
+  color: #8a5a12;
+  font-size: 13px;
+  font-weight: 700;
+}
+.zv-m h2 {
+  margin: 0;
+  font-family: 'Bricolage Grotesque', 'Segoe UI', system-ui, sans-serif;
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--zu-ink);
+}
+.zv-p {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.45;
+  color: var(--zu-ink2);
+}
+.zv-p b {
+  color: var(--zu-ink);
+}
+.zv-boxes {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+}
+.zv-b {
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 60px;
+  height: 64px;
+  padding: 0;
+  text-align: center;
+  font: inherit;
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--zu-ink);
+  background: #fff;
+  border: 1px solid var(--zu-ln);
+  border-radius: 8px;
+  outline: 0;
+}
+.zv-b:focus {
+  border: 2px solid var(--zu-pri);
+}
+.zv-b.is-bad {
+  border-color: var(--zu-err);
+}
+.zv-err {
+  margin: -6px 0 0;
+  font-size: 14px;
+  color: var(--zu-err);
+}
+.zv-err:empty {
+  display: none;
+}
+.zv-rs {
+  margin: 0;
+  font-size: 14px;
+  color: var(--zu-mu);
+}
+.zv-rs a,
+.zv-note a {
+  color: var(--zu-pri);
+}
+.zv-acts {
+  display: flex;
+  gap: 12px;
+}
+.zv-note {
+  margin: 0;
+  font-size: 13px;
+  color: var(--zu-mu);
+}
+.zv-note + .zv-note {
+  margin-top: -10px;
+}
+@media (max-width: 420px) {
+  .zv-m {
+    padding: 24px 20px;
+  }
+  .zv-b {
+    height: 54px;
+    font-size: 22px;
+  }
+}
+.pg .p-fn a {
+  color: var(--zu-pri);
+}

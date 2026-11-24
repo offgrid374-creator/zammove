@@ -83,9 +83,10 @@ const FLOW = [
   'Awaiting Final Payment',
   'Completed',
 ];
-/* the ONE list of statuses a customer may cancel from; a 10% fee applies once a driver has accepted */
+/* the ONE list of statuses a customer may cancel from; a 10% fee applies once the driver heads to the pickup
+   (same lists as backend/src/domain/constants.js, so the screen never shows a fee the server won't charge) */
 const CANCEL_OK = ['Pending', 'No driver found', 'Accepted', 'On the Way to Pickup', 'Awaiting Down Payment'],
-  CANCEL_FREE = ['Pending', 'No driver found'],
+  CANCEL_FREE = ['Pending', 'No driver found', 'Accepted'],
   cancelFee = b => (CANCEL_FREE.includes(b.st) ? 0 : Math.round((+b.tot || 0) * 10) / 100);
 const TRK = [
   'On the Way to Pickup',
