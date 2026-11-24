@@ -1,0 +1,640 @@
+/* admin-ui.css — admin panel redesign from Figma (I01–I12). Loaded after admin.css.
+   Desktop (901 px and wider): a fixed left sidebar with grouped pages. Phones keep the existing
+   top bar and bottom tabs from admin.css. Pages use the Figma tokens: teal #0f766e, mono refs. */
+:root {
+  --zad-pri: #0f766e;
+  --zad-ok: #1f7a4d;
+  --zad-wait: #a16207;
+  --zad-bad: #b3202f;
+  --zad-side: 232px;
+}
+
+/* ---------- sidebar layout ---------- */
+@media (min-width: 901px) {
+  html.zad-on body {
+    background: var(--bg);
+  }
+  html.zad-on #hd {
+    position: fixed;
+    inset: 0 auto 0 0;
+    width: var(--zad-side);
+    padding: 0;
+    z-index: 30;
+    background: var(--s);
+    border-right: 1px solid var(--bd);
+  }
+  html.zad-on #hd .bar {
+    height: 100%;
+    max-width: none;
+    margin: 0;
+    padding: 20px 12px 16px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+    background: none;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    backdrop-filter: none;
+    overflow-y: auto;
+  }
+  html.zad-on #hd .logo {
+    padding: 0 8px 12px;
+    font-family: var(--display, 'Bricolage Grotesque'), system-ui, sans-serif;
+    font-size: 22px;
+    color: var(--zad-pri);
+  }
+  html.zad-on #hd .logo .lm {
+    display: none;
+  }
+  html.zad-on #hd .ad-badge {
+    margin-left: 8px;
+    padding: 0;
+    background: none;
+    color: var(--mu);
+    font-weight: 400;
+    font-size: 13px;
+    vertical-align: 2px;
+  }
+  html.zad-on #nav {
+    flex: 1 1 auto;
+    min-height: 0;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 2px;
+    margin: 0;
+    overflow-y: auto;
+  }
+  html.zad-on #nav .zad-grp {
+    margin: 10px 8px 2px;
+    font-size: 12px;
+    color: var(--mu);
+  }
+  html.zad-on #nav .zad-grp:first-child {
+    margin-top: 0;
+  }
+  html.zad-on #nav a {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 0;
+    padding: 6px 10px;
+    line-height: 1.35;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 400;
+    color: var(--tx);
+  }
+  html.zad-on #nav a svg,
+  html.zad-on #nav a .ic {
+    display: none;
+  }
+  html.zad-on #nav a.on {
+    background: var(--s2);
+    color: var(--tx);
+    font-weight: 700;
+  }
+  html.zad-on #nav .nb {
+    margin-left: auto;
+    min-width: 0;
+    height: auto;
+    padding: 0;
+    background: none;
+    color: var(--zad-wait);
+    font-size: 13px;
+  }
+  html.zad-on #who {
+    margin-top: auto;
+    padding-top: 12px;
+    border-top: 1px solid var(--bd);
+  }
+  html.zad-on #who .wsp {
+    bottom: 100%;
+    top: auto;
+    left: 0;
+    right: auto;
+  }
+  html.zad-on main#app {
+    max-width: none;
+    margin: 0 0 0 var(--zad-side);
+    padding: 28px 40px 48px;
+  }
+}
+
+/* ---------- page parts ---------- */
+.zad-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 0 0 14px;
+}
+.zad-top h1 {
+  margin: 0;
+  font-family: var(--display, 'Bricolage Grotesque'), system-ui, sans-serif;
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.zad-csv {
+  margin: 0;
+}
+.zad-sum {
+  margin: -4px 0 16px;
+  font-size: 15px;
+  color: var(--tx2, var(--mu));
+}
+.zad-sum b {
+  color: var(--tx);
+}
+.zad-mono {
+  font-family: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.93em;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+#app .card {
+  border-radius: 12px;
+  box-shadow: none;
+}
+#app .card h2 {
+  font-size: 17px;
+}
+.zad-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.75fr) minmax(280px, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+.zad-col {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+.zad-ch {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.zad-ch h2 {
+  margin: 0;
+}
+.zad-ch a {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--zad-pri);
+  text-decoration: none;
+}
+.zad-dot {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.zad-dot::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 99px;
+  background: currentColor;
+}
+.zad-dot.z-ok {
+  color: var(--tx);
+  font-weight: 400;
+}
+.zad-dot.z-ok::before {
+  background: var(--zad-ok);
+}
+.zad-dot.z-warn,
+.zad-dot.z-wait {
+  color: var(--zad-wait);
+}
+.zad-dot.z-bad {
+  color: var(--zad-bad);
+}
+.zad-dot.z-mute {
+  color: var(--mu);
+  font-weight: 400;
+}
+.zad-dot.z-mute::before {
+  display: none;
+}
+.zad-act {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--zad-pri);
+  text-decoration: none;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.zad-acts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 16px;
+}
+.zad-acts.end {
+  justify-content: flex-end;
+}
+.zad-acts .btn {
+  margin: 0;
+}
+.zad-foot {
+  font-size: 13px;
+}
+
+/* map */
+.zad-mapc {
+  padding: 0;
+  overflow: hidden;
+}
+.zad-map {
+  height: 330px;
+  background: var(--s2);
+}
+.zad-map.big {
+  height: 420px;
+}
+.zad-maperr {
+  margin: 16px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: rgba(217, 119, 6, 0.12);
+  color: #92400e;
+  font-size: 14px;
+}
+.zad-pin {
+  display: inline-block;
+  padding: 3px 8px;
+  border: 1.5px solid var(--zad-pri);
+  border-radius: 4px;
+  background: #fff;
+  color: #111827;
+  font: 600 12px 'Geist Mono', ui-monospace, monospace;
+  white-space: nowrap;
+  transform: translate(-50%, -50%);
+}
+.zad-pin.warn {
+  border-color: #d97706;
+}
+
+/* needs a decision */
+.zad-dec {
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.zad-dec li {
+  display: grid;
+  grid-template-columns: 64px 1fr auto;
+  gap: 10px;
+  align-items: start;
+  padding: 12px 0;
+  border-top: 1px solid var(--s2);
+}
+.zad-dec li > b {
+  font-size: 17px;
+  color: var(--zad-wait);
+}
+.zad-dec li > b.hot {
+  color: var(--zad-bad);
+}
+.zad-dec span {
+  display: block;
+  font-size: 14px;
+  font-weight: 700;
+}
+.zad-dec small {
+  display: block;
+  margin-top: 2px;
+  font: 12px 'Geist Mono', ui-monospace, monospace;
+  color: var(--mu);
+}
+
+/* on the road */
+.zad-road {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  gap: 20px;
+  padding: 14px 0;
+  border-top: 1px solid var(--s2);
+}
+.zad-road > div:first-child {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+}
+.zad-legh {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  font-weight: 700;
+}
+.zad-legh .warn {
+  color: var(--zad-wait);
+}
+.zad-legh.mu {
+  font-weight: 400;
+}
+.zad-bar {
+  position: relative;
+  height: 3px;
+  margin: 12px 0 8px;
+  border-radius: 99px;
+  background: var(--bd);
+}
+.zad-bar i {
+  display: block;
+  height: 100%;
+  border-radius: 99px;
+  background: var(--zad-pri);
+}
+.zad-bar.warn i {
+  background: #d97706;
+}
+.zad-bar em {
+  position: absolute;
+  top: -12px;
+  transform: translateX(-50%);
+  font-style: normal;
+  font-size: 16px;
+}
+
+/* tables */
+.zad-tbl {
+  padding: 0;
+  overflow-x: auto;
+}
+#app .tw table,
+#app .zad-tbl table {
+  width: 100%;
+}
+#app table th {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--mu);
+  text-transform: none;
+  letter-spacing: 0;
+}
+#app table td {
+  font-size: 14px;
+}
+.zad-amt {
+  display: block;
+  text-align: right;
+}
+.zad-ev summary {
+  cursor: pointer;
+  list-style: none;
+}
+.zad-ev summary::-webkit-details-marker {
+  display: none;
+}
+
+/* bookings */
+.zad-wait {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 12px;
+  padding: 12px 16px;
+  font-size: 14px;
+}
+.zad-wait > span:nth-child(2) {
+  flex: 1;
+  min-width: 240px;
+}
+.zad-wait select {
+  max-width: 260px;
+  margin: 0;
+}
+.zad-wait .btn {
+  margin: 0;
+}
+.zad-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 18px;
+  margin: 8px 0 12px;
+  border-bottom: 1px solid var(--bd);
+}
+.zad-tab {
+  margin: 0 0 -1px;
+  padding: 8px 0;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: none;
+  color: var(--mu);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+.zad-tab.on {
+  border-bottom-color: var(--tx);
+  color: var(--tx);
+  font-weight: 700;
+}
+.zad-tabs input[type='search'] {
+  margin: 0 0 6px auto;
+  max-width: 300px;
+}
+
+/* split list / detail (verification, applications) */
+.zad-split {
+  display: grid;
+  grid-template-columns: minmax(220px, 320px) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+.zad-list {
+  padding: 0;
+  overflow: hidden;
+}
+.zad-mini {
+  width: 100%;
+  border-collapse: collapse;
+}
+.zad-mini th {
+  padding: 10px 14px;
+  text-align: left;
+  background: var(--s2);
+}
+.zad-mini td {
+  padding: 0 14px;
+  border-top: 1px solid var(--s2);
+}
+.zad-mini td:first-child button {
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 12px 0;
+  border: 0;
+  background: none;
+  color: var(--tx);
+  font: inherit;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+}
+.zad-mini tr.on td {
+  background: var(--s2);
+}
+.zad-detail h2 {
+  font-size: 20px;
+}
+.zad-detail h2 .mu {
+  font-weight: 400;
+  font-size: 16px;
+}
+.zad-line {
+  margin: 4px 0 8px;
+  font-size: 14px;
+}
+.zad-chk {
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.zad-chk li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 0;
+  border-top: 1px solid var(--s2);
+}
+.zad-chk b {
+  display: block;
+  font-size: 15px;
+}
+.zad-chk small {
+  display: block;
+  margin-top: 2px;
+  font-size: 13px;
+  color: var(--mu);
+}
+.zad-r {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+}
+.zad-more {
+  position: relative;
+}
+.zad-more > summary {
+  list-style: none;
+  cursor: pointer;
+}
+.zad-more > summary::-webkit-details-marker {
+  display: none;
+}
+.zad-more[open] > summary {
+  margin-bottom: 8px;
+}
+.zad-more .ad-row {
+  margin-top: 0;
+}
+.zad-menu {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+.zad-danger {
+  color: var(--zad-bad) !important;
+  border-color: rgba(179, 32, 47, 0.4) !important;
+}
+.zad-iv {
+  flex: 1 1 100%;
+}
+
+/* reject dialog (I05c) */
+.zad-ov {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(17, 24, 39, 0.5);
+}
+.zad-dlg {
+  width: 100%;
+  max-width: 480px;
+  padding: 24px;
+  border-radius: 14px;
+  background: var(--s);
+  box-shadow: 0 16px 40px rgba(18, 23, 38, 0.25);
+}
+.zad-dlg h3 {
+  margin: 0 0 10px;
+  font-size: 20px;
+}
+.zad-dlg p {
+  margin: 0 0 14px;
+  font-size: 14px;
+  color: var(--tx2, var(--mu));
+}
+.zad-dlg label {
+  font-size: 13px;
+  font-weight: 700;
+}
+.zad-dlg input {
+  width: 100%;
+  margin-top: 6px;
+}
+
+@media (max-width: 900px) {
+  .zad-grid,
+  .zad-split {
+    grid-template-columns: 1fr;
+  }
+  .zad-road {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  .zad-top h1 {
+    font-size: 24px;
+  }
+}
+
+@media (min-width: 901px) {
+  html.zad-on #nav a::after,
+  html.zad-on #nav a::before {
+    display: none !important;
+  }
+  html.zad-on #nav .ad-s {
+    display: none !important;
+  }
+}
+/* other layers style ".ok" and links; keep these clean */
+.zad-dot {
+  padding: 0;
+  border: 0;
+  background: none !important;
+  box-shadow: none;
+}
+.zad-acts a.btn {
+  text-decoration: none;
+}
+@media (min-width: 901px) {
+  html.zad-on #hd #nav a {
+    min-height: 0 !important;
+    height: auto !important;
+    padding: 6px 10px !important;
+  }
+}

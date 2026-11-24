@@ -12,7 +12,9 @@
     <!-- the same design system as the customer app, so both look and behave alike -->
     <link rel="stylesheet" href="../customer/css/app.css" />
     <link rel="stylesheet" href="../customer/css/tailwind.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
     <link rel="stylesheet" href="admin.css" />
+    <link rel="stylesheet" href="admin-ui.css" />
     <script>
       /* follow the light/dark choice made in the customer app (same browser) */
       try {
@@ -42,6 +44,8 @@
     <main id="app"></main>
     <div id="mod" hidden data-a="close" role="dialog" aria-modal="true" aria-label="Document"></div>
     <script src="../shared/api.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
     <script src="admin.js"></script>
+    <script src="admin-ui.js"></script>
   </body>
 </html>

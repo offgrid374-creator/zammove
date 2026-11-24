@@ -15,7 +15,7 @@ frontend/
 │   ├── css/home.css       Home, payments, settings mode, header badge, app-wide button and status restyle
 │   ├── js/01-core.js … 18-auth.js
 │   └── vendor/qrcode.min.js   third-party (MIT), not edited or formatted
-└── admin/                 separate staff Admin Panel (index.html, admin.css, admin.js)
+└── admin/                 separate staff Admin Panel (index.html, admin.css, admin.js; admin-ui.js/.css = Figma I01–I12 redesign)
 ```
 
 ## Load order and what each file does
