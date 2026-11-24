@@ -11,6 +11,7 @@ frontend/
 │   ├── css/app.css
 │   ├── css/auth.css       Auth screens design (Figma A01–A12), loaded after tailwind.css
 │   ├── css/trips.css      Booking and trip screens design (Figma B01, C01–C24)
+│   ├── css/driver.css     Driver Active trip design (Figma C02–C22 driver side)
 │   ├── js/01-core.js … 18-auth.js
 │   └── vendor/qrcode.min.js   third-party (MIT), not edited or formatted
 └── admin/                 separate staff Admin Panel (index.html, admin.css, admin.js)
@@ -35,6 +36,7 @@ The customer app's scripts are classic `<script>` files that share one global sc
 | 9   | `09-workspaces.js`     | Driver, vehicle owner, cashier, admin console, staff, owner setup, polling                           |
 | 18  | `18-auth.js`           | Auth redesign (Figma A01–A12): sign up, field errors, verify modal, login lockout countdown          |
 | 19  | `19-trips.js`          | Booking redesign (Figma B01, C01–C24): My bookings cards, track page layout, Book a haul sections     |
+| 20  | `20-driver-trip.js`    | Driver Active trip redesign (Figma C02–C22, C08c, C12c, C18, C18c): next-step banner, no-show timer  |
 
 ### How the layers work
 
