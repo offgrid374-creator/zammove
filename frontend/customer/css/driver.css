@@ -1,0 +1,317 @@
+/* driver.css — driver "Active trip" page from Figma (C02–C22 driver side, C08c, C12c, C18, C18c).
+   Builds on trips.css (timeline, cards, pills, buttons). */
+.ztd + .ztd {
+  margin-top: 40px;
+  padding-top: 32px;
+  border-top: 1px solid var(--bd);
+}
+.ztd-head {
+  margin: 8px 0 20px;
+}
+.ztd-head h1,
+.ztd-head h2 {
+  margin: 0;
+  font-family: var(--display, 'Bricolage Grotesque'), system-ui, sans-serif;
+  font-size: 34px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+/* the "Next step" banner */
+.ztd-next {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 24px 28px;
+  border-radius: 12px;
+  background: #0f4f47;
+  color: #fff;
+}
+.ztd-next.t-warn {
+  background: #6b4510;
+}
+.ztd-next.t-bad {
+  background: #8f1d2a;
+}
+.ztd-next > div:first-child span {
+  font-size: 13px;
+  font-weight: 700;
+  color: #a7e3d8;
+}
+.ztd-next.t-warn > div:first-child span {
+  color: #f6d38a;
+}
+.ztd-next h2 {
+  margin: 4px 0 6px;
+  font-family: var(--display, 'Bricolage Grotesque'), system-ui, sans-serif;
+  font-size: 26px;
+  font-weight: 700;
+  color: #fff;
+}
+.ztd-next p {
+  margin: 0;
+  font-size: 15px;
+  color: rgba(255, 255, 255, 0.88);
+}
+.ztd-next p b {
+  color: #fff;
+}
+.ztd-go {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  flex: none;
+}
+.ztd-go:empty {
+  display: none;
+}
+.ztd .ztd-cta {
+  min-height: 48px;
+  padding: 0 24px;
+  margin: 0;
+  background: #1f8a5b;
+  color: #fff;
+  border: 0;
+}
+.ztd .ztd-cta:hover {
+  background: #197a50;
+}
+.ztd .ztd-cta.amber {
+  background: #e7a92c;
+  color: #1f1300;
+}
+.ztd-osm {
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+  text-decoration: underline;
+}
+/* live location line */
+.ztd-loc {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 12px 0 20px;
+  font-size: 13px;
+  color: var(--tx2);
+}
+.ztd-loc > i {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--ph, #9aa3b2);
+}
+.ztd-loc.on > i {
+  background: #1f8a5b;
+}
+.ztd-loc.bad > i {
+  background: var(--zb-bad);
+}
+.ztd-loc.bad b {
+  color: var(--zb-bad);
+}
+.ztd-loc #gpsbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 0 auto;
+  padding: 0;
+  border: 0;
+  background: none;
+}
+.ztd-loc #gpsbox > b,
+.ztd-loc #gpsbox > .tag,
+.ztd-loc #gpsbox > p {
+  display: none;
+}
+.ztd-loc #gpsbox .btn {
+  margin: 0;
+}
+.ztd-loc #gps-msg:empty {
+  display: none;
+}
+.ztd-lost {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 0 0 16px;
+  padding: 12px 18px;
+  border-radius: 10px;
+  background: #9b2b2b;
+  color: #fff;
+  font-size: 14px;
+}
+.ztd-retry {
+  margin: 0;
+  border: 0;
+  background: none;
+  color: #f6d38a;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+/* work for this step */
+.ztd-work > :first-child {
+  margin-top: 0;
+}
+.ztd-work .vz {
+  margin: 0;
+  border: 0;
+  padding: 0;
+  box-shadow: none;
+  background: none;
+}
+.ztd-work .wsa {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.ztd-work .wsa input {
+  flex: 1 1 160px;
+  min-height: 44px;
+  border-radius: 8px;
+}
+.ztd-work textarea {
+  border-radius: 8px;
+}
+.ztd-work .note {
+  border-radius: 8px;
+}
+/* customer card */
+.ztd-ch {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.ztd-ch h2 {
+  margin: 0;
+  font-size: 20px;
+}
+.ztd-ch .n {
+  font-size: 15px;
+}
+.ztd-cust dl {
+  margin: 0;
+}
+.ztd-cust dl div {
+  display: grid;
+  grid-template-columns: 96px 1fr;
+  gap: 12px;
+  padding: 6px 0;
+  font-size: 14px;
+}
+.ztd-cust dt {
+  color: var(--tx2);
+}
+.ztd-cust dd {
+  margin: 0;
+}
+.ztd-note {
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--zb-wait-bg);
+  font-size: 14px;
+  color: var(--tx);
+}
+.ztd-note b {
+  color: var(--zb-act-h);
+}
+/* amount to collect */
+.ztd-col span {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--tx2);
+}
+.ztd-col > b {
+  display: block;
+  margin: 6px 0;
+  font-size: 30px;
+  font-weight: 700;
+}
+.ztd-col p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--tx2);
+}
+/* no-show helper (C08c) */
+.ztd-ns h2 {
+  margin: 0 0 12px;
+  font-size: 18px;
+}
+.ztd-ns ol {
+  margin: 0 0 16px;
+  padding: 0;
+  list-style: none;
+  counter-reset: ns;
+}
+.ztd-ns li {
+  counter-increment: ns;
+  display: flex;
+  gap: 10px;
+  margin: 8px 0;
+  font-size: 14px;
+  color: var(--tx2);
+}
+.ztd-ns li::before {
+  content: counter(ns);
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: var(--zb-wait-bg);
+  color: var(--zb-wait);
+  font-size: 12px;
+  font-weight: 700;
+}
+.zt-tl em.go {
+  background: var(--zb-ok-bg);
+  color: var(--zb-ok);
+}
+/* trip tools from 17-improve, as the incident card */
+.ztd-tools {
+  margin: 0;
+}
+.ztd-tools .z7-card {
+  margin: 0 !important;
+  border-radius: 12px;
+}
+.ztd-tools .z7-card > h2 {
+  font-size: 18px !important;
+}
+.ztd .zo-route {
+  margin: 0;
+}
+@media (max-width: 900px) {
+  .ztd-next {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .ztd-go {
+    align-items: stretch;
+  }
+  .ztd-head h1,
+  .ztd-head h2 {
+    font-size: 26px;
+  }
+}
+.ztd-next {
+  margin-bottom: 20px;
+}
+.ztd-loc {
+  margin-top: -8px;
+}
+.ztd-loc #gps-msg {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: 13px;
+}
