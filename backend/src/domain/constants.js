@@ -2,11 +2,11 @@
 /* Shared business constants. The frontend keeps display copies; the backend values are the ones that count. */
 /* hauling vehicle types; 'tw' = 3-wheeler cargo (Bajaj RE / Piaggio Ape class). Prices are placeholders for the company to confirm. */
 const HV = [
-  { id: 'tw', n: '3-Wheeler', cap: 'Bajaj / Piaggio type · 500 kg · 5 ft bed', base: 600, km: 15 },
-  { id: 'pk', n: 'Pickup Truck', cap: '1 ton · 8 ft bed', base: 1200, km: 25 },
-  { id: 'l3', n: 'L300 Van', cap: '1.5 tons · 10 ft', base: 1800, km: 30 },
-  { id: 'cv', n: 'Closed Van', cap: '3 tons · 14 ft', base: 2500, km: 35 },
-  { id: 'w6', n: '6-Wheeler', cap: '6 tons · 20 ft', base: 4000, km: 50 },
+  { id: 'tw', n: '3-Wheeler', cap: 'Bajaj / Piaggio type · 500 kg · 5 ft bed', base: 600, km: 15, kg: 500, bed: [5, 4, 0], fits: 'A few boxes, one appliance or a small cabinet' },
+  { id: 'pk', n: 'Pickup Truck', cap: '1,000 kg · 8 ft open bed', base: 1200, km: 25, kg: 1000, bed: [8, 5, 0], fits: 'One room: a bed, a ref, a sofa and about 10 boxes' },
+  { id: 'l3', n: 'L300 Van', cap: '1,500 kg · 10 ft covered', base: 1800, km: 30, kg: 1500, bed: [10, 5.5, 5.5], fits: 'A studio or two rooms, kept dry under a cover' },
+  { id: 'cv', n: 'Closed Van', cap: '3,000 kg · 14 ft closed', base: 2500, km: 35, kg: 3000, bed: [14, 6.5, 6.5], fits: 'A two-to-three-bedroom house, fully enclosed' },
+  { id: 'w6', n: '6-Wheeler', cap: '6,000 kg · 20 ft', base: 4000, km: 50, kg: 6000, bed: [20, 7.5, 7], fits: 'A whole house, an office, or construction materials' },
 ];
 /* self-drive fleet with the details a customer should see before renting */
 const RV = [
@@ -88,6 +88,7 @@ const DC = { ZAM10: 0.1, WELCOME: 0.05 },
   ],
   LATE_MIN = 30, // a driver this many minutes past the pickup time (not yet at pickup) counts as late
   OPEN_UNTIL_H = 2, // a scheduled booking waits for a driver until this many hours before pickup
+  CHANGE_H = 24, // hours after a cash payment in which a customer can report wrong change
   STRIKES_REVIEW = 3, // late/no-show strikes in 90 days that send a driver to admin review
   DEP = 5000, // minimum refundable rental deposit; owners may ask more per vehicle
   DEP_MAX = 100000,
@@ -402,6 +403,7 @@ module.exports = {
   LATE_MIN,
   OPEN_UNTIL_H,
   STRIKES_REVIEW,
+  CHANGE_H,
   coord,
   HANDOVER_PH,
   CLAIM_DAYS,

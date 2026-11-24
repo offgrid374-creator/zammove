@@ -155,7 +155,7 @@ test('a recipient other than the customer gets the Delivery PIN by SMS', async (
 
 test('vehicles need the LTFRB franchise and insurance; expired ones block trips', async () => {
   const t = await setup();
-  const v = { type: 'pk', brand: 'Toyota', model: 'Hilux', plate: 'LGL 1234', color: 'Gray', year: 2022, regExp: future(300), doc: pic };
+  const v = { type: 'pk', brand: 'Toyota', model: 'Hilux', plate: 'LGL 1234', color: 'Gray', year: 2022, regExp: future(300), doc: pic, kg: 900 };
   assert.match((await t.act('o@t.ph', 'addVehicle', v)).err, /CTPL insurance/);
   assert.match((await t.act('o@t.ph', 'addVehicle', { ...v, ins: 'CTPL-1', insExp: future(100) })).err, /LTFRB franchise/);
   /* rental-only vehicles need insurance only */

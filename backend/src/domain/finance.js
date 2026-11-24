@@ -58,7 +58,10 @@ module.exports = (S, h) => ({
         st: 'Submitted',
         t: now(),
       };
-    const owed = r2(l.reduce((s, b) => s + h.dueFor(b), 0)),
+    /* upheld wrong-change claims are paid back through this remittance */
+    const debits = S.pay.filter(x => x.kind == 'change_charge' && x.payer == me.em && x.status == 'Due'),
+      debit = r2(debits.reduce((s, x) => s + x.amount, 0));
+    const owed = r2(l.reduce((s, b) => s + h.dueFor(b), 0) + debit),
       cr = S.pay.filter(x => x.kind == 'cancel_fee' && x.to == me.em && x.status == 'Verified' && !x.applied),
       credit = r2(Math.min(owed, cr.reduce((s, x) => s + x.amount, 0)));
     r.due = r2(owed - credit);
@@ -71,6 +74,10 @@ module.exports = (S, h) => ({
           left = r2(left - x.amount);
         }
       });
+    }
+    if (debit) {
+      r.debit = debit;
+      debits.forEach(x => Object.assign(x, { status: 'Deducted', applied: r.id }));
     }
     l.forEach(b => (b.rem = r.id));
     S.rem.push(r);
@@ -152,6 +159,34 @@ module.exports = (S, h) => ({
     return ok();
   },
   /* cashier: record a refund paid to a customer (deposit refunds, closed trips) */
+  /* cashier or admin: decide a wrong-change report.
+     Upheld: the customer gets a refund (paid by the cashier), the driver pays it back on the next remittance, and gets a strike. */
+  changeResolve(me, p) {
+    if (!h.canCash(me)) return no('Only a cashier or administrator can decide wrong-change reports.');
+    const c = S.inc.find(x => x.id == p.id && x.kind == 'change');
+    if (!c) return no('Report not found.');
+    if (c.st != 'Submitted') return no('This report was already decided.');
+    if ([c.by, c.driver].includes(me.em)) return no('You cannot decide a case you are part of.');
+    const note = str(p.note, 500);
+    if (note.length < 10) return no('Write the reason for the decision (10+ characters).');
+    const up = !!p.ok,
+      t = now();
+    if (up) {
+      S.pay.push(h.payMk({ bid: c.bid, kind: 'refund', method: '', amount: c.amt, ref: rid('RF'), payer: me.em, to: c.by, status: 'Due', note: 'Missing change, case ' + c.id }));
+      S.pay.push(h.payMk({ bid: c.bid, kind: 'change_charge', method: '', amount: c.amt, ref: rid('CC'), payer: c.driver, to: '', status: 'Due', note: 'Missing change, case ' + c.id }));
+      h.strike(c.driver, c.bid, 'Wrong change');
+    }
+    Object.assign(c, { st: up ? 'Upheld' : 'Rejected', decision: note, dby: me.em, dt: t });
+    c.log.push({ t, by: me.em, act: up ? 'upheld' : 'rejected', note });
+    const d = h.U(c.driver),
+      f = d && (d.flags || []).find(x => x.inc == c.id && x.open);
+    if (f) Object.assign(f, { open: false, rnote: (up ? 'Upheld: ' : 'Rejected: ') + note, rby: me.em, rt: t });
+    h.au(me.em, 'wrong change ' + (up ? 'upheld' : 'rejected'), { id: c.id, amt: c.amt });
+    h.ntf(c.by, 'Report ' + c.id, up ? `Upheld: ${peso(c.amt)} will be refunded to you. ${note}` : `Not upheld: ${note}`);
+    if (d)
+      h.ntf(d.em, 'Report ' + c.id, up ? `Upheld: ${peso(c.amt)} will be added to your next remittance, and a strike was recorded. ${note}` : `Not upheld: ${note}`);
+    return ok();
+  },
   refundPaid(me, p) {
     if (!h.canCash(me)) return no('Only a cashier or administrator can record refunds.');
     const x = S.pay.find(y => y.id == p.id && ['deposit_refund', 'refund'].includes(y.kind) && y.status == 'Due');

@@ -204,6 +204,8 @@ module.exports = (S, h) => ({
     if (legal.err) return no(legal.err);
     const spec = h.vSpec(ty, p);
     if (spec.err) return no(spec.err);
+    const load = h.loadSpec(ty, p);
+    if (load.err) return no(load.err);
     const v = {
       id: rid('VH'),
       owner: me.em,
@@ -213,7 +215,9 @@ module.exports = (S, h) => ({
       plate,
       color,
       year,
-      cap: ty.cap,
+      cap: load.cap || ty.cap,
+      ...(load.kg ? { kg: load.kg } : {}),
+      ...(load.bed ? { bed: load.bed } : {}),
       desc: str(p.desc, 200),
       regExp,
       docs: [{ name: 'OR/CR', file: img(p.doc) }],
@@ -235,6 +239,23 @@ module.exports = (S, h) => ({
     return ok({ id: v.id, ownerOnApproval: !isOwn });
   },
   /* owner: renew the franchise or insurance (new number, expiry and photo) */
+  /* owner: correct a hauling vehicle's max load and bed size (never above its type's rating) */
+  vehSpecs(me, p) {
+    const v = h.vOf(p.id);
+    if (!v || v.owner != me.em || !h.acct(me)) return no('Vehicle not found.');
+    const ty = C.VT.find(x => x.id == v.type) || {};
+    if (ty.rentOnly || !ty.kg) return no('Rental vehicles do not carry cargo loads.');
+    const load = h.loadSpec(ty, p);
+    if (load.err) return no(load.err);
+    const heavy = S.bk.find(b => b.veh == v.id && !h.done(b) && b.wt > load.kg);
+    if (heavy) return no(`Booking ${heavy.id} needs about ${(+heavy.wt).toLocaleString('en-PH')} kg. Lower the limit after that trip.`);
+    Object.assign(v, { kg: load.kg, cap: load.cap });
+    if (load.bed) v.bed = load.bed;
+    else delete v.bed;
+    v.hist.push({ e: 'Load specs: ' + load.cap, t: now(), by: me.em });
+    h.au(me.em, 'vehicle specs', { vehicle: v.id, kg: load.kg });
+    return ok();
+  },
   vehLegal(me, p) {
     const v = h.vOf(p.id);
     if (!v || v.owner != me.em || !h.acct(me)) return no('Vehicle not found.');

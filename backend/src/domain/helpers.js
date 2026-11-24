@@ -62,6 +62,26 @@ module.exports = function makeHelpers(S) {
     if (!['Diesel', 'Gasoline', 'Electric'].includes(fuel)) return { err: 'Choose the fuel type.' };
     return { seats, trans, fuel };
   };
+  /* load limit of one vehicle: what its owner entered, otherwise its type's limit */
+  h.vKg = v => (v && (+v.kg || (C.HV.find(t => t.id == v.type) || {}).kg)) || 0;
+  /* cargo specs entered by the owner of a hauling vehicle: max load (required) and bed size (optional).
+     The load cannot exceed what the vehicle type is rated for. */
+  h.loadSpec = (ty, p) => {
+    if (ty.rentOnly || !ty.kg) return {};
+    const kg = Math.round(+p.kg);
+    if (!(kg >= 100 && kg <= ty.kg))
+      return { err: `Enter the maximum load in kg (100 to ${ty.kg.toLocaleString('en-PH')} for a ${ty.n}), as shown on the registration.` };
+    const dims = [p.bedL, p.bedW, p.bedH].map(x => (x === '' || x == null ? null : Math.round(+x * 10) / 10));
+    let bed = null;
+    if (dims.some(x => x != null)) {
+      if (dims.slice(0, 2).some(x => !(x >= 1 && x <= 30)) || (dims[2] != null && !(dims[2] >= 0 && dims[2] <= 15)))
+        return { err: 'Enter the cargo bed length and width in feet (1 to 30), and the height (0 for an open bed).' };
+      bed = [dims[0], dims[1], dims[2] || 0];
+    }
+    const b = bed || ty.bed;
+    const cap = `${kg.toLocaleString('en-PH')} kg` + (b ? ` · ${b[0]} × ${b[1]}${b[2] ? ' × ' + b[2] : ''} ft${b[2] ? '' : ' open'} bed` : '');
+    return { kg, bed, cap };
+  };
   /* legal documents of a vehicle: CTPL insurance always, LTFRB franchise (CPC) for hauling types */
   const D8 = /^\d{4}-\d{2}-\d{2}$/;
   h.legalOf = (ty, p) => {
@@ -139,6 +159,10 @@ module.exports = function makeHelpers(S) {
       ['Your vehicle type matches the booking (' + hv.n + ')', !!v && v.type == b.vid],
       ['Your vehicle is not rented out that day', !!v && !h.rentedOn(v.id, b.dt)],
       [
+        b.wt ? `Your vehicle can carry this load (about ${(+b.wt).toLocaleString('en-PH')} kg)` : 'Your vehicle can carry this load',
+        !b.wt || (!!v && h.vKg(v) >= b.wt),
+      ],
+      [
         'No overdue remittance and less than ' + peso(+S.cfg.cashCap || 5000) + ' of collected money on hand',
         !h.overdue(em) && h.cashHeld(em) < (+S.cfg.cashCap || 5000),
       ],
@@ -157,7 +181,7 @@ module.exports = function makeHelpers(S) {
       return !!u && h.okr(u, 'driver') && h.acct(u) && h.dAv(u.em) != 'Temporarily Suspended';
     });
   h.capFree = p => {
-    const V = h.fleetOf(p.vid),
+    const V = h.fleetOf(p.vid).filter(v => !p.wt || h.vKg(v) >= p.wt),
       O = S.bk.filter(
         x => x.id != p.id && x.vid == p.vid && !h.done(x) && x.st != 'No driver found' && h.ovl(x, p)
       );
@@ -219,13 +243,28 @@ module.exports = function makeHelpers(S) {
     r2(
       S.bk
         .filter(b => b.drvUser == em && h.closedPaid(b) && !(b.rem && h.remOk(b.rem)))
-        .reduce((s, b) => s + h.dueFor(b), 0) - h.drvCredit(em)
+        .reduce((s, b) => s + h.dueFor(b), 0) + h.drvDebit(em) - h.drvCredit(em)
     );
   /* a week's trips are due 3 days after the week ends (Monday + 10 days) */
   h.overdue = em =>
     S.bk.some(
       b => b.drvUser == em && h.closedPaid(b) && !b.rem && b.cd && Date.now() > new Date(h.wk(b.cd)).getTime() + 10 * 864e5
     );
+  /* upheld wrong-change claims a driver must pay back, not yet added to a remittance */
+  h.drvDebit = em =>
+    r2(S.pay.filter(p => p.kind == 'change_charge' && p.payer == em && p.status == 'Due').reduce((s, p) => s + p.amount, 0));
+  /* a strike on a driver (late, no-show, wrong change); 3 in 90 days send the driver to admin review */
+  h.strike = (em, bid, why) => {
+    const d = h.U(em);
+    if (!d) return 0;
+    const t = now();
+    (d.strikes = d.strikes || []).push({ bid, t, why });
+    const recent = d.strikes.filter(x => Date.now() - new Date(x.t).getTime() < 90 * 864e5).length;
+    h.au('system', 'driver strike', { driver: em, bk: bid, why, recent });
+    if (recent >= C.STRIKES_REVIEW)
+      h.staffEms().forEach(s => h.ntf(s, 'Driver review needed', `${d.name} has ${recent} strikes in 90 days (latest: ${why}).`));
+    return recent;
+  };
   /* verified cancellation fees owed to a driver, not yet set off against a remittance */
   h.drvCredit = em =>
     r2(S.pay.filter(p => p.kind == 'cancel_fee' && p.to == em && p.status == 'Verified' && !p.applied).reduce((s, p) => s + p.amount, 0));

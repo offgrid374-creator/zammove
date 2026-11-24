@@ -159,11 +159,12 @@ const todo = () => ({
   apps: S.apps.filter(a => !['Approved', 'Rejected'].includes(a.st)).length,
   veh: S.vh.filter(v => v.approval == 'Pending Approval').length,
   asg: S.asg.filter(a => ['Pending Admin Review', 'Pending Activation'].includes(a.st)).length,
-  inc: S.inc.filter(c => c.st == 'Submitted').length,
+  inc: S.inc.filter(c => c.st == 'Submitted' && c.kind != 'change').length,
   rem: S.rem.filter(r => ['Submitted', 'Discrepancy'].includes(r.st)).length,
   pay:
     S.pay.filter(p => p.status == 'Submitted' && p.kind != 'down' && p.kind != 'final').length +
-    S.pay.filter(p => ['refund', 'deposit_refund'].includes(p.kind) && p.status == 'Due').length,
+    S.pay.filter(p => ['refund', 'deposit_refund'].includes(p.kind) && p.status == 'Due').length +
+    S.inc.filter(c => c.kind == 'change' && c.st == 'Submitted').length,
   bk: S.bk.filter(b => b.st == 'Interrupted').length,
 });
 const secCount = s => {
@@ -199,7 +200,7 @@ P.dash = () => {
       ['bk', t.bk, 'interrupted trips to decide', 'f'],
       ['inc', t.inc, 'new incident reports', 's'],
       ['rem', t.rem, 'driver remittances to verify', 'c'],
-      ['pay', t.pay, 'payments to verify and refunds to send', 'c'],
+      ['pay', t.pay, 'payments, refunds and wrong-change reports', 'c'],
     ].filter(x => allow(x[3]));
   const dr = S.users.filter(u => okr(u, 'driver')),
     ow = S.users.filter(u => okr(u, 'owner')),
@@ -644,8 +645,8 @@ const ICT = {
   ICL = { start: 'Start review', evidence: 'Request evidence', statement: 'Record statement', decide: 'Record decision', close: 'Close case' };
 P.inc = () =>
   `<p class="mu" style="margin:18px 0 0">Reports are reviewed before any decision. Nobody is blamed or penalized from an initial report alone.</p>${msg()}${
-    S.inc.length
-      ? S.inc
+    S.inc.filter(c => c.kind != 'change').length
+      ? S.inc.filter(c => c.kind != 'change')
           .slice()
           .reverse()
           .map(
@@ -692,7 +693,7 @@ P.pay = () => {
       ['Booking / rental', 'Kind', 'To', 'Amount', 'Send'],
       refunds.map(p => [
         esc(p.bid),
-        p.kind == 'deposit_refund' ? 'Rental deposit' : 'Closed trip',
+        p.kind == 'deposit_refund' ? 'Rental deposit' : /^Missing change/.test(p.note || '') ? 'Missing change' : 'Closed trip',
         userLink(p.to),
         `<b>${peso(p.amount)}</b>`,
         `<span class="ad-row" style="margin:0"><select id="f-${p.id}-rm" aria-label="Method"><option>GCash</option><option>Cash</option></select>${inp(p.id + '-rr', 'GCash reference')}${btn('refund', 'Mark as sent', `data-id="${esc(p.id)}"`)}</span>`,
@@ -701,7 +702,27 @@ P.pay = () => {
     ),
     'style="margin-top:18px"'
   );
-  return `${msg()}${refundCard}${card(
+  const cases = S.inc.filter(c => c.kind == 'change' && c.st == 'Submitted');
+  const changeCard = cases.length
+    ? card(
+        'Wrong change reported',
+        `<p class="mu" style="margin-top:0">Customers who say a driver gave back less change than the receipt shows. Upholding refunds the customer (it appears under Refunds to send), adds the amount to the driver’s next remittance, and records a strike.</p>${tbl(
+          ['Booking', 'Customer', 'Driver', 'Missing', 'Receipt', 'Statements', 'Decision'],
+          cases.map(c => [
+            esc(c.bid),
+            userLink(c.by),
+            userLink(c.driver),
+            `<b>${peso(c.amt)}</b>`,
+            (c.rec || []).map(x => `${peso(x.amount)} cash` + (x.rcv != null ? ` · got ${peso(x.rcv)} · change ${peso(x.chg)}` : '')).join('<br>') + (c.gave ? `<br><small>Customer says they gave ${peso(c.gave)}</small>` : ''),
+            `<small><b>Customer:</b> ${esc(c.d)}<br><b>Driver:</b> ${c.reply ? esc(c.reply.note) : '<i>no answer yet</i>'}</small>`,
+            `<span class="ad-row" style="margin:0">${inp(c.id + '-cn', 'Reason (required)')}${btn('chg', 'Uphold', `data-id="${esc(c.id)}" data-x="1"`)}${btn('chg', 'Reject', `data-id="${esc(c.id)}" data-x="0"`, 'd')}</span>`,
+          ]),
+          ''
+        )}`,
+        'style="margin-top:18px"'
+      )
+    : '';
+  return `${msg()}${changeCard}${refundCard}${card(
     'Waiting for verification',
     `<p class="mu" style="margin-top:0">Rental payments, deposits and cancellation fees submitted by customers (a verified cancellation fee is credited to the driver). Check each against the GCash account or the cash received. Booking payments are confirmed by the driver who collects them.</p>${tbl(
       ['Date', 'Rental', 'Kind', 'Method', 'Amount', 'Reference', 'Payer', 'Action'],
@@ -996,6 +1017,7 @@ document.addEventListener('click', async e => {
   else if (a == 'split') r = RQ('cfgSplit', { comm: val('comm'), drvPct: val('drv') });
   else if (a == 'tres') (r = RQ('tripResolve', { id, act: x, driver: val(id + '-drv'), refund: val(id + '-ref'), reason: val(id + '-why') })), (done = 'Decision recorded.');
   else if (a == 'tstop') (r = RQ('tripInterrupt', { id: val('stopb'), reason: val('stopw') })), (done = 'Trip stopped. Decide it under Interrupted trips.');
+  else if (a == 'chg') (r = RQ('changeResolve', { id, ok: t.dataset.x == '1', note: val(id + '-cn') })), (done = t.dataset.x == '1' ? 'Upheld: refund queued and driver charged.' : 'Report rejected.');
   else if (a == 'refund') (r = RQ('refundPaid', { id, method: val(id + '-rm'), ref: val(id + '-rr') })), (done = 'Refund recorded as sent.');
   else if (a == 'rates')
     (r = RQ('cfgRates', { rates: Object.fromEntries((S.fleet.HV || []).map(v => [v.id, { base: val('rb-' + v.id), km: val('rk-' + v.id) }])) })), (done = 'Fares saved.');

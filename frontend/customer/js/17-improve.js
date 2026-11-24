@@ -20,7 +20,9 @@
   const hvN = id => (HV.find(x => x.id == id) || { n: id }).n;
   const rank = id => HV.findIndex(x => x.id == id);
   const when = t => new Date(t).toLocaleString('en-PH', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
-  const bk = { sz: '', rn: '', rph: '' }; // booking form values kept across redraws
+  const bk = { sz: '', rn: '', rph: '', wt: '' }; // booking form values kept across redraws
+  const kgs = n => (+n).toLocaleString('en-PH');
+  const selV = () => (typeof sel != 'undefined' && HV.find(x => x.id == sel.v)) || null;
   const say = (m, good) => typeof toast == 'function' && toast(m);
   const DONE = ['Completed', 'Cancelled', 'Rejected'];
   const tag = (t, c = '') => `<span class="tag ${c}">${esc(t)}</span>`;
@@ -32,10 +34,45 @@
     const sizes = R().SIZES;
     it.insertAdjacentHTML(
       'afterend',
-      `<div id="z7-bk" style="margin-top:12px"><label for="z7-sz">How much are you moving?</label><select id="z7-sz"><option value="">Choose…</option>${sizes.map(s => `<option value="${s.id}" ${bk.sz == s.id ? 'selected' : ''}>${esc(s.n)}</option>`).join('')}</select><div id="z7-szh" class="mu" style="font-size:13.5px;margin-top:4px"></div>
+      `<div id="z7-bk" style="margin-top:12px"><label for="z7-sz">How much are you moving?</label><select id="z7-sz"><option value="">Choose…</option>${sizes.map(s => `<option value="${s.id}" ${bk.sz == s.id ? 'selected' : ''}>${esc(s.n)}</option>`).join('')}</select><div id="z7-szh" class="mu" style="font-size:13.5px;margin-top:4px"></div><label for="z7-wt" style="margin-top:10px">Estimated weight in kg (optional)</label><input id="z7-wt" type="number" min="1" inputmode="numeric" placeholder="e.g. 600" value="${esc(bk.wt)}"><div id="z7-wth" class="mu" style="font-size:13.5px;margin-top:4px"></div>
 <details id="z7-rcp" style="margin-top:10px" ${bk.rn || bk.rph ? 'open' : ''}><summary style="cursor:pointer;min-height:36px;display:flex;align-items:center;font-weight:600">Someone else receives the items</summary><label for="z7-rn">Recipient’s full name</label><input id="z7-rn" value="${esc(bk.rn)}" autocomplete="off"><label for="z7-rph">Recipient’s mobile number</label><input id="z7-rph" inputmode="tel" placeholder="09XXXXXXXXX" value="${esc(bk.rph)}"><p class="mu" style="font-size:13.5px;margin:6px 0 0">They receive the Delivery PIN by SMS and confirm the delivery themselves.</p></details></div>`
     );
     sizeHint();
+    wtHint();
+  };
+  /* the selected vehicle's limits, shown under the vehicle picker */
+  const specPanel = () => {
+    const pick = document.querySelector('#app [data-a="pick"]');
+    if (!pick) return;
+    const grid = pick.parentElement;
+    let el = document.getElementById('z7-spec');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'z7-spec';
+      grid.insertAdjacentElement('afterend', el);
+    }
+    const v = selV();
+    if (!v || !v.kg) return (el.innerHTML = '');
+    const b = v.bed || [],
+      cap = R().MOV_MAX[v.id] || 0;
+    const html = `<div class="vz-g z7-spec" style="margin-top:12px"><b>${esc(v.n)}</b><div class="vz-i"><span class="mu">Maximum load</span><span><b>${kgs(v.kg)} kg</b></span></div>${b.length ? `<div class="vz-i"><span class="mu">Cargo bed</span><span>${b[0]} × ${b[1]}${b[2] ? ' × ' + b[2] : ''} ft${b[2] ? '' : ' (open, use a tarp for rain)'}</span></div>` : ''}<div class="vz-i"><span class="mu">Helpers</span><span>up to ${cap}</span></div><div class="vz-i"><span class="mu">Fits</span><span style="text-align:right">${esc(v.fits || '')}</span></div><p class="mu" style="font-size:13.5px;margin:8px 0 0">Your driver’s exact vehicle, plate number and color appear here once a driver accepts. Each vehicle’s own load limit is checked, so a lighter-rated unit never gets a load it cannot carry.</p></div>`;
+    if (el.dataset.h != html) {
+      el.dataset.h = html;
+      el.innerHTML = html;
+    }
+  };
+  /* estimated weight against the selected vehicle's limit */
+  const wtHint = () => {
+    const h = document.getElementById('z7-wth');
+    if (!h) return;
+    const v = selV(),
+      w = Math.round(+bk.wt || 0);
+    if (!w || !v || !v.kg)
+      return (h.textContent = 'Rough guide: box 15 kg · sofa 50 kg · ref 70 kg · washing machine 65 kg · bed frame 40 kg.');
+    if (w > v.kg) {
+      const up = HV.find(x => x.kg >= w);
+      h.innerHTML = `<span style="color:var(--err);font-weight:600">About ${kgs(w)} kg is over the ${esc(v.n)}’s ${kgs(v.kg)} kg limit. ${up ? 'Choose a ' + esc(up.n) + ' or bigger.' : 'Split it into two bookings.'}</span>`;
+    } else h.innerHTML = `Within the ${esc(v.n)}’s limit (${kgs(w)} of ${kgs(v.kg)} kg, ${Math.round((w / v.kg) * 100)}%).`;
   };
   const sizeHint = () => {
     const h = document.getElementById('z7-szh');
@@ -70,6 +107,22 @@
   };
   document.addEventListener('input', e => {
     const id = e.target.id;
+    const m = /^(?:rv|c)-(.+)$/.exec(id || '');
+    if (m) {
+      const out = document.querySelector(`.z7-chg[data-id="${m[1]}"]`),
+        cash = +((document.getElementById('c-' + m[1]) || {}).value || 0),
+        got = +((document.getElementById('rv-' + m[1]) || {}).value || 0);
+      if (out)
+        out.innerHTML = !cash || !got
+          ? 'For cash, enter what the customer handed you. The change is shown here and sent to the customer on a receipt.'
+          : got < cash
+            ? `<b style="color:var(--err)">That is less than the ${peso(cash)} cash due.</b>`
+            : `Give back <b>${peso(Math.round((got - cash) * 100) / 100)}</b> change. The customer gets a receipt with this amount.`;
+    }
+    if (id == 'z7-wt') {
+      bk.wt = e.target.value;
+      wtHint();
+    }
     if (id == 'z7-rn') bk.rn = e.target.value;
     if (id == 'z7-rph') bk.rph = e.target.value;
   });
@@ -85,10 +138,10 @@
     /* fill in only what the caller did not send (the booking form sends neither) */
     if (n == 'createBooking') {
       p = p || {};
-      p = { ...p, sz: p.sz || bk.sz, rn: p.rn != null ? p.rn : bk.rn.trim(), rph: p.rph != null ? p.rph : bk.rph.trim() };
+      p = { ...p, sz: p.sz || bk.sz, wt: p.wt != null ? p.wt : String(bk.wt).trim(), rn: p.rn != null ? p.rn : bk.rn.trim(), rph: p.rph != null ? p.rph : bk.rph.trim() };
     }
     return _act(n, p).then(r => {
-      if (n == 'createBooking' && r.ok) Object.assign(bk, { sz: '', rn: '', rph: '' });
+      if (n == 'createBooking' && r.ok) Object.assign(bk, { sz: '', rn: '', rph: '', wt: '' });
       return r;
     });
   };
@@ -107,6 +160,32 @@
         if (b.st == 'Interrupted')
           out.push(`<div class="z7-it"><b>${esc(b.id)} is stopped</b> ${tag('Interrupted', 'r')}<p style="margin:6px 0 0">${esc((b.int || {}).why || '')} ZamMove is deciding the next step and will contact you.</p></div>`);
       });
+    /* cash receipts from the last 24 hours: check the change, report it if wrong */
+    const mineB = new Set((S.bk || []).filter(b => b.cu == em).map(b => b.id)),
+      cases = (S.inc || []).filter(c => c.kind == 'change' && c.by == em),
+      H = (R().CHANGE_H || 24) * 36e5;
+    const byBk = {};
+    (S.pay || [])
+      .filter(p => mineB.has(p.bid) && p.method == 'Cash' && ['down', 'final'].includes(p.kind))
+      .forEach(p => (byBk[p.bid] = byBk[p.bid] || []).push(p));
+    Object.entries(byBk).forEach(([bid, ps]) => {
+      const last = Math.max(...ps.map(p => new Date(p.t).getTime()));
+      if (Date.now() - last > H || cases.some(c => c.bid == bid)) return;
+      const id = esc(bid),
+        lines = ps
+          .map(p => `${p.kind == 'down' ? 'Down payment' : 'Final payment'} ${peso(p.amount)} cash` + (p.rcv != null ? ` · you gave ${peso(p.rcv)} · change ${peso(p.chg)}` : ''))
+          .join('<br>');
+      out.push(
+        `<div class="z7-it"><b>Cash receipt for ${id}</b> ${tag('Check your change')}<p style="margin:6px 0">${lines}</p><details><summary style="cursor:pointer;min-height:36px;display:flex;align-items:center;font-weight:600">Got the wrong change? Report it (within 24 hours)</summary><div class="wsf"><div><label for="z7-ca-${id}">Change missing (₱)</label><input id="z7-ca-${id}" type="number" min="1" step="0.01"></div><div><label for="z7-cg-${id}">Cash you handed over (₱)</label><input id="z7-cg-${id}" type="number" min="0" step="0.01"></div></div><label for="z7-cd-${id}">What happened?</label><textarea id="z7-cd-${id}" rows="2" style="width:100%" placeholder="e.g. I gave ₱2,000 and got back ₱100 less"></textarea><div class="wsa"><button class="btn sm o" data-a="z7-chg" data-id="${id}">Send report</button></div><p class="mu" style="font-size:13.5px;margin:6px 0 0">The driver is flagged and can give their side. If the cashier upholds it, you are refunded.</p></details></div>`
+      );
+    });
+    cases
+      .filter(c => c.st == 'Submitted' || Date.now() - new Date(c.dt || c.t).getTime() < 7 * 864e5)
+      .forEach(c =>
+        out.push(
+          `<div class="z7-it"><b>Wrong change report for ${esc(c.bid)}: ${peso(c.amt)}</b> ${c.st == 'Submitted' ? tag('Waiting for the cashier') : tag(c.st == 'Upheld' ? 'Upheld' : 'Not upheld', c.st == 'Upheld' ? '' : 'r')}${c.decision ? `<p style="margin:6px 0 0">${esc(c.decision)}</p>` : ''}</div>`
+        )
+      );
     (S.pay || []).forEach(p => {
       if (p.kind == 'cancel_fee' && p.payer == em && p.status == 'Due')
         out.push(
@@ -132,7 +211,7 @@
         : c.held >= c.cap
           ? '<b style="color:var(--err)">Limit reached: remit to the cashier before accepting new jobs.</b>'
           : 'Collected fares minus your share, until the cashier receives your remittance.'
-    }${c.credit ? ` Cancellation fees owed to you: ${peso(c.credit)} (deducted from your next remittance).` : ''}${c.strikes ? ` Late/no-show strikes: ${c.strikes}.` : ''}</p></section>`;
+    }${c.credit ? ` Cancellation fees owed to you: ${peso(c.credit)} (deducted from your next remittance).` : ''}${c.debit ? ` Wrong-change refunds to pay back: ${peso(c.debit)} (added to your next remittance).` : ''}${c.strikes ? ` Late/no-show strikes: ${c.strikes}.` : ''}</p></section>`;
   };
   const placeOpts = cur => {
     const names = PL.map(p => p[0]);
@@ -148,6 +227,7 @@
           early = ['Accepted', 'On the Way to Pickup', 'Awaiting Down Payment'].includes(b.st),
           rqWait = b.rq && !b.rq.ans;
         const parts = [];
+        if (b.wt) parts.push(`<p style="margin:6px 0 0"><b>Load:</b> about ${kgs(b.wt)} kg${b.sz ? ' · ' + esc((R().SIZES.find(s => s.id == b.sz) || {}).n || '') : ''}</p>`);
         if (b.rn) parts.push(`<p style="margin:6px 0 0"><b>Recipient:</b> ${esc(b.rn)} · ${esc(b.rph)} (they have the Delivery PIN)</p>`);
         if (b.st == 'Interrupted') parts.push(`<p style="margin:6px 0 0">${tag('Interrupted', 'r')} ${esc((b.int || {}).why || '')} An administrator decides the next step.</p>`);
         if (rqWait) parts.push(`<p style="margin:6px 0 0">${tag('Waiting for the customer')} Price correction to ${peso(b.rq.tot)} sent ${when(b.rq.t)}.</p>`);
@@ -167,6 +247,19 @@
       .join('');
   };
 
+  const drvCases = () =>
+    (S.inc || [])
+      .filter(c => c.kind == 'change' && c.driver == me() && c.st == 'Submitted')
+      .map(c => {
+        const id = esc(c.id);
+        return `<section class="card z7-card" style="margin:12px 0"><h2 style="font-size:20px;margin:0">Wrong change reported · <span class="n">${esc(c.bid)}</span></h2><p style="margin:6px 0">The customer says <b>${peso(c.amt)}</b> change is missing${c.gave ? ` (they handed over ${peso(c.gave)})` : ''}: “${esc(c.d)}”</p>${
+          c.reply
+            ? `<p class="mu" style="margin:0">Your answer was sent: “${esc(c.reply.note)}”. The cashier decides.</p>`
+            : `<label for="z7-cr-${id}">Your side</label><textarea id="z7-cr-${id}" rows="2" style="width:100%" placeholder="e.g. I gave back the exact change; the customer counted it"></textarea><div class="wsa"><button class="btn sm o" data-a="z7-chr" data-id="${id}">Send my answer</button></div><p class="mu" style="font-size:13.5px;margin:6px 0 0">If upheld, the amount is added to your next remittance and a strike is recorded.</p>`
+        }</section>`;
+      })
+      .join('');
+
   /* ---------- after every redraw ---------- */
   const typing = () => {
     const a = document.activeElement;
@@ -176,6 +269,7 @@
     if (!S.me) return;
     bookExtras();
     helperCap();
+    specPanel();
     const app = document.getElementById('app');
     if (!app) return;
     /* build the cards for this page; redraw only when they changed (keeps what the user is typing) */
@@ -188,7 +282,7 @@
     }
     if (ws == 'driver') {
       const pg = (S.wp || {}).driver || 'dash';
-      html = drvTools() + (['dash', 'earn', 'req'].includes(pg) ? cashBar() : '');
+      html = drvCases() + drvTools() + (['dash', 'earn', 'req'].includes(pg) ? cashBar() : '');
     }
     const box = app.querySelector(':scope > .z7-box, .z7-box');
     if (box && box.dataset.h == html) return;
@@ -266,6 +360,9 @@
         return run(ZAPI.act('payCancelFee', { id, method: v('z7-fm-' + pid), ref: v('z7-fr-' + pid) }), 'Payment sent. The cashier verifies it.');
       }
       if (a == 'z7-rq') return run(ZAPI.act('requote', { id, pu: v('z7-pu-' + id), dr: v('z7-dr-' + id), reason: v('z7-why-' + id) }), 'Sent to the customer.');
+      if (a == 'z7-chg')
+        return run(ZAPI.act('changeDispute', { id, amt: v('z7-ca-' + id), gave: v('z7-cg-' + id), d: v('z7-cd-' + id) }), 'Report sent. The cashier will decide.');
+      if (a == 'z7-chr') return run(ZAPI.act('changeReply', { id, note: v('z7-cr-' + id) }), 'Your answer was sent to the cashier.');
       if (a == 'z7-prob') return run(ZAPI.act('tripProblem', { id, reason: v('z7-pb-' + id) }), 'Trip stopped. ZamMove was alerted.');
       if (a == 'z7-inc') {
         const w = new Date(Date.now() + 8 * 36e5).toISOString().slice(0, 16);
@@ -277,7 +374,7 @@
   /* helpers: re-check the cap after the stepper or a vehicle change */
   document.addEventListener('click', e => {
     const t = e.target.closest('[data-a="mvs"],[data-a="pick"]');
-    if (t) setTimeout(() => (helperCap(), sizeHint()), 0);
+    if (t) setTimeout(() => (helperCap(), sizeHint(), specPanel(), wtHint()), 0);
   });
   /* keep driver tools open while typing: skip redraws triggered by polling */
   window.ZM_TYPING_Z7 = typing;

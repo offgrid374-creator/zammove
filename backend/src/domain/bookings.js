@@ -113,8 +113,20 @@ module.exports = (S, h) => {
         rph = str(p.rph, 20);
       if ((rn || rph) && !(rn.length >= 3 && /^(09|\+639)\d{9}$/.test(rph)))
         return no('For a different recipient, enter their full name and PH mobile number.');
+      /* estimated weight (optional): must be within what the vehicle type can carry */
+      const wt = p.wt === '' || p.wt == null ? 0 : Math.round(+p.wt);
+      if (p.wt !== '' && p.wt != null && !(wt >= 1 && wt <= 20000))
+        return no('Enter the estimated weight in kg (1 to 20,000), or leave it blank.');
+      const maxKg = v.kg || (C.HV.find(x => x.id == v.id) || {}).kg || 0;
+      if (wt && maxKg && wt > maxKg) {
+        const up = C.HV.find(x => x.kg >= wt);
+        return no(
+          `About ${wt.toLocaleString('en-PH')} kg is more than a ${v.n} can carry (${maxKg.toLocaleString('en-PH')} kg). ` +
+            (up ? `Choose a ${up.n} or bigger.` : 'Split the load into two bookings.')
+        );
+      }
       if (dc && !C.DC[dc]) return no('Invalid discount code.');
-      if (h.capFree({ id: '', vid: v.id, dt: d.dt, tm: d.tm, km }) < 1)
+      if (h.capFree({ id: '', vid: v.id, dt: d.dt, tm: d.tm, km, wt }) < 1)
         return no('No vehicle of this type is free at that time. Choose another time or vehicle type.');
       const pr = price(v, km, mv, dc),
         t = now();
@@ -134,6 +146,7 @@ module.exports = (S, h) => {
         dc: pr.disc ? dc : '',
         ph: img(p.ph),
         sz: sz.id,
+        ...(wt ? { wt } : {}),
         ...(rn ? { rn, rph } : {}),
         puC: C.coord(d.pu),
         drC: C.coord(d.dr), // the coordinates are what the price is based on; the driver navigates to them
@@ -160,18 +173,7 @@ module.exports = (S, h) => {
         drv = b.drvUser || '';
       b.cf = fee;
       b.cxl = { t, by: me.em, from, fee, ...(late ? { late: true } : {}) };
-      if (late) {
-        const d = h.U(drv);
-        if (d) {
-          (d.strikes = d.strikes || []).push({ bid: b.id, t, why: 'Late for pickup' });
-          const recent = d.strikes.filter(x => Date.now() - new Date(x.t).getTime() < 90 * 864e5).length;
-          h.au('system', 'driver strike', { driver: drv, bk: b.id, recent });
-          if (recent >= C.STRIKES_REVIEW)
-            h.staffEms().forEach(em =>
-              h.ntf(em, 'Driver review needed', `${d.name} has ${recent} late/no-show strikes in 90 days.`)
-            );
-        }
-      }
+      if (late) h.strike(drv, b.id, 'Late for pickup');
       h.ev(
         b,
         me.em,
@@ -462,6 +464,74 @@ module.exports = (S, h) => {
       h.au(me.em, 'booking declined', { booking: b.id });
       return ok();
     },
+    /* customer: report wrong change within 24 hours of a cash payment.
+       It opens a case, flags the driver for a payment discrepancy, and goes to the cashier / admin to decide. */
+    changeDispute(me, p) {
+      const b = S.bk.find(x => x.id == p.id && x.cu == me.em);
+      if (!b) return no('Booking not found.');
+      const cash = S.pay.filter(x => x.bid == b.id && x.method == 'Cash' && ['down', 'final'].includes(x.kind));
+      if (!cash.length) return no('There was no cash payment on this booking.');
+      const last = Math.max(...cash.map(x => new Date(x.t).getTime()));
+      if (Date.now() - last > C.CHANGE_H * 36e5)
+        return no(`Wrong change must be reported within ${C.CHANGE_H} hours of paying.`);
+      if (S.inc.some(c => c.kind == 'change' && c.bid == b.id)) return no('You already reported wrong change for this booking.');
+      const handed = r2(cash.reduce((s, x) => s + (x.rcv != null ? x.rcv : x.amount), 0)),
+        amt = r2(p.amt),
+        d = str(p.d, 1000);
+      if (!(amt > 0 && amt <= handed)) return no('Enter how much change you are missing (up to ' + peso(handed) + ').');
+      if (d.length < 10) return no('Describe what happened (10+ characters), e.g. how much you gave and got back.');
+      const t = now(),
+        c = {
+          id: rid('IN'),
+          by: me.em,
+          kind: 'change',
+          bid: b.id,
+          driver: b.drvUser,
+          cat: 'Wrong change',
+          sev: 'Medium',
+          amt,
+          gave: r2(p.gave) || null,
+          rec: cash.map(x => ({ amount: x.amount, rcv: x.rcv != null ? x.rcv : null, chg: x.chg != null ? x.chg : null })),
+          w: t.slice(0, 16),
+          d,
+          st: 'Submitted',
+          t,
+          log: [{ t, by: me.em, act: 'reported', note: d }],
+        };
+      S.inc.push(c);
+      const drv = h.U(b.drvUser);
+      if (drv)
+        (drv.flags = drv.flags || []).push({
+          id: rid('FL'),
+          kind: 'Payment discrepancy',
+          note: `${b.id}: the customer reports ${peso(amt)} missing change (case ${c.id}).`,
+          by: 'system',
+          t,
+          open: true,
+          amt,
+          inc: c.id,
+        });
+      h.au(me.em, 'wrong change reported', { bk: b.id, id: c.id, amt });
+      h.ntf(me.em, 'Report ' + c.id, 'Your wrong-change report was sent to the ZamMove cashier. We will tell you the decision.');
+      if (drv)
+        h.ntf(drv.em, 'Wrong change reported', `${b.id}: the customer says ${peso(amt)} change is missing. Add your side on the trip.`);
+      h.staffEms().forEach(em => h.ntf(em, 'Wrong change reported', `${b.id}: ${peso(amt)} missing change, case ${c.id}.`));
+      return ok({ id: c.id });
+    },
+    /* driver: give their side of a wrong-change report */
+    changeReply(me, p) {
+      const c = S.inc.find(x => x.id == p.id && x.kind == 'change' && x.driver == me.em);
+      if (!c) return no('Report not found.');
+      if (c.st != 'Submitted') return no('This report was already decided.');
+      if (c.reply) return no('You already answered this report.');
+      const note = str(p.note, 1000);
+      if (note.length < 10) return no('Explain what happened (10+ characters).');
+      c.reply = { note, t: now() };
+      c.log.push({ t: now(), by: me.em, act: 'driver reply', note });
+      h.au(me.em, 'wrong change reply', { id: c.id });
+      h.staffEms().forEach(em => h.ntf(em, 'Driver answered ' + c.id, note));
+      return ok();
+    },
     step(me, p) {
       const b = mine(me, p.id),
         to = str(p.to, 40),
@@ -504,6 +574,10 @@ module.exports = (S, h) => {
       if (h.paySum(b.id, kind) > 0) return no('This payment was already recorded.');
       if (g < 0 || c < 0 || Math.round(g * 100) + Math.round(c * 100) !== nC)
         return no('Amount must equal exactly ' + peso(need) + ' (GCash + Cash).');
+      /* cash handed over by the customer: the change is computed and sent to the customer on a receipt */
+      const rcv = p.rcv === undefined || p.rcv === '' || p.rcv === null ? c : r2(p.rcv);
+      if (c > 0 && !(rcv >= c && rcv <= c + 10000))
+        return no('Enter the cash the customer handed you (at least ' + peso(c) + ').');
       /* a GCash proof the customer already submitted for this booking and stage is confirmed, not rejected as a duplicate */
       const sub =
         g > 0
@@ -542,7 +616,17 @@ module.exports = (S, h) => {
         if (sub) Object.assign(sub, { status: 'Recorded by driver', by: me.em, collectedBy: me.em, ct: t });
         else S.pay.push(h.payMk({ ...base, method: 'GCash', amount: g, ref }));
       }
-      if (c) S.pay.push(h.payMk({ ...base, method: 'Cash', amount: c, ref: rid('CSH') }));
+      if (c) S.pay.push(h.payMk({ ...base, method: 'Cash', amount: c, ref: rid('CSH'), rcv, chg: r2(rcv - c) }));
+      /* e-receipt: the customer can check the change against what they actually got */
+      {
+        const what = kind == 'down' ? 'Down payment' : 'Final payment',
+          parts = [g ? `${peso(g)} GCash` : '', c ? `${peso(c)} cash` : ''].filter(Boolean).join(' + '),
+          cashTxt = c ? ` You gave ${peso(rcv)} cash; your change should be ${peso(rcv - c)}.` : '',
+          tail = c ? ' Wrong change? Report it on the booking within 24 hours.' : '';
+        h.ntf(b.cu, 'Receipt ' + b.id, `${what} received by ${me.name}: ${parts}.${cashTxt}${tail}`);
+        const cu = h.U(b.cu);
+        if (cu && cu.ph) h.sim(cu.ph, 'SMS', `ZamMove receipt ${b.id}: ${what} ${parts}.${cashTxt}${tail}`, b.cu);
+      }
       S.pay.forEach(x => {
         if (x.bid == b.id && x.kind == kind && x.status == 'Submitted') {
           x.status = 'Rejected';

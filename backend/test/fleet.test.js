@@ -179,7 +179,7 @@ test('driver profile photo and public reviews reach the customer; Waze link only
 test('rental-only types register with specs and can never be assigned to hauling', async () => {
   const t = await setup();
   const add = x =>
-    t.act('o@t.ph', 'addVehicle', { ins: 'CTPL-778899', insExp: future(300), cpc: 'CPC-2024-0001', cpcExp: future(500), 
+    t.act('o@t.ph', 'addVehicle', { ins: 'CTPL-778899', insExp: future(300), cpc: 'CPC-2024-0001', cpcExp: future(500), kg: 400, 
       type: 'sd',
       brand: 'Toyota',
       model: 'Vios',

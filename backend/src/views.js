@@ -186,7 +186,7 @@ module.exports = (S, h) => {
       CLAIM_DAYS: C.CLAIM_DAYS,
     },
     rentList: rentList(), // the vehicle catalogue the screens show (server is the source)
-    rules: { MOV_MAX: C.MOV_MAX, SIZES: C.SIZES, LATE_MIN: C.LATE_MIN, OPEN_UNTIL_H: C.OPEN_UNTIL_H },
+    rules: { MOV_MAX: C.MOV_MAX, SIZES: C.SIZES, LATE_MIN: C.LATE_MIN, OPEN_UNTIL_H: C.OPEN_UNTIL_H, CHANGE_H: C.CHANGE_H },
     ratings: h.ratings(),
     rnAvail: S.rn
       .filter(r => ['Pending', 'Approved', 'Active'].includes(r.st))
@@ -209,7 +209,7 @@ module.exports = (S, h) => {
   };
 
   /* balances worked out on the server (they depend on records the user cannot see, e.g. drivers' remittances) */
-  const cashOf = em => ({ held: h.cashHeld(em), cap: +S.cfg.cashCap || 5000, overdue: h.overdue(em), credit: h.drvCredit(em), strikes: ((h.U(em) || {}).strikes || []).length });
+  const cashOf = em => ({ held: h.cashHeld(em), cap: +S.cfg.cashCap || 5000, overdue: h.overdue(em), credit: h.drvCredit(em), debit: h.drvDebit(em), strikes: ((h.U(em) || {}).strikes || []).length });
   const money = all => ({
     ownerBals: Object.fromEntries(S.users.filter(u => h.okr(u, 'owner')).map(u => [u.em, h.ownerBal(u.em)])),
     ...(all ? { drvCash: Object.fromEntries(S.users.filter(u => h.okr(u, 'driver')).map(u => [u.em, cashOf(u.em)])) } : {}),
@@ -292,7 +292,7 @@ module.exports = (S, h) => {
       bk: [...bk.values()],
       rn: rnMine.map(liveRn),
       pay: S.pay.filter(p => p.payer == em || p.to == em || ids.has(p.bid) || drvIds.has(p.bid) || isCash), // p.to: payouts to an owner
-      inc: S.inc.filter(c => c.by == em || isSub),
+      inc: S.inc.filter(c => c.by == em || isSub || (c.kind == 'change' && c.driver == em)), // a driver sees wrong-change reports about them, to answer
       rev: S.rev.filter(r => r.by == em || drvIds.has(r.bid)),
       nt,
       apps: S.apps.filter(a => a.user == em),

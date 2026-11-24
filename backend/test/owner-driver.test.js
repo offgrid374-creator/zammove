@@ -7,6 +7,7 @@ const { setup, world, driver, user, van, future } = require('./_setup');
 
 const pic = 'data:image/jpeg;base64,AAAA';
 const car = x => ({
+  kg: 400,
   type: 'l3',
   brand: 'Mitsubishi',
   model: 'L300',

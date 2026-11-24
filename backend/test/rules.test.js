@@ -314,7 +314,7 @@ test('3-wheeler bookings, vehicle color/year at registration, driver and vehicle
   const pic = 'data:image/jpeg;base64,AAAA';
   assert.match(
     (
-      await t.act('o@t.ph', 'addVehicle', { ins: 'CTPL-778899', insExp: future(300), cpc: 'CPC-2024-0001', cpcExp: future(500), 
+      await t.act('o@t.ph', 'addVehicle', { ins: 'CTPL-778899', insExp: future(300), cpc: 'CPC-2024-0001', cpcExp: future(500), kg: 400, 
         type: 'tw',
         brand: 'Bajaj',
         model: 'RE Cargo',
@@ -327,7 +327,7 @@ test('3-wheeler bookings, vehicle color/year at registration, driver and vehicle
   );
   assert.match(
     (
-      await t.act('o@t.ph', 'addVehicle', { ins: 'CTPL-778899', insExp: future(300), cpc: 'CPC-2024-0001', cpcExp: future(500), 
+      await t.act('o@t.ph', 'addVehicle', { ins: 'CTPL-778899', insExp: future(300), cpc: 'CPC-2024-0001', cpcExp: future(500), kg: 400, 
         type: 'tw',
         brand: 'Bajaj',
         model: 'RE Cargo',
@@ -340,7 +340,7 @@ test('3-wheeler bookings, vehicle color/year at registration, driver and vehicle
     ).err,
     /model year/
   );
-  const v = await t.act('o@t.ph', 'addVehicle', { ins: 'CTPL-778899', insExp: future(300), cpc: 'CPC-2024-0001', cpcExp: future(500), 
+  const v = await t.act('o@t.ph', 'addVehicle', { ins: 'CTPL-778899', insExp: future(300), cpc: 'CPC-2024-0001', cpcExp: future(500), kg: 400, 
     type: 'tw',
     brand: 'Bajaj',
     model: 'RE Cargo',
