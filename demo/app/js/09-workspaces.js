@@ -395,8 +395,26 @@
     const note = okr(u, 'owner')
       ? ''
       : '<p class="mu n" style="margin:10px 0 0">When an administrator approves the vehicle, you also become a vehicle owner and get the Vehicle Owner workspace.</p>';
-    return `<details class="card" style="margin-top:12px" ${open ? 'open' : ''}><summary style="cursor:pointer;font-weight:500;min-height:44px;display:flex;align-items:center">Register a vehicle</summary><div class="wsf"><div><label for="w-vt">Type</label><select id="w-vt"><optgroup label="Hauling (takes bookings with a driver)">${HV.map(h => `<option value="${h.id}">${h.n}</option>`).join('')}</optgroup><optgroup label="Rental only (passenger)">${((S.fleet || {}).RT || []).map(h => `<option value="${h.id}">${h.n}</option>`).join('')}</optgroup></select></div><div><label for="w-vs">Seats (incl. driver)</label><input id="w-vs" type="number" min="1" max="30" placeholder="e.g. 3"></div><div><label for="w-vtr">Transmission</label><select id="w-vtr"><option>Manual</option><option>Automatic</option></select></div><div><label for="w-vfu">Fuel</label><select id="w-vfu"><option>Diesel</option><option>Gasoline</option><option>Electric</option></select></div><div><label for="w-vb">Brand</label><input id="w-vb"></div><div><label for="w-vm">Model</label><input id="w-vm"></div><div><label for="w-vp">Plate number</label><input id="w-vp"></div><div><label for="w-vx">Registration expires</label><input id="w-vx" type="date"></div><div><label for="w-vc">Color (as on the OR/CR)</label><input id="w-vc" placeholder="e.g. White"></div><div><label for="w-vy">Model year</label><input id="w-vy" type="number" min="1990" placeholder="e.g. 2021"></div><div><label for="w-vd">Notes for customers (optional)</label><input id="w-vd" placeholder="e.g. tarpaulin cover, rope and straps included"></div><div><label for="w-vf">OR/CR document (photo)</label><input id="w-vf" type="file" accept="image/*"></div><div><label for="w-vi">Vehicle photo (optional)</label><input id="w-vi" type="file" accept="image/*"></div></div><span class="grp">Load capacity</span><p class="mu n" style="margin:0 0 8px">Hauling vehicles only: the maximum load from the OR/CR, and the cargo bed size. Customers see these, and loads heavier than your limit are never sent to you.</p><div class="wsf"><div><label for="w-vkg">Maximum load (kg)</label><input id="w-vkg" type="number" min="100" inputmode="numeric" placeholder="e.g. 1500"></div><div><label for="w-vbl">Bed length (ft, optional)</label><input id="w-vbl" type="number" min="1" step="0.5" placeholder="e.g. 10"></div><div><label for="w-vbw">Bed width (ft, optional)</label><input id="w-vbw" type="number" min="1" step="0.5" placeholder="e.g. 5.5"></div><div><label for="w-vbh">Bed height (ft, 0 if open)</label><input id="w-vbh" type="number" min="0" step="0.5" placeholder="e.g. 5.5"></div></div><span class="grp">Legal documents</span><p class="mu n" style="margin:0 0 8px">Every vehicle needs CTPL insurance. Hauling for hire also needs an LTFRB franchise (CPC); rental-only vehicles do not.</p><div class="wsf"><div><label for="w-lins">CTPL insurance policy no.</label><input id="w-lins" placeholder="e.g. CTPL-2026-001234"></div><div><label for="w-linx">Insurance valid until</label><input id="w-linx" type="date"></div><div><label for="w-lind">Insurance photo (optional)</label><input id="w-lind" type="file" accept="image/*"></div><div><label for="w-lcpc">LTFRB franchise (CPC) no. (hauling)</label><input id="w-lcpc" placeholder="e.g. 2024-09-01234"></div><div><label for="w-lcpx">Franchise valid until (hauling)</label><input id="w-lcpx" type="date"></div><div><label for="w-lcpd">Franchise photo (optional)</label><input id="w-lcpd" type="file" accept="image/*"></div></div>${selfBox}<div class="wsa"><button class="btn" data-a="w-vadd">Submit for admin verification</button></div>${note}</details>`;
+    return `<details class="card" style="margin-top:12px" ${open ? 'open' : ''}><summary style="cursor:pointer;font-weight:500;min-height:44px;display:flex;align-items:center">Register a vehicle</summary><div class="wsf"><div><label for="w-vt">Type</label><select id="w-vt"><optgroup label="Hauling (takes bookings with a driver)">${HV.map(h => `<option value="${h.id}">${h.n}</option>`).join('')}</optgroup><optgroup label="Rental only (passenger)">${((S.fleet || {}).RT || []).map(h => `<option value="${h.id}">${h.n}</option>`).join('')}</optgroup></select></div><div><label for="w-vs">Seats (incl. driver)</label><input id="w-vs" type="number" min="1" max="30" placeholder="e.g. 3"></div><div><label for="w-vtr">Transmission</label>${window.ZCAT ? ZCAT.listSel('w-vtr', 'trans', 'Manual') : '<select id="w-vtr"><option>Manual</option><option>Automatic</option></select>'}</div><div><label for="w-vfu">Fuel</label>${window.ZCAT ? ZCAT.listSel('w-vfu', 'fuels', 'Diesel') : '<select id="w-vfu"><option>Diesel</option><option>Gasoline</option><option>Electric</option><option>Hybrid</option></select>'}</div><div><label for="w-vb">Brand</label>${window.ZCAT ? ZCAT.brandSel('w-vb', '', true, 'w-vm') : '<input id="w-vb">'}</div><div><label for="w-vm">Model</label>${window.ZCAT ? ZCAT.modelSel('w-vm', '', '', 'w-vb') : '<input id="w-vm">'}</div><div><label for="w-vp">Plate number</label><input id="w-vp"></div><div><label for="w-vx">Registration expires</label><input id="w-vx" type="date"></div><div><label for="w-vc">Color (as on the OR/CR)</label>${window.ZCAT ? ZCAT.listSel('w-vc', 'colors', '', 'Choose a colour') : '<input id="w-vc" placeholder="e.g. White">'}</div><div><label for="w-vy">Model year</label><input id="w-vy" type="number" min="1990" placeholder="e.g. 2021"></div><div><label for="w-vd">Notes for customers (optional)</label><input id="w-vd" placeholder="e.g. tarpaulin cover, rope and straps included"></div><div><label for="w-vf">OR/CR document (photo)</label><input id="w-vf" type="file" accept="image/*"></div><div><label for="w-vi">Vehicle photo (optional)</label><input id="w-vi" type="file" accept="image/*"></div></div><span class="grp">Load capacity</span><p class="mu n" style="margin:0 0 8px">Hauling vehicles only: the maximum load from the OR/CR, and the cargo bed size. Customers see these, and loads heavier than your limit are never sent to you.</p><div class="wsf"><div><label for="w-vkg">Maximum load (kg)</label><input id="w-vkg" type="number" min="100" inputmode="numeric" placeholder="e.g. 1500"></div><div><label for="w-vbl">Bed length (ft, optional)</label><input id="w-vbl" type="number" min="1" step="0.5" placeholder="e.g. 10"></div><div><label for="w-vbw">Bed width (ft, optional)</label><input id="w-vbw" type="number" min="1" step="0.5" placeholder="e.g. 5.5"></div><div><label for="w-vbh">Bed height (ft, 0 if open)</label><input id="w-vbh" type="number" min="0" step="0.5" placeholder="e.g. 5.5"></div></div><span class="grp">Legal documents</span><p class="mu n" style="margin:0 0 8px">Every vehicle needs CTPL insurance. Vans and trucks for hire also need an LTFRB franchise (CPC); 3-wheelers need the city tricycle franchise (MTOP); rental-only vehicles need neither. Upload a clear photo of each, so the admin can check the number and expiry.</p><div class="wsf"><div><label for="w-lins">CTPL insurance policy no.</label><input id="w-lins" placeholder="e.g. CTPL-2026-001234"></div><div><label for="w-linx">Insurance valid until</label><input id="w-linx" type="date"></div><div><label for="w-lind">Insurance photo</label><input id="w-lind" type="file" accept="image/*"></div><div><label for="w-lcpc">LTFRB franchise (CPC) no.</label><input id="w-lcpc" placeholder="e.g. 2024-09-01234"></div><div><label for="w-lcpx">Franchise valid until</label><input id="w-lcpx" type="date"></div><div><label for="w-lcpd">Franchise photo</label><input id="w-lcpd" type="file" accept="image/*"></div></div>${selfBox}<div class="wsa"><button class="btn" data-a="w-vadd">Submit for admin verification</button></div>${note}</details>`;
   };
+  /* the franchise a hauling type needs: LTFRB (CPC) for vans and trucks, the city's MTOP for 3-wheelers */
+  const isMtop = t => (HV.find(x => x.id == t) || {}).fr == 'mtop';
+  const frN = t => (isMtop(t) ? 'Tricycle franchise (MTOP)' : 'LTFRB franchise'),
+    frS = t => (isMtop(t) ? 'MTOP' : 'Franchise (CPC)');
+  /* registration form: relabel the franchise fields when the type changes */
+  document.addEventListener('change', e => {
+    if (!e.target || e.target.id != 'w-vt') return;
+    const m = isMtop(e.target.value),
+      lab = (id, t) => {
+        const l = document.querySelector(`label[for="${id}"]`);
+        if (l) l.textContent = t;
+      };
+    lab('w-lcpc', m ? 'City tricycle franchise (MTOP) no.' : 'LTFRB franchise (CPC) no.');
+    lab('w-lcpx', m ? 'MTOP valid until' : 'Franchise valid until');
+    lab('w-lcpd', m ? 'MTOP photo' : 'Franchise photo');
+    const i = document.getElementById('w-lcpc');
+    if (i) i.placeholder = m ? 'e.g. MTOP-2026-01234' : 'e.g. 2024-09-01234';
+  });
   /* franchise and insurance: status and a renewal form */
   const legalH = v => {
     const L = v.legal || {},
@@ -411,7 +429,7 @@
       load = ty
         ? `<div class="vz-i"><span class="mu">Maximum load</span><span><b>${kg.toLocaleString('en-PH')} kg</b>${v.kg ? '' : ' <span class="tag">type default</span>'}</span></div>${bed ? `<div class="vz-i"><span class="mu">Cargo bed</span><span>${bed[0]} × ${bed[1]}${bed[2] ? ' × ' + bed[2] : ''} ft${bed[2] ? '' : ' (open)'}</span></div>` : ''}<details style="margin-top:6px"><summary style="cursor:pointer;min-height:36px;display:flex;align-items:center;font-weight:600">Update load capacity</summary><div class="wsf"><div><label for="w-sk-${id}">Maximum load (kg, up to ${ty.kg.toLocaleString('en-PH')})</label><input id="w-sk-${id}" type="number" min="100" value="${v.kg || ''}"></div><div><label for="w-sl-${id}">Bed length (ft)</label><input id="w-sl-${id}" type="number" step="0.5" value="${v.bed ? v.bed[0] : ''}"></div><div><label for="w-sw-${id}">Bed width (ft)</label><input id="w-sw-${id}" type="number" step="0.5" value="${v.bed ? v.bed[1] : ''}"></div><div><label for="w-sh-${id}">Bed height (ft, 0 if open)</label><input id="w-sh-${id}" type="number" step="0.5" value="${v.bed ? v.bed[2] : ''}"></div></div><div class="wsa"><button class="btn sm o" data-a="w-vspec" data-id="${id}">Save load capacity</button></div></details>`
         : '';
-    return `${load}<div class="vz-i"><span class="mu">Insurance (CTPL)</span><span>${st(L.insExp)}</span></div>${hauling ? `<div class="vz-i"><span class="mu">LTFRB franchise</span><span>${st(L.cpcExp)}</span></div>` : ''}<details style="margin-top:8px"><summary class="mu" style="cursor:pointer;min-height:36px;display:flex;align-items:center">Add or renew legal documents</summary><div class="wsf"><div><label for="w-li-${id}">CTPL policy no.</label><input id="w-li-${id}" value="${esc(L.ins || '')}"></div><div><label for="w-lx-${id}">Insurance valid until</label><input id="w-lx-${id}" type="date" value="${esc(L.insExp || '')}"></div>${hauling ? `<div><label for="w-lc-${id}">Franchise (CPC) no.</label><input id="w-lc-${id}" value="${esc(L.cpc || '')}"></div><div><label for="w-ly-${id}">Franchise valid until</label><input id="w-ly-${id}" type="date" value="${esc(L.cpcExp || '')}"></div>` : ''}</div><div class="wsa"><button class="btn sm o" data-a="w-vleg" data-id="${id}">Save documents</button></div></details>`;
+    return `${load}<div class="vz-i"><span class="mu">Insurance (CTPL)</span><span>${st(L.insExp)}</span></div>${hauling ? `<div class="vz-i"><span class="mu">${esc(frN(v.type))}</span><span>${st(L.cpcExp)}</span></div>` : ''}<details style="margin-top:8px"><summary class="mu" style="cursor:pointer;min-height:36px;display:flex;align-items:center">Add or renew legal documents</summary><div class="wsf"><div><label for="w-li-${id}">CTPL policy no.</label><input id="w-li-${id}" value="${esc(L.ins || '')}"></div><div><label for="w-lx-${id}">Insurance valid until</label><input id="w-lx-${id}" type="date" value="${esc(L.insExp || '')}"></div><div><label for="w-lid-${id}">New insurance photo</label><input id="w-lid-${id}" type="file" accept="image/*"></div>${hauling ? `<div><label for="w-lc-${id}">${esc(frS(v.type))} no.</label><input id="w-lc-${id}" value="${esc(L.cpc || '')}"></div><div><label for="w-ly-${id}">Franchise valid until</label><input id="w-ly-${id}" type="date" value="${esc(L.cpcExp || '')}"></div><div><label for="w-lpd-${id}">New franchise photo</label><input id="w-lpd-${id}" type="file" accept="image/*"></div>` : ''}</div><p class="mu n" style="margin:6px 0 0">A renewed document needs a photo of the new one. A document you did not change keeps its photo.</p><div class="wsa"><button class="btn sm o" data-a="w-vleg" data-id="${id}">Save documents</button></div></details>`;
   };
   /* owner-drivers drive their own vehicle in one step; owners without a driver role are told how */
   const selfH = (v, a) => {
@@ -493,12 +511,12 @@
   const aDemo = () =>
     `<h1>Demo data and accounts</h1><div class="wsdm">Labeled demonstration data. Password for all demo accounts: Demo1234. Switching accounts here skips the password so you can show each role quickly.</div>${msgH()}<div class="card"><button class="btn" data-a="w-seed">Load demo accounts, vehicles and open bookings</button></div><div class="card" style="margin-top:12px"><h2 style="font-size:20px">Switch account (demo)</h2><table class="wss"><tr><th>Name</th><th>Roles</th><th></th></tr>${S.users.map(x => `<tr><td>${esc(x.name)}<br><small class="mu">${esc(x.em)}</small></td><td>${['customer', ...(x.roles || []).map(r => (r.st == 'approved' ? r.t : r.t + ' (' + r.st + ')'))].join(', ')}</td><td>${x.em == S.me.em ? '<span class="tag g">Current</span>' : `<button class="btn o sm" data-a="w-su" data-e="${esc(x.em)}">Use</button>`}</td></tr>`).join('')}</table></div>`;
   const aLog = () =>
-    `<h1>Audit log</h1><div class="card" style="margin-top:12px"><table class="wss"><tr><th>Time</th><th>Actor</th><th>Event</th></tr>${S.au
+    `<h1>Audit log</h1><div class="card" style="margin-top:12px;overflow-x:auto"><table class="wss" style="width:100%;table-layout:fixed"><tr><th>Time</th><th>Actor</th><th>Event</th></tr>${S.au
       .slice(-60)
       .reverse()
       .map(
         x =>
-          `<tr><td class="n">${fmt(x.t)}</td><td>${esc(x.who)}</td><td>${esc(x.evt)}<br><small class="mu n">${esc(x.data ? JSON.stringify(x.data) : '')}</small></td></tr>`
+          `<tr><td class="n">${fmt(x.t)}</td><td style="overflow-wrap:anywhere">${esc(x.who)}</td><td>${esc(x.evt)}<br><small class="mu n" style="word-break:break-all;overflow-wrap:anywhere">${esc(x.data ? JSON.stringify(x.data) : '')}</small></td></tr>`
       )
       .join('')}</table></div>`;
   const PG = {
@@ -626,14 +644,27 @@
         );
       }
       if (a == 'w-av') return fin(API.avail(me, d.s), 'Availability: ' + d.s);
-      if (a == 'w-acc') return fin(API.accept(me, d.id), 'Booking accepted. It is now yours.');
+      if (a == 'w-acc')
+        return fin(
+          API.accept(me, d.id).then(r => {
+            if (r.ok) {
+              /* straight to the trip, with the route to the pickup on the map */
+              S.wp.driver = 'trip';
+              save();
+              setTimeout(() => window.scrollTo(0, 0), 0);
+            }
+            return r;
+          }),
+          'Booking accepted. Your route to the pickup is on the map.'
+        );
       if (a == 'w-dec') return fin(API.decline(me, d.id), 'Booking declined.');
       if (a == 'w-vadd')
         return fin(
           API.addVehicle(me, {
             type: val('w-vt'),
-            brand: val('w-vb'),
-            model: val('w-vm'),
+            brand: window.ZCAT ? ZCAT.val('w-vb') : val('w-vb'),
+            model: window.ZCAT ? ZCAT.val('w-vm') : val('w-vm'),
+            catReq: window.ZCAT ? ZCAT.isOther('w-vb', 'w-vm') : false,
             plate: val('w-vp'),
             regExp: val('w-vx'),
             desc: val('w-vd'),
@@ -669,7 +700,16 @@
         );
       if (a == 'w-vleg')
         return fin(
-          RQ('vehLegal', { id: d.id, ins: val('w-li-' + d.id), insExp: val('w-lx-' + d.id), cpc: val('w-lc-' + d.id), cpcExp: val('w-ly-' + d.id) }),
+          (async () =>
+            RQ('vehLegal', {
+              id: d.id,
+              ins: val('w-li-' + d.id),
+              insExp: val('w-lx-' + d.id),
+              cpc: val('w-lc-' + d.id),
+              cpcExp: val('w-ly-' + d.id),
+              insDoc: await pimg('w-lid-' + d.id),
+              cpcDoc: await pimg('w-lpd-' + d.id),
+            }))(),
           'Legal documents saved.'
         );
       if (a == 'w-self')
@@ -913,7 +953,8 @@
         const sp = S.pay.find(
           p => p.bid == id && p.kind == k && p.method == 'GCash' && p.status == 'Submitted'
         );
-        return `${sp ? `<div class="note">The customer submitted GCash reference <b>${esc(sp.ref)}</b> for ${peso(sp.amount)}. Check that it arrived, then record it below (pre-filled).</div>` : ''}<p>Collect <b>${peso(ZPAY.due(b, k))}</b> (${k == 'down' ? '50% before loading' : 'remaining 50% after delivery'}). GCash + Cash must add up exactly.</p><div class="wsa"><input id="g-${id}" type="number" min="0" placeholder="GCash amount" value="${sp ? sp.amount : ''}"><input id="c-${id}" type="number" min="0" placeholder="Cash amount" value="${sp ? ZPAY.r2(ZPAY.due(b, k) - sp.amount) || '' : ''}"><input id="r-${id}" placeholder="GCash ref (10-13 digits)" value="${sp ? esc(sp.ref) : ''}"><input id="rv-${id}" type="number" min="0" placeholder="Cash handed to you" aria-label="Cash the customer handed you"></div><p class="mu z7-chg" data-id="${id}" style="margin:4px 0 0">For cash, enter what the customer handed you. The change is shown here and sent to the customer on a receipt.</p>${btn('w-pay', 'Record payment', `${a} data-k="${k}"`)}`;
+        const dc = (b.decl || {})[k];
+        return `${dc ? `<div class="note zd-decl"><b>The customer says they pay:</b> ${[dc.g ? `${peso(dc.g)} GCash (ref ${esc(dc.ref)})` : '', dc.c ? `${peso(dc.c)} cash, handing you ${peso(dc.cg)}${dc.chg ? ` → give back <b>${peso(dc.chg)}</b> change` : ' (exact)'}` : ''].filter(Boolean).join(' + ')}. Enter what you actually receive; it must match, or you explain the difference.</div>` : sp ? `<div class="note">The customer submitted GCash reference <b>${esc(sp.ref)}</b> for ${peso(sp.amount)}. Check that it arrived, then record it below (pre-filled).</div>` : ''}<p>Collect <b>${peso(ZPAY.due(b, k))}</b> (${k == 'down' ? '50% before loading' : 'remaining 50% after delivery'}). GCash + Cash must add up exactly.</p><div class="wsa"><label class="zd-f">GCash received<input id="g-${id}" type="number" min="0" placeholder="GCash amount" value="${dc ? dc.g || '' : sp ? sp.amount : ''}"></label><label class="zd-f">Cash part<input id="c-${id}" type="number" min="0" placeholder="Cash amount" value="${dc ? dc.c || '' : sp ? ZPAY.r2(ZPAY.due(b, k) - sp.amount) || '' : ''}"></label><label class="zd-f">GCash reference<input id="r-${id}" placeholder="GCash ref (10-13 digits)" value="${dc && dc.ref ? esc(dc.ref) : sp ? esc(sp.ref) : ''}"></label><label class="zd-f">Cash handed to you<input id="rv-${id}" type="number" min="0" placeholder="Cash handed to you" value="${dc && dc.c ? dc.cg : ''}"></label></div><p class="mu z7-chg" data-id="${id}" style="margin:4px 0 0">For cash, enter what the customer handed you. The change is shown here and sent to the customer on a receipt.</p>${btn('w-pay', 'Record payment', `${a} data-k="${k}"`)}${dc ? `<details class="zd-force" style="margin-top:8px"${ZW.mm == id ? ' open' : ''}><summary style="cursor:pointer;font-weight:600">What I received is different</summary><p class="mu" style="font-size:13px;margin:4px 0">Record your amounts with an explanation. The customer and ZamMove see both versions.</p><input id="why-${id}" maxlength="300" placeholder="e.g. The customer handed ₱1,000, not ₱1,500" style="width:100%"><div class="wsa" style="margin-top:6px">${btn('w-payf', 'Record anyway with this note', `${a} data-k="${k}"`, 'o')}</div></details>` : ''}`;
       };
     return s == 'Accepted'
       ? go('On the Way to Pickup', 'Heading to pickup')
@@ -1051,13 +1092,17 @@
       ])
     )}`;
   const cPay = () => {
-    const l = S.pay.filter(p => p.status == 'Submitted' && p.kind != 'down' && p.kind != 'final');
-    return `<h1>Payments to verify</h1>${msgH()}<p class="mu">Rental payments and deposits submitted by customers. Check each one against the GCash account or the cash received before verifying. Booking payments are confirmed by the driver who collects them.</p>${tbl(
+    const l = S.pay.filter(p => p.status == 'Submitted' && p.kind != 'down' && p.kind != 'final' && !(p.to && ['rental', 'deposit'].includes(p.kind)));
+    const D = S.pay.filter(p => p.status == 'Disputed' || (['cancel_fee', 'down', 'final'].includes(p.kind) && p.disp && !p.disp.closed));
+    const KD = { rental: 'Rental payment the owner says was not received', deposit: 'Deposit payment the owner says was not received', deposit_refund: 'Deposit refund the renter says never arrived', refund: 'Refund the renter says never arrived', cancel_fee: 'No-show fee the customer disputes', turnover: 'Driver turnover the owner says never arrived', down: 'GCash down payment the owner says never arrived', final: 'GCash balance the owner says never arrived' };
+    const YES = { rental: 'It was paid', deposit: 'It was paid', deposit_refund: 'It was sent', refund: 'It was sent', cancel_fee: 'Fee stands', turnover: 'It was handed over', down: 'It arrived', final: 'It arrived' }, NO = { rental: 'Not paid', deposit: 'Not paid', deposit_refund: 'Owner must resend', refund: 'Owner must resend', cancel_fee: 'Waive the fee', turnover: 'Not handed over', down: 'Not received: customer pays again', final: 'Not received: customer pays again' };
+    const disputes = D.length ? `<div class="card" style="margin:12px 0"><h2 style="font-size:20px">Money disputes (${D.length})</h2><p class="mu" style="font-size:14px">Decide each one from the evidence. Both sides are told the decision and your reason.</p>${D.map(p => `<div style="padding:10px 0;border-top:1px solid var(--bd)"><b>${esc(KD[p.kind] || p.kind)}</b> · ${esc(p.bid)} · ${peso(p.amount)}${p.method ? ' · ' + esc(p.method) : ''}${p.ref && p.method == 'GCash' ? ' · ref ' + esc(p.ref) : ''}<div class="mu" style="font-size:13px">${p.payer ? 'From ' + nm(p.payer) : ''}${p.to ? ' → ' + nm(p.to) : ''}${p.note ? ' · ' + esc(p.note) : ''}</div>${p.disp ? `<div style="font-size:14px;margin:4px 0">Dispute: “${esc(p.disp.note || '')}”</div>${okImg(p.disp.pf) ? `<img src="${p.disp.pf}" alt="Evidence" style="max-width:140px;border-radius:6px">` : ''}` : ''}<div class="wsa"><input id="md-${p.id}" placeholder="Decision and reason" style="flex:1;min-width:200px">${btn('w-md', YES[p.kind] || 'Yes', `data-id="${esc(p.id)}" data-ok="1"`)}${btn('w-md', NO[p.kind] || 'No', `data-id="${esc(p.id)}" data-ok="0"`, 'd')}</div></div>`).join('')}</div>` : '';
+    return `<h1>Payments to verify</h1>${msgH()}${disputes}<p class="mu">Owner remittances (rental commission), cancellation fees and older rental payments made to ZamMove. Check each one against ZamMove’s GCash account or the cash received before verifying. Rental payments made to an owner are confirmed by that owner; booking payments by the driver who collects them.</p>${tbl(
       ['Date', 'Rental', 'Kind', 'Method', 'Amount', 'Reference', 'Payer', 'Action'],
       l.map(p => [
         (p.t || '').slice(0, 10),
-        esc(p.bid),
-        esc(p.kind),
+        esc(p.bid || (p.kind == 'owner_remit' ? 'Owner remittance' : '')),
+        esc(p.kind == 'owner_remit' ? 'rental commission' : p.kind),
         esc(p.method),
         peso(p.amount),
         esc(p.ref) +
@@ -1084,7 +1129,7 @@
   };
   const aDash = () => {
     const bs = S.bk;
-    return `<h1>Overview</h1><div class="tiles">${tile('Users', S.users.length)}${tile('Applications pending', S.apps.filter(a => !['Approved', 'Rejected'].includes(a.st)).length)}${tile('Bookings', bs.length)}${tile('Active trips', bs.filter(b => b.drvUser && !done(b)).length)}${tile('Completed', bs.filter(b => b.st == 'Completed').length)}${tile('Open incidents', S.inc.filter(c => c.st != 'Closed').length)}${tile('Remittances to verify', S.rem.filter(r => ['Submitted', 'Discrepancy'].includes(r.st)).length)}</div>`;
+    return `<h1>Overview</h1><div class="tiles">${tile('Users', S.users.length)}${tile('Applications pending', S.apps.filter(a => !['Approved', 'Rejected'].includes(a.st)).length)}${tile('Bookings', bs.length)}${tile('Active trips', bs.filter(b => b.drvUser && !done(b)).length)}${tile('Completed', bs.filter(b => b.st == 'Completed').length)}${tile('Open incidents', S.inc.filter(c => !['Closed', 'Withdrawn'].includes(c.st)).length)}${tile('Remittances to verify', S.rem.filter(r => ['Submitted', 'Discrepancy'].includes(r.st)).length)}</div>`;
   };
   const aWait = () => {
     if (!isA(ADM)) return '';
@@ -1141,7 +1186,7 @@
             .map(
               c =>
                 `<div class="card zc" style="margin-top:10px"><b>${esc(c.id)}</b> · booking ${esc(c.bid || '—')} · ${esc(c.cat || '')} · severity ${esc(c.sev || '')} · ${stTag(c.st)}<p>${esc(c.w || '')}</p>${(c.log || []).map(l => `<div class="mu">${esc(l.t.slice(0, 16).replace('T', ' '))} ${esc(l.act)} by ${esc(nm(l.by))}${l.note ? ': ' + esc(l.note) : ''}</div>`).join('')}${c.decision ? `<p><b>Decision:</b> ${esc(c.decision)}</p>` : ''}${
-                  full && c.st != 'Closed'
+                  full && !['Closed', 'Withdrawn'].includes(c.st)
                     ? `<textarea id="in-${c.id}" rows="2" style="width:100%" placeholder="Note / evidence request / finding"></textarea><div class="wsa">${btn('w-ic', 'Add note', `data-id="${c.id}" data-x="note" `, 'o')}${Object.keys(
                         ICT
                       )
@@ -1250,7 +1295,21 @@
       if (a == 'w-asn') return fin2(API.adminAssign(m, id, gv('as-' + id)), 'Driver assigned.');
       if (a == 'w-cfgp') return fin2(API.cfgPend(m, gv('cfg-pend')), 'Response time saved.');
       if (a == 'w-st') return fin2(API.step(m, id, t.dataset.to, v('n')), 'Trip updated.');
-      if (a == 'w-pay') return fin2(API.pay(m, id, t.dataset.k, v('g'), v('c'), v('r'), v('rv')), 'Payment recorded.');
+      if (a == 'w-pay')
+        return fin2(
+          API.pay(m, id, t.dataset.k, v('g'), v('c'), v('r'), v('rv')).then(r => ((ZW.mm = r.mismatch ? id : ''), r)),
+          'Payment recorded.'
+        );
+      if (a == 'w-payf')
+        return fin2(
+          RQ('driverPay', { id, kind: t.dataset.k, g: v('g'), c: v('c'), ref: v('r'), rcv: v('rv'), force: true, why: gv('why-' + id) }).then(r => (r.ok && (ZW.mm = ''), r)),
+          'Payment recorded with your note. The customer and ZamMove were told.'
+        );
+      if (a == 'w-md')
+        return fin2(
+          ZAPI.act('moneyDecide', { id, ok: t.dataset.ok == '1', note: gv('md-' + id) }),
+          'Decision saved. Both sides were told.'
+        );
       if (a == 'w-pv')
         return fin2(
           API.payv(m, id, t.dataset.ok == '1', gv('pn-' + id)),

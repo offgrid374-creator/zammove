@@ -315,3 +315,15 @@
   background: none;
   font-size: 13px;
 }
+
+/* Active trip: the route map is the first thing the driver sees */
+.ztd .ztd-map { margin: 0 0 20px; padding: 14px; }
+.ztd .ztd-map > div:first-child { margin-bottom: 10px; }
+.ztd .ztd-map > div:first-child b { font-size: 20px; }
+.ztd .ztd-map > div:first-child span { font-size: 15px; color: var(--ink, #1f2937); }
+.ztd .ztd-map .zmap { height: 440px !important; border-radius: 12px; }
+.ztd .ztd-map [id^="dr-go-"] .btn { min-height: 44px; font-size: 15px; }
+@media (max-width: 700px) {
+  .ztd .ztd-map { padding: 10px; }
+  .ztd .ztd-map .zmap { height: 320px !important; }
+}

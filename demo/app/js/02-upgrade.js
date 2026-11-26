@@ -173,6 +173,15 @@ book = () =>
     );
 
 /* bookings: Active / Past / Payments, date filter, payment history, receipts */
+/* the whole transaction on the receipt: what was due, how it was split, cash handed over, change, and what each side said */
+const txRows = x => {
+  if (!x) return '';
+  const r = (k, v) => `<div class="row"><span class="mu">${k}</span><b>${v}</b></div>`,
+    side = d => [d.g ? `GCash ${peso(d.g)}` : '', d.c ? `cash ${peso(d.c)} (handed ${peso(d.cg != null ? d.cg : d.rcv)})` : ''].filter(Boolean).join(' + ');
+  return `<h3 style="font-size:15px;margin:12px 0 4px">Transaction ${esc(x.id)}</h3>${r('Amount due', peso(x.due))}${x.g ? r('Paid by GCash', `${peso(x.g)} · ref ${esc(x.ref)}`) : ''}${x.c ? r('Cash part', peso(x.c)) + r('Cash handed over', peso(x.rcv)) + r('Change given back', peso(x.chg)) : ''}${x.decl ? r('Customer declared', esc(side(x.decl))) : ''}${r('Driver recorded', esc(side({ g: x.g, c: x.c, rcv: x.rcv })))}${
+    x.match === true ? r('Check', '✓ Both sides match') : x.match === false ? r('Check', '<span style="color:var(--err)">Amounts differ</span>') + `<div class="note" style="margin:4px 0">${(x.diff || []).map(esc).join('<br>')}<br>Driver’s note: “${esc(x.why || '')}”</div>` : r('Check', 'No customer declaration')
+  }`;
+};
 const receipt = p =>
   `<div class="card rcpt" style="margin-bottom:14px"><h2>ZamMove payment receipt</h2>${[
     ['Reference', p.ref],
@@ -186,7 +195,7 @@ const receipt = p =>
     .map(x => `<div class="row"><span class="mu">${x[0]}</span><b>${esc(x[1])}</b></div>`)
     .join(
       ''
-    )}${p.pf ? `<img src="${p.pf}" alt="Proof of payment" style="max-width:160px;border-radius:12px">` : ''}<div class="mu" style="font-size:12px">Prototype receipt, not an official receipt.</div><div class="noprint" style="margin-top:10px;display:flex;gap:8px"><button class="btn sm" data-a="prt">Print</button><button class="btn o sm" data-a="rcx">Close</button></div></div>`;
+    )}${txRows(p.tx)}${p.pf ? `<img src="${p.pf}" alt="Proof of payment" style="max-width:160px;border-radius:12px">` : ''}<div class="mu" style="font-size:12px">Prototype receipt, not an official receipt.</div><div class="noprint" style="margin-top:10px;display:flex;gap:8px"><button class="btn sm" data-a="prt">Print</button><button class="btn o sm" data-a="rcx">Close</button></div></div>`;
 const pays = () => {
   const l = S.pay.slice().reverse(),
     rc = S.pay.find(p => p.ref == msg.rc);
@@ -378,7 +387,7 @@ rent = function () {
               i = RF.indexOf(r.st),
               stop = ['Cancelled'].includes(r.st);
             return `<div style="padding:10px 0;border-bottom:1px solid var(--bd)"><b>${esc(r.vn)}</b> <span class="tag ${stop ? 'r' : 'g'}">${r.st}</span><div class="mu" style="font-size:13px">${r.s} → ${r.e} (${r.days} days) · Ref ${r.id}<br>Rental ${peso(r.tot)} + deposit ${peso(DEP)} · Verified paid ${peso(rpaid(r))}${rpend(r) ? ' · ' + peso(rpend(r)) + ' waiting for cashier' : ''} · <b>Balance ${peso(Math.max(0, bal))}</b></div>${stop ? '' : `<div class="steps">${RF.map((s, j) => `<span class="st ${j <= i ? 'd' : ''}">${s}</span>`).join('')}</div>`}
-${!stop && r.st != 'Completed' && bal - rpend(r) > 0.005 ? `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px"><input id="rpa${r.id}" type="number" placeholder="Amount" style="flex:1;min-width:100px"><select id="rpm${r.id}" style="flex:1;min-width:100px"><option>GCash</option><option>Cash</option></select><input id="rpr${r.id}" inputmode="numeric" placeholder="GCash ref (GCash only)" style="flex:1;min-width:140px"><button class="btn sm" data-a="rnpay" data-id="${r.id}">Submit payment</button></div><div class="mu" style="font-size:12px">The first ${peso(DEP)} goes to the deposit. A payment counts once a cashier verifies it.</div>` : ''}
+${!stop && r.st != 'Pending' && r.st != 'Completed' && bal - rpend(r) > 0.005 ? `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px"><input id="rpa${r.id}" type="number" placeholder="Amount" style="flex:1;min-width:100px"><select id="rpm${r.id}" style="flex:1;min-width:100px"><option>GCash</option><option>Cash</option></select><input id="rpr${r.id}" inputmode="numeric" placeholder="GCash ref (GCash only)" style="flex:1;min-width:140px"><button class="btn sm" data-a="rnpay" data-id="${r.id}">Submit payment</button></div><div class="mu" style="font-size:12px">The first ${peso(DEP)} goes to the deposit. A payment counts once a cashier verifies it.</div>` : ''}
 <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">${['Pending', 'Approved'].includes(r.st) ? `<button class="btn d sm" data-a="rncan" data-id="${r.id}">Cancel</button>` : ''}</div>${r.st == 'Completed' ? '<div class="ok">Completed. Deposit refunded (simulated).</div>' : ''}${msg['e' + r.id] ? `<div class="err">${esc(msg['e' + r.id])}</div>` : ''}</div>`;
           })
           .join('')
@@ -688,6 +697,7 @@ document.addEventListener(
     }
     if (a == 'rncan') {
       const r = await ZAPI.act('rentalCancel', { id });
+      if (r.ok && window.FX) window.FX.cxl = '';
       toast(r.ok ? 'Rental cancelled' : r.err);
       return render();
     }

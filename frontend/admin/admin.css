@@ -267,3 +267,18 @@ html[data-mode='dark'] .tag.w {
     position: relative;
   }
 }
+
+/* incident cases */
+.ad-case.hot { border-color: var(--zad-bad, #b3202f); box-shadow: inset 4px 0 0 var(--zad-bad, #b3202f); }
+.ad-h3 { font-size: 15px; margin: 16px 0 6px; }
+.ad-pp { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; align-items: center; padding: 8px 0; border-top: 1px solid var(--s2); }
+.ad-pp .ad-row select, .ad-pp .ad-row input { min-height: 36px; }
+.ad-out { border: 1px solid var(--bd); border-radius: 10px; padding: 8px 12px; margin: 10px 0 0; }
+.ad-out legend { font-weight: 600; padding: 0 4px; }
+.ad-log { margin-top: 10px; }
+.ad-log summary { cursor: pointer; font-weight: 600; min-height: 36px; display: flex; align-items: center; }
+
+.ad-cb { display: inline-flex; align-items: center; gap: 8px; flex: none; min-height: 40px; cursor: pointer; }
+.ad-cb input[type='checkbox'] { width: 18px; height: 18px; min-height: 0; flex: none; margin: 0; padding: 0; }
+
+.ad-row .ad-cb input[type='checkbox'], .ad-out .ad-cb input[type='checkbox'] { width: 18px; min-width: 0; max-width: 18px; height: 18px; flex: 0 0 18px; }

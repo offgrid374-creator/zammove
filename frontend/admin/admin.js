@@ -103,14 +103,16 @@ const roleTags = u =>
 const expired = d => !!d && d < today();
 const dateCell = d => (d ? (expired(d) ? `<span class="ad-bad">${esc(d)} (expired)</span>` : esc(d)) : '—');
 /* franchise (hauling) and insurance: short status for tables, full lines for approval cards */
+/* 3-wheelers are franchised by the city (MTOP), vans and trucks by LTFRB (CPC) */
+const isMtop = v => (types().find(t => t.id == v.type) || {}).fr == 'mtop';
 const legalShort = v => {
   const L = v.legal || {},
     one = (n, d) => (!d ? `<span class="ad-bad">${n} missing</span>` : expired(d) ? `<span class="ad-bad">${n} expired</span>` : `${n} ✓`);
-  return [one('CTPL', L.insExp), ...(rentOnly(v) ? [] : [one('CPC', L.cpcExp)])].join(' · ');
+  return [one('CTPL', L.insExp), ...(rentOnly(v) ? [] : [one(isMtop(v) ? 'MTOP' : 'CPC', L.cpcExp)])].join(' · ');
 };
 const legalLines = v => {
   const L = v.legal || {};
-  return `<dl class="ad-kv" style="margin-top:10px"><dt>CTPL insurance</dt><dd>${L.ins ? esc(L.ins) + ' · until ' + dateCell(L.insExp) : '<span class="ad-bad">missing</span>'}</dd>${rentOnly(v) ? '' : `<dt>LTFRB franchise (CPC)</dt><dd>${L.cpc ? esc(L.cpc) + ' · until ' + dateCell(L.cpcExp) : '<span class="ad-bad">missing</span>'}</dd>`}</dl>`;
+  return `<dl class="ad-kv" style="margin-top:10px"><dt>CTPL insurance</dt><dd>${L.ins ? esc(L.ins) + ' · until ' + dateCell(L.insExp) : '<span class="ad-bad">missing</span>'}</dd>${rentOnly(v) ? '' : `<dt>${isMtop(v) ? 'City tricycle franchise (MTOP)' : 'LTFRB franchise (CPC)'}</dt><dd>${L.cpc ? esc(L.cpc) + ' · until ' + dateCell(L.cpcExp) : '<span class="ad-bad">missing</span>'}</dd>`}</dl>`;
 };
 
 /* ---------- actions ---------- */
@@ -586,12 +588,7 @@ P.bk = () => {
         `Interrupted trips<span class="nb">${ints.length}</span>`,
         ints
           .map(b => {
-            const got = paid(b),
-              dOpts = drivers()
-                .filter(d => d.em != b.drvUser)
-                .map(d => `<option value="${esc(d.em)}">${esc(d.name)}</option>`)
-                .join('');
-            return `<div style="padding:12px 0;border-top:1px solid var(--s2)"><b style="font-weight:600" class="n">${esc(b.id)}</b> · ${userLink(b.cu)} · driver ${userLink(b.drvUser)} <span class="tag r">stopped at ${esc((b.int || {}).from || '')}</span><p style="margin:6px 0">${esc((b.int || {}).why || '')}</p><p class="mu n" style="margin:0">Collected so far: ${peso(got)} of ${peso(b.tot)}.</p>${inp(b.id + '-why', 'Decision and reason (10+ characters)')}<div class="ad-row">${btn('tres', 'Resume the trip', `data-id="${b.id}" data-x="resume"`, 'o')}${got > 0 ? '' : `<select id="f-${b.id}-drv" aria-label="New driver">${dOpts}</select>${btn('tres', 'Give to this driver', `data-id="${b.id}" data-x="reassign"`)}`}</div><div class="ad-row"><label for="f-${b.id}-ref" style="flex:none">Refund to the customer (₱)</label>${inp(b.id + '-ref', 'Refund to the customer (₱)', 'number', got ? String(got) : '0')}${btn('tres', 'Close the trip', `data-id="${b.id}" data-x="close"`, 'd')}</div></div>`;
+            return tripDecideH(b);
           })
           .join(''),
         'style="margin-top:18px"'
@@ -642,27 +639,104 @@ const ICT = {
     decide: ['Under review', 'Evidence requested', 'Statement recorded'],
     close: ['Decision recorded'],
   },
-  ICL = { start: 'Start review', evidence: 'Request evidence', statement: 'Record statement', decide: 'Record decision', close: 'Close case' };
-P.inc = () =>
-  `<p class="mu" style="margin:18px 0 0">Reports are reviewed before any decision. Nobody is blamed or penalized from an initial report alone.</p>${msg()}${
-    S.inc.filter(c => c.kind != 'change').length
-      ? S.inc.filter(c => c.kind != 'change')
-          .slice()
-          .reverse()
-          .map(
-            c =>
-              `<section class="card" style="margin-top:12px"><div class="ad-head" style="align-items:center"><div><b style="font-weight:600">${esc(c.id)}</b> · ${esc(c.cat || '')} · severity ${esc(c.sev || '')}<div class="mu n">Booking ${esc(c.bid || '—')} · reported by ${userLink(c.by)}</div></div>${tag(c.st)}</div><p style="margin:10px 0">${esc(c.d || '')}</p>${(c.log || []).map(l => `<div class="ad-ev">${ts(l.t)} ${esc(l.act)} by ${esc(nm(l.by))}${l.note ? ': ' + esc(l.note) : ''}</div>`).join('')}${c.decision ? `<p><b>Decision:</b> ${esc(c.decision)}</p>` : ''}${
-                full() && c.st != 'Closed'
-                  ? `<textarea id="f-${c.id}-n" rows="2" style="width:100%;margin-top:10px" placeholder="Note, evidence request or finding" aria-label="Case note"></textarea><div class="wsa">${btn('inc', 'Add note', `data-id="${c.id}" data-x="note"`, 'o')}${Object.keys(ICT)
-                      .filter(k => ICT[k].includes(c.st))
-                      .map(k => btn('inc', ICL[k], `data-id="${c.id}" data-x="${k}"`))
-                      .join('')}</div>`
-                  : ''
-              }</section>`
-          )
+  ICL = { start: 'Start review', evidence: 'Request evidence', statement: 'Record statement', decide: 'Record decision', close: 'Close case', note: 'Note', call: 'Call', 'party-statement': 'Statement given', 'evidence-sent': 'Evidence sent', 'evidence-received': 'All evidence received' };
+/* the decision on a stopped trip: resume, give it to another driver (before money was collected), or close it */
+const tripDecideH = b => {
+  const got = r2(S.pay.filter(p => p.bid == b.id && counted(p)).reduce((s, p) => s + p.amount, 0)),
+    dOpts = drivers()
+      .filter(d => d.em != b.drvUser)
+      .map(d => `<option value="${esc(d.em)}">${esc(d.name)}</option>`)
+      .join('');
+  return `<div style="padding:12px 0;border-top:1px solid var(--s2)"><b style="font-weight:600" class="n">${esc(b.id)}</b> · ${userLink(b.cu)} · driver ${userLink(b.drvUser)} <span class="tag r">stopped at ${esc((b.int || {}).from || '')}</span><p style="margin:6px 0">${esc((b.int || {}).why || '')}</p><p class="mu n" style="margin:0">Collected so far: ${peso(got)} of ${peso(b.tot)}.</p>${inp(b.id + '-why', 'Decision and reason (10+ characters)')}<div class="ad-row">${btn('tres', 'Resume the trip', `data-id="${b.id}" data-x="resume"`, 'o')}${got > 0 ? '' : `<select id="f-${b.id}-drv" aria-label="New driver">${dOpts}</select>${btn('tres', 'Give to this driver', `data-id="${b.id}" data-x="reassign"`)}`}</div><div class="ad-row"><label for="f-${b.id}-ref" style="flex:none">Refund to the customer (₱)</label>${inp(b.id + '-ref', 'Refund to the customer (₱)', 'number', got ? String(got) : '0')}${btn('tres', 'Close the trip', `data-id="${b.id}" data-x="close"`, 'd')}</div></div>`;
+};
+
+/* ----- incident cases ----- */
+const CALL_OUT = () => (S.rules || {}).CALL_OUT || ['Reached', 'No answer', 'Wrong number', 'Left a message'];
+/* the people involved: from the case, or (older cases) from its booking */
+const caseParties = c => {
+  if (c.parties) return c.parties;
+  const b = S.bk.find(x => x.id == c.bid) || {},
+    v = vOf(b.veh) || {},
+    out = [];
+  [[b.cu, 'customer'], [c.driver || b.drvUser, 'driver'], [v.owner, 'vehicle owner'], [c.by, 'reporter']].forEach(([em, role]) => {
+    if (!em) return;
+    const p = out.find(x => x.em == em);
+    if (p) role != 'reporter' && (p.role += ' and ' + role);
+    else out.push({ em, role });
+  });
+  return out;
+};
+/* every photo on a case (report, statements, evidence), so the viewer can open one by its number */
+const casePhotos = c => [
+  ...(c.phs || (c.ph ? [c.ph] : [])),
+  ...Object.values(c.stmts || {}).flatMap(x => x.phs || []),
+  ...(c.evid || []).flatMap(x => x.phs || []),
+];
+/* photo buttons numbered by position: from = where this list starts in casePhotos(c) */
+const phBtns = (c, list, from) =>
+  list.map((f, i) => btn('doc', 'Photo ' + (from + i + 1), `data-k="inc" data-id="${esc(c.id)}" data-j="${from + i}"`, 'o')).join('');
+const incCard = c => {
+  const P = caseParties(c),
+    open = !['Closed', 'Withdrawn'].includes(c.st),
+    b = S.bk.find(x => x.id == c.bid),
+    act = full() && open,
+    calls = c.calls || [],
+    hurt = { yes: ['Someone is hurt', 'r'], unsure: ['Injuries not known', 'w'], no: ['Nobody hurt', 'g'] }[c.hurt];
+  const people = P.map((p, j) => {
+    const u = U(p.em) || {},
+      last = calls.filter(x => x.who == p.em).pop(),
+      st = (c.stmts || {})[p.em];
+    return `<div class="ad-pp"><div><b>${userLink(p.em)}</b> <span class="mu">${esc(p.role)}${p.em == c.by ? ' · reported it' : ''}</span><div class="mu n">${st ? 'Statement given ' + ts(st.t) : 'No statement yet'}${last ? ` · last call: ${esc(last.out)} ${ts(last.t)}` : ' · not called yet'}</div></div><div class="ad-row" style="margin:0">${u.ph ? `<a class="btn sm" href="tel:${esc(u.ph)}">Call ${esc(u.ph)}</a>` : '<span class="mu">No phone</span>'}${
+      act
+        ? `<select id="f-${c.id}-co-${j}" aria-label="How the call to ${esc(u.name || p.em)} went">${CALL_OUT().map(o => `<option>${esc(o)}</option>`).join('')}</select>${inp(c.id + '-cn-' + j, 'What they said (optional)')}${btn('icall', 'Log call', `data-id="${c.id}" data-j="${j}" data-e="${esc(p.em)}"`, 'o')}`
+        : ''
+    }</div></div>`;
+  }).join('');
+  const rep = (c.phs || [c.ph]).filter(Boolean);
+  let at = rep.length; // statement and evidence photos follow the report's own
+  const stmts = Object.entries(c.stmts || {})
+    .map(([em, x]) => `<div class="ad-ev"><b>${esc(nm(em))}</b> <span class="mu">(${esc(x.role || '')}) ${ts(x.t)}</span><p style="margin:4px 0">${esc(x.text)}</p>${(x.phs || []).length ? `<div class="ad-row" style="margin:0">${phBtns(c, x.phs, ((at += x.phs.length), at - x.phs.length))}</div>` : ''}</div>`)
+    .join('');
+  const evid = (c.evid || [])
+    .map(x => `<div class="ad-ev"><b>${esc(nm(x.by))}</b> <span class="mu">sent evidence ${ts(x.t)}</span>${x.note ? `<p style="margin:4px 0">${esc(x.note)}</p>` : ''}${(x.phs || []).length ? `<div class="ad-row" style="margin:0">${phBtns(c, x.phs, ((at += x.phs.length), at - x.phs.length))}</div>` : ''}</div>`)
+    .join('');
+  const asked = c.st == 'Evidence requested' && (c.ask || []).length ? `<p class="mu" style="margin:6px 0 0">Waiting for evidence from ${c.ask.map(em => esc(nm(em)) + ((c.evid || []).some(x => x.by == em && x.t >= c.askT) ? ' (sent)' : '')).join(', ')}.</p>` : '';
+  const steps = Object.keys(ICT).filter(k => ICT[k].includes(c.st));
+  const outcome = c.out
+    ? `<p style="margin:6px 0 0"><b>Outcome:</b> ${[c.out.refund && peso(c.out.refund) + ' refund to the customer', c.out.charge && peso(c.out.charge) + ' charged to the driver', c.out.strike && 'a strike', c.out.suspend && 'driver suspended'].filter(Boolean).join(', ') || 'no money or penalty'}</p>`
+    : '';
+  return `<section class="card ad-case${c.kind == 'accident' && open ? ' hot' : ''}" style="margin-top:12px"><div class="ad-head" style="align-items:center"><div><b style="font-weight:600">${esc(c.id)}</b> · ${esc(c.cat || '')} ${c.kind == 'accident' ? '<span class="tag r">Emergency</span>' : ''} ${hurt ? `<span class="tag ${hurt[1]}">${hurt[0]}</span>` : ''} <span class="tag ${c.sev == 'High' ? 'r' : c.sev == 'Medium' ? 'w' : ''}">${esc(c.sev || '')}</span><div class="mu n">Booking ${esc(c.bid || '—')} · reported by ${userLink(c.by)} · ${esc(String(c.w || c.t || '').replace('T', ' ').slice(0, 16))}${c.blot ? ' · police blotter ' + esc(c.blot) : ''}</div></div>${tag(c.st)}</div><p style="margin:10px 0">${esc(c.d || '')}</p>${
+    rep.length ? `<div class="ad-row" style="margin:0 0 6px">${phBtns(c, rep, 0)}</div>` : ''
+  }<h3 class="ad-h3">People involved</h3>${people}${b && b.st == 'Interrupted' ? `<h3 class="ad-h3">The stopped trip</h3>${full() ? tripDecideH(b) : '<p class="mu">An administrator decides the trip.</p>'}` : ''}${
+    stmts ? `<h3 class="ad-h3">Statements</h3>${stmts}` : ''
+  }${evid ? `<h3 class="ad-h3">Evidence</h3>${evid}` : ''}${asked}${c.decision ? `<h3 class="ad-h3">Decision</h3><p style="margin:0">${esc(c.decision)}</p>${outcome}` : ''}<details class="ad-log"><summary>Case log (${(c.log || []).length})</summary>${(c.log || [])
+    .map(l => `<div class="ad-ev">${ts(l.t)} · ${esc(nm(l.by))} · ${esc(ICL[l.act] || l.act)}${l.note ? ': ' + esc(l.note) : ''}</div>`)
+    .join('')}</details>${
+    act
+      ? `<textarea id="f-${c.id}-n" rows="2" style="width:100%;margin-top:10px" placeholder="Note, evidence request, statement or decision" aria-label="Case note"></textarea>${
+          steps.includes('evidence')
+            ? `<div class="ad-row"><label for="f-${c.id}-from" style="flex:none">Ask evidence from</label><select id="f-${c.id}-from"><option value="reporter">The reporter</option><option value="customer">The customer</option><option value="driver">The driver</option><option value="owner">The vehicle owner</option><option value="all">Everyone involved</option></select></div>`
+            : ''
+        }${
+          steps.includes('decide')
+            ? `<fieldset class="ad-out"><legend>Decision outcome (optional, applied when you record the decision)</legend><div class="ad-row"><label for="f-${c.id}-rf" style="flex:none">Refund to customer ₱</label>${inp(c.id + '-rf', '0', 'number')}<label for="f-${c.id}-cg" style="flex:none">Charge the driver ₱</label>${inp(c.id + '-cg', '0', 'number')}</div><div class="ad-row"><label class="ad-cb"><input type="checkbox" id="f-${c.id}-sk"> Add a strike to the driver</label><label class="ad-cb"><input type="checkbox" id="f-${c.id}-sp"> Suspend the driver’s account</label></div><p class="mu n" style="margin:0">A driver charge is deducted from their next remittance. Suspension works only after the stopped trip is decided.</p></fieldset>`
+            : ''
+        }<div class="wsa">${btn('inc', 'Add note', `data-id="${c.id}" data-x="note"`, 'o')}${steps.map(k => btn('inc', ICL[k], `data-id="${c.id}" data-x="${k}"`, k == 'close' ? 'o' : '')).join('')}</div>`
+      : ''
+  }</section>`;
+};
+P.inc = () => {
+  const L = S.inc.filter(c => c.kind != 'change'),
+    rank = c => (['Closed', 'Withdrawn'].includes(c.st) ? 3 : c.kind == 'accident' ? 0 : c.sev == 'High' ? 1 : 2);
+  return `<p class="mu" style="margin:18px 0 0">Reports are reviewed before any decision. Nobody is blamed or penalized from an initial report alone. Call the people involved, collect statements and evidence, then decide.</p>${msg()}${
+    L.length
+      ? L.slice()
+          .sort((a, b) => rank(a) - rank(b) || (a.t < b.t ? 1 : -1))
+          .map(incCard)
           .join('')
       : '<div class="card empty" style="margin-top:12px">No incident reports.</div>'
   }`;
+};
 
 /* ----- money ----- */
 const gross = b => r2(S.pay.filter(p => p.bid == b.id && p.by && counted(p)).reduce((s, p) => s + p.amount, 0));
@@ -693,7 +767,7 @@ P.pay = () => {
       ['Booking / rental', 'Kind', 'To', 'Amount', 'Send'],
       refunds.map(p => [
         esc(p.bid),
-        p.kind == 'deposit_refund' ? 'Rental deposit' : /^Missing change/.test(p.note || '') ? 'Missing change' : 'Closed trip',
+        p.kind == 'deposit_refund' ? 'Rental deposit' : /^Missing change/.test(p.note || '') ? 'Missing change' : /^Incident case/.test(p.note || '') ? esc(p.note) : 'Closed trip',
         userLink(p.to),
         `<b>${peso(p.amount)}</b>`,
         `<span class="ad-row" style="margin:0"><select id="f-${p.id}-rm" aria-label="Method"><option>GCash</option><option>Cash</option></select>${inp(p.id + '-rr', 'GCash reference')}${btn('refund', 'Mark as sent', `data-id="${esc(p.id)}"`)}</span>`,
@@ -791,7 +865,7 @@ P.set = () => {
     'Fares per vehicle type',
     `<p class="mu" style="margin-top:0">Used for every new booking (existing bookings keep their price). Customers also pay ₱500 per helper and the 5% service fee.</p>${tbl(
       ['Vehicle type', 'Base fare (₱)', 'Per km (₱)'],
-      (S.fleet.HV || []).map(v => [esc(v.n), inp('rb-' + v.id, 'base', 'number', v.base), inp('rk-' + v.id, 'per km', 'number', v.km)])
+      (S.fleet.HV || []).map(v => [esc(v.n), inp('rb-' + v.id, 'base', 'number', v.base), inp('rk-' + v.id, 'per km', 'number', v.km0 != null ? v.km0 : v.km)])
     )}<div class="wsa">${btn('rates', 'Save fares')}</div>`,
     'style="margin-top:14px"'
   )}${card(
@@ -844,6 +918,9 @@ const TITLES = {
   ops: ['Operations', 'Bookings, rentals and incident cases.'],
   money: ['Money', 'Remittances from drivers, payments and settlements.'],
   sys: ['System', 'Settings, staff and the audit log.'],
+  fix: ['Corrections', 'Fix a record when someone made a mistake the app cannot undo. Every correction needs a reason and is logged.'],
+  rep: ['Reports', 'Sales, cash vs GCash, unpaid balances, discounts, trips, rentals, remittances and refunds.'],
+  cat: ['Catalog & fuel', 'Every dropdown list (brands, models, fuels, colours) and the fuel price.'],
 };
 const loginView = m =>
   `<section class="card ad-login"><div class="logo"><span class="lm"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 6h12v11H2z"/><path d="M14 10h4l4 4v3h-8z"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg></span>ZamMove<span class="ad-badge">Admin</span></div><h1>Staff sign in</h1><p class="mu" style="margin:0">For administrators, secondary admins and cashiers.</p>${m ? `<div class="vz-m bad" role="alert" style="margin-top:14px">${esc(m)}</div>` : ''}<form data-a="login-form"><label for="em">Email</label><input id="em" type="email" autocomplete="username" required><label for="pw">Password</label><input id="pw" type="password" autocomplete="current-password" required><button class="btn" type="submit">Sign in</button></form><p class="mu n" style="margin:16px 0 0">The owner admin account is created once in the ZamMove app (#owner-setup). Other staff are appointed under System → Staff. <a href="../customer/">Open the ZamMove app</a></p></section>`;
@@ -882,7 +959,9 @@ const render = () => {
       t = todo();
     body = `${head(...TITLES[s[0]])}<div class="seg ad-sub" role="tablist">${subs.map(x => `<button class="sgb ${x[0] == cur ? 'on' : ''}" role="tab" aria-selected="${x[0] == cur}" data-a="sub" data-s="${s[0]}" data-p="${x[0]}">${x[1]}${t[x[0]] ? `<span class="nb">${t[x[0]]}</span>` : ''}</button>`).join('')}</div>${P[cur]()}`;
   } else body = P[page]();
+  const kept = window.ZKeep && ZKeep.before(); // a refused action keeps what was typed (24-keepform.js)
   a.innerHTML = body;
+  if (kept) ZKeep.after(kept);
 };
 const showDoc = (k, id, j) => {
   load();
@@ -890,6 +969,7 @@ const showDoc = (k, id, j) => {
   if (k == 'app') f = ((S.apps.find(x => x.id == id) || {}).docs || [])[j]?.file;
   else if (k == 'veh') f = ((vOf(id) || {}).docs || [])[j]?.file;
   else if (k == 'ins' || k == 'cpc') f = ((vOf(id) || {}).legal || {})[k + 'Doc'];
+  else if (k == 'inc') f = casePhotos(S.inc.find(x => x.id == id) || {})[j];
   else f = (vOf(id) || {}).photo;
   const m = $('#mod');
   m.innerHTML = okImg(f) ? `<img alt="Document" src="${f}">` : '<div class="card">No preview available for this file.</div>';
@@ -1012,7 +1092,11 @@ document.addEventListener('click', async e => {
   else if (a == 'revoke') (r = RQ('roleRevoke', { em: t.dataset.e, role: t.dataset.r, reason: val('rv-' + t.dataset.r) })), (done = 'Role revoked.');
   else if (a == 'ver') r = RQ('remitVerify', { id, recv: val(id + '-a'), note: val(id + '-n') });
   else if (a == 'res') r = RQ('remitResolve', { id, note: val(id + '-n'), adj: val(id + '-a') });
-  else if (a == 'inc') r = RQ('incidentCase', { id, act: x, note: val(id + '-n') });
+  else if (a == 'inc') {
+    const chk = k => !!(document.getElementById('f-' + id + '-' + k) || {}).checked;
+    r = RQ('incidentCase', { id, act: x, note: val(id + '-n'), from: val(id + '-from'), refund: val(id + '-rf'), charge: val(id + '-cg'), strike: chk('sk'), suspend: chk('sp') });
+    done = x == 'decide' ? 'Decision recorded and applied.' : x == 'evidence' ? 'Evidence requested. They were notified.' : '';
+  } else if (a == 'icall') (r = RQ('caseCall', { id, who: t.dataset.e, out: val(id + '-co-' + t.dataset.j), note: val(id + '-cn-' + t.dataset.j) })), (done = 'Call logged.');
   else if (a == 'payv') r = RQ('payVerify', { id, ok: x == '1', note: val(id + '-pn') });
   else if (a == 'split') r = RQ('cfgSplit', { comm: val('comm'), drvPct: val('drv') });
   else if (a == 'tres') (r = RQ('tripResolve', { id, act: x, driver: val(id + '-drv'), refund: val(id + '-ref'), reason: val(id + '-why') })), (done = 'Decision recorded.');

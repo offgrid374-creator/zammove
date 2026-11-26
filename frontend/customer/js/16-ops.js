@@ -212,6 +212,15 @@
       referrerPolicy: 'strict-origin-when-cross-origin',
       attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
     }).addTo(map);
+  /* the Active trip layout moved a route map to the top: fit it again at its new size */
+  window.addEventListener('zm-refit', () => {
+    Object.values(maps).forEach(m => {
+      if (!m.el.isConnected) return;
+      m.map.invalidateSize();
+      m.fitted = '';
+    });
+    drawRoutes();
+  });
   const mountMap = (id, draw) => {
     const el = document.getElementById(id);
     const m = maps[id];
@@ -343,7 +352,8 @@ ${section('All vehicles', '', panel(table(['Vehicle', 'Status', 'Driver or rente
       }))
       .filter(x => x.value > 0);
     return `<div class="tw-pb-10">${head('Earnings', 'Your share of every completed trip on your vehicles, and the payouts ZamMove has sent you.')}
-${grid([kpi('This month (trips)', peso(month), last ? `${month >= last ? '▲' : '▼'} vs ${peso(last)} last month` : mLabel(m)), kpi('Waiting for remittance', peso(bal.waiting || 0), 'Payable once the driver remits'), kpi('Paid to you', peso(bal.paid), 'Rentals: ' + peso(bal.earnedRent || 0) + ' earned'), kpi('Payable now', peso(bal.due), 'ZamMove pays this to you', bal.due > 0 ? 'tw-text-harbor-700' : 'tw-text-slate-900')])}
+${grid([kpi('This month (trips)', peso(month), last ? `${month >= last ? '▲' : '▼'} vs ${peso(last)} last month` : mLabel(m)), kpi('Waiting for remittance', peso(bal.waiting || 0), 'Payable once the driver remits'), kpi('Paid to you', peso(bal.paid), 'Rentals: ' + peso(bal.earnedRent || 0) + ' earned'), (bal.due < -0.005 ? kpi('You owe ZamMove', peso(-bal.due), 'Rental commission · remit weekly', 'tw-text-red-700') : kpi('Payable now', peso(bal.due), 'ZamMove pays this to you', bal.due > 0 ? 'tw-text-harbor-700' : 'tw-text-slate-900'))])}
+${bal.held || bal.heldOpen || bal.tripsOwed || bal.due < 0 ? `<div class="tw-mb-4 tw-rounded-xl tw-border tw-border-solid tw-border-slate-200 tw-bg-white tw-p-4 tw-text-sm tw-text-slate-700"><b class="tw-text-slate-900">Rental money you collected</b><br>${peso(bal.held || 0)} from completed rentals is deducted from your payouts${bal.heldOpen ? `, and ${peso(bal.heldOpen)} from rentals still in progress is deducted when they are completed` : ''}. Renters, and your drivers through their turnovers, pay you directly. ZamMove’s fee and commission from trips on your vehicles (${peso(bal.tripsOwed || 0)}) and from completed rentals (plus any deposit you have not refunded yet) are in your hands.${bal.settled ? ' You have remitted ' + peso(bal.settled) + ' so far.' : ''}${bal.sent ? ` ${peso(bal.sent)} you sent is waiting for the cashier to verify.` : ''}${-bal.due - (bal.sent || 0) > 0.005 ? `<br><b class="tw-text-red-700">Remit ${peso(-bal.due - (bal.sent || 0))} to ZamMove this week.</b> Send it to ZamMove’s GCash or pay the cashier in cash, then record it here.<div class="tw-mt-2 tw-flex tw-flex-wrap tw-gap-2"><input id="zo-oa" type="number" min="1" value="${r2(-bal.due - (bal.sent || 0))}" class="tw-min-h-[40px]" style="width:8rem" aria-label="Amount"><select id="zo-om" class="tw-min-h-[40px]" style="width:7rem" aria-label="Method"><option>GCash</option><option>Cash</option></select><input id="zo-or" inputmode="numeric" placeholder="GCash ref" class="tw-min-h-[40px]" style="width:10rem" aria-label="Reference">${btn('zo-orm', 'Remit to ZamMove')}</div>` : ''}</div>` : ''}
 ${perVeh.length > 0 ? section('Earnings per vehicle', 'All time', panel(hBars(perVeh, peso))) : ''}
 ${section('How each fare is split', '', panel(`<p class="tw-m-0 tw-text-sm tw-text-slate-600">The customer’s 5% service fee goes to ZamMove. Of the rest, ZamMove keeps a ${S.cfg.comm == null ? 15 : S.cfg.comm}% commission, the driver gets the share in his driver agreement (default ${S.cfg.drvPct || 20}%), and you get the remainder. Each trip keeps the split it had when it was completed.</p>`))}
 ${section(
@@ -405,10 +415,10 @@ ${section(
     return `<div class="tw-mb-2">${grid([
       kpi('Earned this month', peso(month), mLabel(m), 'tw-text-slate-900', go('owner', 'earn')),
       kpi(
-        'Payable now',
-        peso(bal.due),
-        'Open Earnings',
-        bal.due > 0 ? 'tw-text-harbor-700' : 'tw-text-slate-900',
+        bal.due < -0.005 ? 'You owe ZamMove' : 'Payable now',
+        peso(Math.abs(bal.due)),
+        bal.due < -0.005 ? 'Remit this week · open Earnings' : 'Open Earnings',
+        bal.due > 0 ? 'tw-text-harbor-700' : bal.due < -0.005 ? 'tw-text-red-700' : 'tw-text-slate-900',
         go('owner', 'earn')
       ),
       kpi(
@@ -468,7 +478,7 @@ ${
           esc(c.id),
           esc(U(c.driver).name || c.driver),
           esc(c.cat) + ' ' + pill(c.sev, c.sev == 'High' ? 'red' : c.sev == 'Medium' ? 'amber' : 'slate'),
-          pill(c.st, c.st == 'Closed' ? 'green' : 'blue'),
+          pill(c.st, c.st == 'Closed' ? 'green' : c.st == 'Withdrawn' ? 'slate' : 'blue'),
         ])
       )}</div>`
     : ''
@@ -547,12 +557,17 @@ ${
     }&travelmode=driving`;
   const drawRoutes = () => {
     if (!(S.ws == 'driver' && (S.wp || {}).driver == 'trip')) return;
-    document.querySelectorAll('#app .card.zc').forEach(card => {
-      const h2 = card.querySelector('h2');
-      const id = h2 && (h2.textContent.match(/BK-[A-Z0-9]+/) || [])[0];
+    /* the trip cards, and the route maps the Active trip layout (20-driver-trip) already moved to the top */
+    const spots = [...document.querySelectorAll('#app .card.zc')]
+      .map(card => {
+        const h2 = card.querySelector('h2');
+        return { card, h2, id: h2 && (h2.textContent.match(/BK-[A-Z0-9]+/) || [])[0] };
+      })
+      .concat([...document.querySelectorAll('#app .ztd-map [id^="dr-map-"]')].map(el => ({ card: el.closest('.ztd-map'), id: el.id.slice(7), moved: true })));
+    spots.forEach(({ card, h2, id, moved }) => {
       const b = id && (S.bk || []).find(x => x.id == id);
       if (!b) return;
-      if (!card.querySelector('.zo-route')) {
+      if (!moved && !card.querySelector('.zo-route')) {
         const nav = [...card.querySelectorAll('p')].find(p => /Navigate to/.test(p.textContent));
         const html = `<div class="zo-route tw-my-3 tw-rounded-2xl tw-bg-slate-50 tw-p-3 tw-ring-1 tw-ring-slate-200"><div class="tw-mb-2 tw-flex tw-flex-wrap tw-items-center tw-justify-between tw-gap-2"><b class="tw-text-slate-900">Best route</b><span id="dr-legs-${id}" class="tw-text-sm tw-text-slate-600">Finding the fastest road route…</span></div><div id="dr-map-${id}" class="zmap" style="height:320px"></div><div class="tw-mt-2 tw-flex tw-flex-wrap tw-items-center tw-gap-2" id="dr-go-${id}"></div></div>${b.st == 'Accepted' ? `<details class="tw-mb-3"><summary class="tw-cursor-pointer tw-text-sm tw-font-medium tw-text-slate-500">Can’t make it? Hand the job back</summary><div class="tw-mt-2 tw-flex tw-flex-wrap tw-gap-2"><input id="zo-hb-${id}" placeholder="Reason for the customer" class="tw-min-h-[38px] tw-flex-1 tw-text-sm" style="min-width:200px"><button type="button" class="btn d sm" data-a="zo-hb" data-id="${id}">Hand back</button></div></details>` : ''}`;
         if (nav) nav.insertAdjacentHTML('afterend', html);
@@ -628,7 +643,7 @@ ${
   const driverEarn = () => {
     const em = me(),
       all = (S.bk || []).filter(b => b.drvUser == em && done(b)).sort((a, b) => (a.cd < b.cd ? 1 : -1)),
-      un = all.filter(b => !b.rem),
+      un = all.filter(b => !b.rem && b.flow != 'owner'), // newer trips are settled with the owner (turnover), not remitted to ZamMove
       cur = wk(Date.now()),
       weeks = [...new Set(un.map(b => wk(b.cd)))].sort(),
       rl = (S.rem || [])
@@ -640,9 +655,9 @@ ${
       monthShare = all.filter(b => monthOf(b.cd) == m).reduce((s, b) => s + split(b).drv, 0),
       owe = un.reduce((s, b) => s + dueFor(b), 0),
       late = un.filter(b => overdueDays(b) > 0);
-    return `<div class="tw-pb-10">${head('Earnings & remittance', 'Your share of each trip, and what you remit each week (everything you collected minus your share).')}
+    return `<div class="tw-pb-10">${head('Earnings & remittance', 'Your share of each trip. New trips: hand the rest to your vehicle owner (Turn over, below). Older trips from before the change: remit to ZamMove weekly.')}
 ${late.length ? `<div class="tw-mt-4 tw-rounded-xl tw-bg-rose-50 tw-px-4 tw-py-3 tw-text-sm tw-text-rose-800 tw-ring-1 tw-ring-rose-200"><b>Remittance overdue:</b> ${late.length} trip${late.length > 1 ? 's' : ''} from a week that ended more than ${GRACE} days ago. Remit now to avoid a flag on your account.</div>` : ''}
-${grid([kpi('This month (your share)', peso(monthShare), mLabel(m)), kpi('All-time share', peso(share), all.length + ' completed trips'), kpi('To remit', peso(owe), un.length + ' trip' + (un.length == 1 ? '' : 's') + ' not remitted', owe > 0 ? 'tw-text-amber-700' : 'tw-text-slate-900'), kpi('Remittances', rl.length, rl.filter(r => r.st == 'Verified' || r.st == 'Resolved').length + ' verified')])}
+${grid([kpi('This month (your share)', peso(monthShare), mLabel(m)), kpi('All-time share', peso(share), all.length + ' completed trips'), kpi('To remit to ZamMove (older trips)', peso(owe), un.length + ' trip' + (un.length == 1 ? '' : 's') + ' not remitted', owe > 0 ? 'tw-text-amber-700' : 'tw-text-slate-900'), kpi('Remittances', rl.length, rl.filter(r => r.st == 'Verified' || r.st == 'Resolved').length + ' verified')])}
 ${section(
   'Weekly remittance',
   '',
@@ -748,7 +763,7 @@ ${section(
         (S.pay || []).filter(p => p.status == 'Submitted' && !['down', 'final'].includes(p.kind)).length,
         'pay',
       ],
-      ['Open incidents', (S.inc || []).filter(c => c.st != 'Closed').length, 'inc'],
+      ['Open incidents', (S.inc || []).filter(c => !['Closed', 'Withdrawn'].includes(c.st)).length, 'inc'],
       ['Flagged users', us.filter(u => (u.flags || []).some(f => f.open)).length, 'users'],
       ['Suspended accounts', us.filter(u => u.status == 'suspended').length, 'users'],
     ];
@@ -890,10 +905,12 @@ ${section(
               `<b>${esc(u.name)}</b><div class="tw-text-xs tw-text-slate-500">${esc(u.em)}</div>`,
               peso(b.earned) + (b.waiting ? `<div class="tw-text-xs tw-text-slate-500">+ ${peso(b.waiting)} waiting for remittance</div>` : ''),
               peso(b.paid),
-              `<b class="${b.due > 0 ? 'tw-text-harbor-700' : ''}">${peso(b.due)}</b>`,
+              `<b class="${b.due > 0 ? 'tw-text-harbor-700' : b.due < 0 ? 'tw-text-red-700' : ''}">${b.due < 0 ? 'Owes ' + peso(-b.due) : peso(b.due)}</b>${b.held || b.heldOpen ? `<div class="tw-text-xs tw-text-slate-500">rental cash held ${peso((b.held || 0) + (b.heldOpen || 0))}</div>` : ''}`,
               b.due > 0
                 ? `<div class="tw-flex tw-flex-wrap tw-justify-end tw-gap-2"><input id="zo-pa-${key(id)}" type="number" min="1" value="${b.due}" class="tw-min-h-[36px] tw-text-sm" style="width:7.5rem" aria-label="Amount"><select id="zo-pm-${key(id)}" class="tw-min-h-[36px] tw-text-sm" style="width:6.5rem" aria-label="Method"><option>GCash</option><option>Cash</option></select><input id="zo-pr-${key(id)}" placeholder="GCash ref" class="tw-min-h-[36px] tw-text-sm" style="width:9.5rem" aria-label="Reference">${btn('zo-pay', 'Pay', `data-em="${id}"`)}</div>`
-                : '<span class="tw-text-slate-400">Nothing owed</span>',
+                : b.due < 0
+                  ? `<div class="tw-flex tw-flex-wrap tw-justify-end tw-gap-2"><input id="zo-ra-${key(id)}" type="number" min="1" value="${-b.due}" class="tw-min-h-[36px] tw-text-sm" style="width:7.5rem" aria-label="Amount received"><select id="zo-rm-${key(id)}" class="tw-min-h-[36px] tw-text-sm" style="width:6.5rem" aria-label="Method"><option>Cash</option><option>GCash</option></select><input id="zo-rr-${key(id)}" placeholder="GCash ref" class="tw-min-h-[36px] tw-text-sm" style="width:9.5rem" aria-label="Reference">${btn('zo-remit', 'Received', `data-em="${id}"`)}</div>`
+                  : '<span class="tw-text-slate-400">Nothing owed</span>',
             ];
           }),
           [1, 2, 3, 4]
@@ -927,7 +944,7 @@ ${section(
     const flagged = (S.users || []).filter(u => (u.flags || []).some(f => f.open));
     const flagBox = (u, x) => {
       const id = esc(u.em);
-      return `<details class="tw-mt-1"><summary class="tw-cursor-pointer tw-text-xs tw-font-semibold tw-text-rose-700">Flag</summary><div class="tw-mt-2 tw-flex tw-flex-col tw-gap-2" style="min-width:260px"><select id="zo-fk-${key(id)}" class="tw-min-h-[36px] tw-text-sm" aria-label="Reason">${FK.map(k => `<option>${k}</option>`).join('')}</select><input id="zo-fnote-${key(id)}" class="tw-min-h-[36px] tw-text-sm" aria-label="Note" value="${x && x.owe > 0 ? esc(`Owes ${peso(x.owe)}${x.od > 0 ? ', ' + x.od + ' days overdue' : ''}.`) : ''}" placeholder="What and how much">${btn('zo-flag', 'Flag user', `data-em="${id}"`, 'danger')}</div></details>`;
+      return `<details class="tw-mt-1"><summary class="tw-cursor-pointer tw-text-xs tw-font-semibold tw-text-rose-700">Flag</summary><div class="tw-mt-2 tw-flex tw-flex-col tw-gap-2" style="min-width:min(260px,100%)"><select id="zo-fk-${key(id)}" class="tw-min-h-[36px] tw-text-sm" aria-label="Reason">${FK.map(k => `<option>${k}</option>`).join('')}</select><input id="zo-fnote-${key(id)}" class="tw-min-h-[36px] tw-text-sm" aria-label="Note" value="${x && x.owe > 0 ? esc(`Owes ${peso(x.owe)}${x.od > 0 ? ', ' + x.od + ' days overdue' : ''}.`) : ''}" placeholder="What and how much">${btn('zo-flag', 'Flag user', `data-em="${id}"`, 'danger')}</div></details>`;
     };
     return `<div class="tw-pb-10">${head('Driver settlements', `What each driver collected, his share, and what he still has to remit. Remittance is due ${GRACE} days after each week ends; after that it shows as overdue. Flag a driver who does not remit; an administrator can suspend the account.`)}
 ${grid([kpi('Still with drivers', peso(rows.reduce((s, x) => s + x.owe, 0))), kpi('Overdue drivers', rows.filter(x => x.od > 0).length, 'past the ' + GRACE + '-day grace', rows.some(x => x.od > 0) ? 'tw-text-rose-700' : 'tw-text-slate-900'), kpi('Received (verified)', peso(rows.reduce((s, x) => s + x.recv, 0))), kpi('Flagged users', flagged.length, '', flagged.length ? 'tw-text-rose-700' : 'tw-text-slate-900')])}
@@ -1167,6 +1184,13 @@ ${grid([kpi('Rows', rows.length), kpi('Money in (counted)', peso(inTot), '', 'tw
           'User flagged. Administrators were notified.'
         );
       }
+      if (a == 'zo-orm')
+        return after(ZAPI.act('ownerRemitSend', { amount: val('zo-oa'), method: val('zo-om'), ref: val('zo-or') }), 'Remittance sent. The cashier verifies it.');
+      if (a == 'zo-remit')
+        return after(
+          ZAPI.act('ownerRemit', { owner: em, amount: val('zo-ra-' + key(em)), method: val('zo-rm-' + key(em)), ref: val('zo-rr-' + key(em)) }),
+          'Payment from the owner recorded'
+        );
       if (a == 'zo-pay')
         return after(
           ZAPI.act('ownerPayout', {

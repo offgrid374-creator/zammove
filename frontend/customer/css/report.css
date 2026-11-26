@@ -1,0 +1,335 @@
+/* report.css — the "Report a problem" button and pop-up during a trip (25-report.js).
+   Neutral colours come from the theme variables; accents from the --zb-* tokens in trips.css. */
+.zr-fab {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 900;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 52px;
+  padding: 0 20px 0 14px;
+  border: 1px solid var(--bd);
+  border-radius: 999px;
+  background: var(--s);
+  color: var(--tx);
+  box-shadow: 0 8px 24px rgba(17, 24, 39, 0.18);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.zr-fab:hover {
+  border-color: var(--zb-bad, #b3202f);
+}
+.zr-fab:focus-visible {
+  outline: 2px solid var(--zb-pri, #0f766e);
+  outline-offset: 3px;
+}
+.zr-fi {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--zb-bad, #b3202f);
+  color: #fff;
+  font-weight: 800;
+}
+@media (max-width: 760px) {
+  /* above the bottom navigation bar */
+  .zr-fab {
+    right: 14px;
+    bottom: calc(84px + env(safe-area-inset-bottom));
+  }
+}
+
+body.zr-lock {
+  overflow: hidden;
+}
+.zr-ov {
+  position: fixed;
+  inset: 0;
+  z-index: 1150;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(17, 24, 39, 0.6);
+}
+.zr {
+  width: 100%;
+  max-width: 580px;
+  max-height: min(92vh, 820px);
+  display: flex;
+  flex-direction: column;
+  align-items: stretch; /* a global [role=dialog] rule centers children */
+  text-align: left;
+  border-radius: 20px;
+  background: var(--s);
+  color: var(--tx);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.35);
+  overflow: hidden;
+  outline: none;
+}
+.zr .zr-hd {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 20px 22px 10px;
+  background-image: none; /* the app paints a colour stripe on every <header> */
+}
+.zr-hd h2 {
+  margin: 0 0 4px;
+  font-size: 24px;
+}
+.zr-ref {
+  color: var(--mu);
+  font-size: 14px;
+}
+.zr-x {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid var(--bd);
+  background: var(--s);
+  color: var(--tx2);
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+}
+.zr-body {
+  overflow-y: auto;
+  padding: 6px 22px 22px;
+}
+.zr-lead {
+  margin: 4px 0 14px;
+  color: var(--tx2);
+  font-size: 15.5px;
+}
+#zr-trip + .zr-lead,
+#zr-trip + .zr-back {
+  margin-top: 16px;
+}
+.zr-opts {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.zr-opt {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  padding: 16px 18px;
+  border: 1px solid var(--bd);
+  border-left-width: 5px;
+  border-radius: 14px;
+  background: var(--s2);
+  color: var(--tx);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.zr-opt b {
+  font-size: 17px;
+}
+.zr-opt span {
+  color: var(--tx2);
+  font-size: 14.5px;
+}
+.zr-opt.r {
+  border-left-color: var(--zb-bad, #b3202f);
+}
+.zr-opt.w {
+  border-left-color: var(--zb-wait, #8a5a12);
+}
+.zr-opt:not(.r):not(.w) {
+  border-left-color: var(--zb-pri, #0f766e);
+}
+.zr-opt:hover,
+.zr-opt:focus-visible {
+  outline: 2px solid var(--zb-pri, #0f766e);
+  outline-offset: 1px;
+}
+.zr-back {
+  min-height: 40px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--zb-pri, #0f766e);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.zr-h3 {
+  margin: 4px 0 12px;
+  font-size: 20px;
+}
+.zr-l {
+  display: block;
+  margin: 12px 0 6px;
+  font-size: 14px;
+  font-weight: 600;
+}
+.zr-body textarea,
+.zr-body select,
+.zr-body input:not([type='radio']) {
+  width: 100%;
+  box-sizing: border-box;
+}
+.zr-g2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 14px;
+}
+.zr-warn {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--zb-bad-bg, #fde8ea);
+  color: var(--zb-bad, #b3202f);
+}
+.zr-fs {
+  margin: 14px 0 0;
+  padding: 0;
+  border: 0;
+}
+.zr-fs legend {
+  margin-bottom: 8px;
+  font-size: 14px;
+  font-weight: 600;
+}
+.zr-seg {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.zr-seg label {
+  display: inline-flex;
+  align-items: center;
+  min-height: 42px;
+  padding: 0 16px;
+  border: 1px solid var(--bd);
+  border-radius: 999px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.zr-seg input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+}
+.zr-seg label:has(input:checked) {
+  border-color: var(--zb-bad, #b3202f);
+  background: var(--zb-bad-bg, #fde8ea);
+  color: var(--zb-bad, #b3202f);
+}
+.zr-seg label:focus-within {
+  outline: 2px solid var(--zb-pri, #0f766e);
+  outline-offset: 2px;
+}
+.zr-sub {
+  margin: 12px 0 0;
+  color: var(--mu);
+  font-size: 14px;
+}
+.zr-go {
+  width: 100%;
+  min-height: 52px;
+  margin-top: 14px;
+  font-size: 16px;
+}
+.zr-err:not(:empty) {
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--zb-bad-bg, #fde8ea);
+  color: var(--zb-bad, #b3202f);
+  font-weight: 600;
+}
+.zr-err:empty {
+  display: none;
+}
+@media (max-width: 640px) {
+  .zr-ov {
+    padding: 0;
+    align-items: end;
+  }
+  .zr {
+    max-width: none;
+    max-height: 92vh;
+    border-radius: 20px 20px 0 0;
+  }
+  .zr-g2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* phones: a round "!" button that never covers content (the page gets room for it underneath) */
+@media (max-width: 760px) {
+  .zr-fab {
+    width: 56px;
+    height: 56px;
+    min-height: 56px;
+    padding: 0;
+    justify-content: center;
+    border-radius: 50%;
+  }
+  .zr-fab .zr-fl {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+  body.zr-has-fab #app {
+    padding-bottom: 80px;
+  }
+}
+
+/* review step: what will be sent, then Confirm and send or Discard */
+.zr-sum {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 4px 0 4px;
+}
+.zr-sum > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--s2);
+  border: 1px solid var(--bd);
+}
+.zr-sum span {
+  color: var(--mu);
+  font-size: 13px;
+}
+.zr-sum .zr-sw {
+  grid-column: 1 / -1;
+}
+.zr-sum .zr-sw b {
+  font-weight: 500;
+  white-space: pre-wrap;
+}
+.zr-two {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+@media (max-width: 640px) {
+  .zr-two {
+    grid-template-columns: 1fr;
+  }
+}

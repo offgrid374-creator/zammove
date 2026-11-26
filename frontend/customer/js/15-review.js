@@ -33,6 +33,7 @@
       ['dr', 'Drop-off set', !!coord(dr) && dr != pu],
       ['dt', 'Pickup date and time', !!dt && !!tm && dt >= todayPH()],
       ['it', 'Items described', val('it').length >= 3],
+      ...($('#z7-sz') ? [['z7-sz', 'Load size chosen', !!val('z7-sz')]] : []),
       ['lc', 'Locations confirmed', !!($('#lc') || {}).checked],
     ];
   };

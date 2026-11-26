@@ -219,9 +219,10 @@
     const okSum = mine.filter(p => ZPAY.counted(p) && !/refund/.test(p.kind)).reduce((s, p) => s + (+p.amount || 0), 0),
       waitSum = mine.filter(p => p.status == 'Submitted').reduce((s, p) => s + (+p.amount || 0), 0);
     const rows = mine.slice().sort((a, c) => ((a.t || '') < (c.t || '') ? 1 : -1));
-    return `<div class="zh-tiles"><div class="ok"><span>Confirmed payments</span><b class="n">${peso(okSum)}</b></div><div class="wait"><span>Waiting for confirmation</span><b class="n">${peso(waitSum)}</b></div></div>${
+    const rc = msg.rc && (S.pay || []).find(p => p.ref == msg.rc);
+    return `${rc && typeof receipt == 'function' ? receipt(rc) : ''}<div class="zh-tiles"><div class="ok"><span>Confirmed payments</span><b class="n">${peso(okSum)}</b></div><div class="wait"><span>Waiting for confirmation</span><b class="n">${peso(waitSum)}</b></div></div>${
       rows.length
-        ? `<div class="zt-card zh-pay"><table><thead><tr><th>Date</th><th>Booking / rental</th><th>What</th><th>Method</th><th>Amount</th><th>Status</th></tr></thead><tbody>${rows.map(p => `<tr><td>${p.t ? new Date(p.t).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' }) : '—'}</td><td><b class="n">${esc(p.bid || '—')}</b></td><td>${KIND[p.kind] || esc(p.kind || '')}</td><td>${esc(p.method || '—')}</td><td><b class="n">${peso(p.amount)}</b></td><td>${PST(p)}</td></tr>`).join('')}</tbody></table></div>`
+        ? `<div class="zt-card zh-pay"><table><thead><tr><th>Date</th><th>Booking / rental</th><th>What</th><th>Method</th><th>Amount</th><th>Status</th><th><span class="sr">Receipt</span></th></tr></thead><tbody>${rows.map(p => `<tr><td>${p.t ? new Date(p.t).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' }) : '—'}</td><td><b class="n">${esc(p.bid || '—')}</b></td><td>${KIND[p.kind] || esc(p.kind || '')}</td><td>${esc(p.method || '—')}</td><td><b class="n">${peso(p.amount)}</b></td><td>${PST(p)}</td><td>${p.ref && (ZPAY.counted(p) || ['Paid', 'Sent'].includes(p.status)) ? `<button class="zb-btn sec zh-rcb" data-a="rc" data-id="${esc(p.ref)}">Receipt</button>` : ''}</td></tr>`).join('')}</tbody></table></div>`
         : `<div class="zb-card zb-empty"><h2>No payments yet</h2><p>Down payments, balances and rental deposits show here once you pay.</p></div>`
     }`;
   };

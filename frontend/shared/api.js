@@ -23,6 +23,11 @@ const ZAPI = (() => {
     version: () => lastVersion,
     async req(method, path, body) {
       let r;
+      /* never wait forever: a request that hangs is stopped and the user is told (photos get longer) */
+      const data = body ? JSON.stringify(body) : undefined,
+        ctl = typeof AbortController != 'undefined' ? new AbortController() : null,
+        limit = data && data.length > 200000 ? 60000 : 25000,
+        timer = ctl && setTimeout(() => ctl.abort(), limit);
       try {
         r = await fetch(BASE + path, {
           method,
@@ -30,14 +35,20 @@ const ZAPI = (() => {
             'Content-Type': 'application/json',
             ...(token ? { Authorization: 'Bearer ' + token } : {}),
           },
-          body: body ? JSON.stringify(body) : undefined,
+          body: data,
+          ...(ctl ? { signal: ctl.signal } : {}),
         });
       } catch (e) {
         return {
           ok: false,
           net: true,
-          err: 'Cannot reach the ZamMove server. Check your connection and try again.',
+          err:
+            e && e.name == 'AbortError'
+              ? 'The server is taking too long to answer. Check your connection, then check whether it went through before trying again.'
+              : 'Cannot reach the ZamMove server. Check your connection and try again.',
         };
+      } finally {
+        if (timer) clearTimeout(timer);
       }
       let j = {};
       try {
@@ -49,7 +60,9 @@ const ZAPI = (() => {
         setToken(null);
         if (api.onLogout) api.onLogout(j.err || 'Your session ended. Please log in again.');
       }
-      if (j.state) {
+      /* a background refresh that started before an action can finish after it: never let older data
+         replace newer data (the version only goes up) */
+      if (j.state && !(typeof j.state.version == 'number' && j.state.version < lastVersion && !path.startsWith('/auth/'))) {
         lastVersion = j.state.version;
         if (api.onState) api.onState(j.state);
       }

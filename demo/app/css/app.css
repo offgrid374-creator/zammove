@@ -3977,3 +3977,11 @@ main {
   font-size: 13px;
   margin-bottom: 12px;
 }
+
+/* phones: status chips wrap onto a second line instead of being cut off */
+@media (max-width: 600px) {
+  .steps {
+    flex-wrap: wrap;
+    overflow-x: visible;
+  }
+}

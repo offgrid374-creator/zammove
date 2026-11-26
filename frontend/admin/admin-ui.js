@@ -67,7 +67,9 @@
       .filter(b => b.st == 'Items Loaded' || (b.st == 'Down Payment Confirmed' && b.drvUser) || (b.ver && b.ver.auth && isToday(b.ver.auth.t)))
       .slice()
       .reverse();
-  const verHold = b => b.st == 'Items Loaded' && Date.now() - new Date(evAt(b, 'Items Loaded') || Date.now()) > 15 * 6e4;
+  const openDisc = b => ((b.ver && b.ver.disc) || []).filter(d => d.status == 'open');
+  /* on hold: an open discrepancy, or checks still running 15 minutes after loading */
+  const verHold = b => b.st == 'Items Loaded' && (openDisc(b).length > 0 || Date.now() - new Date(evAt(b, 'Items Loaded') || Date.now()) > 15 * 6e4);
 
   /* ---------- CSV ---------- */
   const csv = (name, head, rows) => {
@@ -102,8 +104,8 @@
     ['Operations', [['dash', 'Overview', 'home', 'a'], ['bk', 'Bookings', 'list', 's'], ['map', 'Live map', 'car', 's'], ['ver', 'Verification', 'doc', 's'], ['inc', 'Incidents', 'list', 's']]],
     ['Fleet & rentals', [['rn', 'Rentals', 'car', 'f'], ['veh', 'Vehicles', 'car', 'f'], ['asg', 'Assignments', 'car', 'f']]],
     ['People', [['apps', 'Applications', 'doc', 'f'], ['users', 'Users', 'users', 'f'], ['staff', 'Staff', 'users', 'S']]],
-    ['Money', [['pay', 'Payments', 'cash', 'c'], ['rem', 'Remittances', 'cash', 'c'], ['sum', 'Settlements', 'cash', 'c']]],
-    ['System', [['set', 'Settings', 'gear', 'f'], ['log', 'Audit log', 'list', 'f']]],
+    ['Money', [['pay', 'Payments', 'cash', 'c'], ['rem', 'Remittances', 'cash', 'c'], ['sum', 'Settlements', 'cash', 'c'], ['rep', 'Reports', 'list', 'c']]],
+    ['System', [['set', 'Settings', 'gear', 'f'], ['cat', 'Catalog & fuel', 'car', 'f'], ['fix', 'Corrections', 'gear', 'f'], ['log', 'Audit log', 'list', 'f']]],
   ];
   const GROUP_OF = Object.fromEntries(GROUPS.flatMap(g => g[1].map(x => [x[0], g[0]])));
   SECTIONS.splice(0, SECTIONS.length, ...GROUPS.flatMap(g => g[1]));
@@ -165,10 +167,11 @@
     const l = [];
     waiting().forEach(b => l.push({ t: b.cr || evAt(b, 'Pending'), h: b.st == 'No driver found' ? 'No driver found' : 'No driver has accepted', s: `${b.id} · ${place(b.pu)} → ${place(b.dr)}`, a: 'Assign', p: 'bk', hot: 1, g: 's' }));
     S.bk.filter(b => b.st == 'Interrupted').forEach(b => l.push({ t: lastEv(b).t, h: 'Trip stopped, needs a decision', s: `${b.id} · ${nm(b.drvUser)}`, a: 'Decide', p: 'bk', hot: 1, g: 's' }));
-    S.bk.filter(verHold).forEach(b => l.push({ t: evAt(b, 'Items Loaded'), h: b.ver && b.ver.chk && !b.ver.chk.done ? 'Cargo checklist incomplete' : 'Pre-departure checks on hold', s: `${b.id} · ${nm(b.drvUser)}`, a: 'Check', p: 'ver', g: 's' }));
+    S.bk.filter(verHold).forEach(b => l.push({ t: evAt(b, 'Items Loaded'), h: openDisc(b).length ? 'Discrepancy to resolve: ' + esc(openDisc(b)[0].type) : b.ver && b.ver.chk && !b.ver.chk.done ? 'Cargo checklist incomplete' : 'Pre-departure checks on hold', hot: openDisc(b).length ? 1 : 0, s: `${b.id} · ${nm(b.drvUser)}`, a: 'Check', p: 'ver', g: 's' }));
     (S.rem || []).filter(r => ['Submitted', 'Discrepancy'].includes(r.st)).forEach(r => l.push({ t: r.t || r.at || r.sub, h: r.st == 'Discrepancy' ? 'Remittance discrepancy' : 'Cash remittance to verify', s: `${peso(r.due || 0)} · ${nm(r.drv)}`, a: 'Verify', p: 'rem', g: 'c' }));
     (S.inc || []).filter(c => c.kind == 'change' && c.st == 'Submitted').forEach(c => l.push({ t: c.t || (c.log && c.log[0] && c.log[0].t), h: 'Wrong change reported', s: `${c.id} · ${c.bid} · ${peso(c.amt || 0)} from ${nm(c.driver)}`, a: 'Decide', p: 'pay', g: 'c' }));
-    (S.inc || []).filter(c => c.kind != 'change' && c.st == 'Submitted').forEach(c => l.push({ t: c.t || (c.log && c.log[0] && c.log[0].t), h: `${esc(c.cat || 'Incident')} reported`, s: `${c.id}${c.bid ? ' · ' + c.bid : ''}`, a: 'Review', p: 'inc', g: 's' }));
+    (S.inc || []).filter(c => c.kind == 'accident' && !['Closed', 'Withdrawn'].includes(c.st) && !c.decision).forEach(c => l.push({ t: c.t, h: `EMERGENCY: accident${c.hurt == 'yes' ? ', someone hurt' : ''}`, s: `${c.id} · ${c.bid} · ${nm(c.by)}`, a: 'Open', p: 'inc', hot: 1, g: 's' }));
+    (S.inc || []).filter(c => c.kind != 'change' && c.kind != 'accident' && c.st == 'Submitted').forEach(c => l.push({ t: c.t || (c.log && c.log[0] && c.log[0].t), h: `${esc(c.cat || 'Incident')} reported`, s: `${c.id}${c.bid ? ' · ' + c.bid : ''}`, a: 'Review', p: 'inc', g: 's' }));
     (S.apps || []).filter(a => !['Approved', 'Rejected'].includes(a.st)).forEach(a => l.push({ t: (a.hist && a.hist[0] && a.hist[0].t) || a.t, h: `${a.role == 'owner' ? 'Vehicle owner' : 'Driver'} application`, s: `${a.id} · ${nm(a.user)}`, a: 'Review', p: 'apps', g: 'f' }));
     S.vh.filter(v => v.approval == 'Pending Approval').forEach(v => l.push({ t: v.t || v.cr, h: 'Vehicle to approve', s: `${v.plate || ''} · ${nm(v.owner)}`, a: 'Approve', p: 'veh', g: 'f' }));
     return l.filter(x => allow(x.g)).sort((a, c) => (!a.t) - (!c.t) || ((a.t || '') < (c.t || '') ? -1 : 1));
@@ -243,7 +246,26 @@
       'Customer confirmation',
       v.cconf ? `Confirmed at ${hm(v.cconf.t)}` : v.exc ? `Waived by ${esc(nm(v.exc.by))}: ${esc(v.exc.reason)}` : `Waiting for ${esc(String(cust.name || 'the customer').split(' ')[0])} to confirm the list`,
       v.cconf || v.exc ? PASS : WAIT
-    )}${(v.disc || []).filter(d => d.status == 'open').length ? row('Cargo discrepancy', 'Open discrepancy between booked and loaded items', BAD('Open')) : ''}</ul>`;
+    )}${(v.disc || []).filter(d => d.status == 'open').length ? row('Discrepancy', 'Departure is blocked until it is resolved below', BAD('Open')) : ''}</ul>`;
+  };
+  /* discrepancies: what was reported, and the resolution (an administrator's, or automatic when the driver corrected it) */
+  const discBox = b => {
+    const L = (b.ver && b.ver.disc) || [];
+    if (!L.length) return '';
+    return `<h3 class="zad-h3">Discrepancies</h3>${L.slice()
+      .reverse()
+      .map(d => {
+        const op = d.status == 'open',
+          who = d.by == 'system' ? 'the system' : esc(nm(d.by));
+        return `<div class="zad-disc${op ? ' open' : ''}"><div class="zad-ch"><b>${esc(d.type)}</b>${op ? dot('Open', 'bad') : dot('Resolved', 'mute')}</div><p class="zad-line">${esc(d.note || '')}</p><p class="mu zad-line">${esc(d.id)} · reported ${hm(d.t)} by ${who}</p>${
+          op
+            ? full()
+              ? `<div class="ad-row"><input id="f-${esc(b.id)}-rs-${esc(d.id)}" placeholder="What you checked and decided, e.g. called the customer: a lamp was added" aria-label="Resolution">${/items/i.test(d.type) ? `<input id="f-${esc(b.id)}-rm-${esc(d.id)}" type="number" min="0" placeholder="Correct booked count (optional)" aria-label="Correct booked count" style="max-width:240px">` : ''}<button class="btn sm" data-a="zad-resolve" data-id="${esc(b.id)}" data-d="${esc(d.id)}">Resolve</button></div><p class="mu zad-line">Call the driver or the customer first. ${d.auto == 'plate' ? 'If the driver enters the correct plate, this closes by itself.' : d.auto == 'count' ? 'If the driver recounts the booked number, this closes by itself.' : ''}</p>`
+              : '<p class="mu zad-line">An administrator resolves it.</p>'
+            : `<p class="zad-line"><b>Resolution:</b> ${esc(d.res || '')} <span class="mu">(${d.resBy == 'system' ? 'automatic' : esc(nm(d.resBy))}, ${hm(d.resT)})</span></p>`
+        }</div>`;
+      })
+      .join('')}`;
   };
   P.ver = () => {
     const l = verQueue();
@@ -256,7 +278,7 @@
     const st = x => (x.ver && x.ver.auth ? dot('Passed ' + hm(x.ver.auth.t), 'mute') : verHold(x) ? dot('On hold', 'wait') : x.st == 'Items Loaded' ? dot('In progress', 'ok') : dot('Not started', 'mute'));
     return `<div class="zad-top"><h1>Verification</h1></div>${msg()}<div class="zad-split"><section class="card zad-list"><table class="zad-mini"><thead><tr><th>Trip</th><th>Check</th></tr></thead><tbody>${l
       .map(x => `<tr class="${x.id == b.id ? 'on' : ''}"><td><button data-a="zad-ver" data-id="${esc(x.id)}">${mono(x.id)}</button></td><td>${st(x)}</td></tr>`)
-      .join('')}</tbody></table></section><section class="card zad-detail"><div class="zad-ch"><h2>${mono(b.id)} <span class="mu">pre-departure</span></h2>${verHold(b) ? dot('On hold ' + ago(evAt(b, 'Items Loaded')), 'wait') : v.auth ? dot('Departure authorized', 'ok') : ''}</div><p class="mu zad-line">${esc(d.name || '')} · ${esc(String(veh.color || '').toLowerCase())} ${esc(veh.model || b.vn)} · ${mono(plateOf(b))} · ${place(b.pu)} → ${place(b.dr)} · customer ${esc(nm(b.cu))}</p>${checks(b)}${
+      .join('')}</tbody></table></section><section class="card zad-detail"><div class="zad-ch"><h2>${mono(b.id)} <span class="mu">pre-departure</span></h2>${verHold(b) ? dot('On hold ' + ago(evAt(b, 'Items Loaded')), 'wait') : v.auth ? dot('Departure authorized', 'ok') : ''}</div><p class="mu zad-line">${esc(d.name || '')} · ${esc(String(veh.color || '').toLowerCase())} ${esc(veh.model || b.vn)} · ${mono(plateOf(b))} · ${place(b.pu)} → ${place(b.dr)} · customer ${esc(nm(b.cu))}</p>${checks(b)}${discBox(b)}${
       b.st == 'Items Loaded' && lv()
         ? `<div class="zad-acts">${d.ph ? `<a class="btn sm" href="tel:${esc(d.ph)}">Call driver</a>` : ''}${canWaive ? `<details class="zad-more"><summary class="btn o sm">Waive customer confirmation</summary><div class="ad-row"><input id="f-${esc(b.id)}-exc" placeholder="Why (at least 10 characters), e.g. customer confirmed by phone" aria-label="Reason"><button class="btn sm" data-a="zad-waive" data-id="${esc(b.id)}">Waive</button></div></details>` : ''}<details class="zad-more"><summary class="btn o sm zad-danger">Stop trip</summary><div class="ad-row"><input type="hidden" id="f-stopb" value="${esc(b.id)}"><input id="f-stopw" placeholder="What happened (10+ characters)" aria-label="What happened"><button class="btn sm d" data-a="tstop">Stop trip</button></div></details></div>`
         : ''
@@ -336,7 +358,109 @@
   let apSt = 'Under Verification',
     apSel = null,
     apRej = null;
+  /* interview guide: answers being typed live here until saved, so a background refresh never loses them */
+  const ivDraft = {};
+  const IVR = [['pass', 'Pass', 'ok'], ['concern', 'Concern', 'wait'], ['fail', 'Fail', 'bad']];
+  const ivQs = a => (((S.rules || {}).IVQ || {})[a.role] || []);
+  const ivState = a =>
+    ivDraft[a.id] || { ans: JSON.parse(JSON.stringify((a.ivr && a.ivr.ans) || {})), sum: (a.ivr && a.ivr.sum) || '' };
+  const ivCount = (a, d) => {
+    const Q = ivQs(a),
+      done = Q.filter(q => (d.ans[q.id] || {}).r).length,
+      fail = Q.filter(q => (d.ans[q.id] || {}).r == 'fail').length;
+    return `${done} of ${Q.length} answered${fail ? ` · <b class="zad-ivf">${fail} failed</b>` : ''}`;
+  };
+  const ivGuide = a => {
+    const Q = ivQs(a),
+      edit = a.st == 'Interview Scheduled';
+    if (!Q.length || (!edit && !a.ivr)) return '';
+    const d = ivState(a),
+      saved = a.ivr ? `Saved ${day(a.ivr.t)} ${hm(a.ivr.t)} by ${esc(nm(a.ivr.by))}` : 'Not saved yet';
+    const rows = Q.map((q, i) => {
+      const x = d.ans[q.id] || { r: '', n: '' },
+        opts = q.opts || [],
+        pick = opts.find(o => o.id == x.a);
+      if (!edit) {
+        const R = IVR.find(r => r[0] == x.r),
+          said = [pick && pick.t, x.n && 'Other: ' + x.n].filter(Boolean).join(' · ');
+        return `<li><div><b>${i + 1}. ${esc(q.q)}</b><small>${said ? esc(said) : 'No answer recorded'}</small></div>${R ? dot(R[1], R[2]) : dot('No result', 'mute')}</li>`;
+      }
+      const tone = r => (IVR.find(z => z[0] == r) || [])[2] || '';
+      return `<li class="zad-ivq"><fieldset><legend><b>${i + 1}. ${esc(q.q)}</b><small>${esc(q.hint)}</small></legend>${
+        opts.length
+          ? `<span class="zad-ivk">Applicant\u2019s answer</span><div class="zad-ivo" role="radiogroup">${opts
+              .map(o => `<label class="${x.a == o.id ? 'on' : ''}"><input type="radio" name="iva-${esc(a.id)}-${q.id}" value="${o.id}" data-iv="${esc(a.id)}" data-q="${q.id}" data-ivo="1" ${x.a == o.id ? 'checked' : ''}><i class="z-${tone(o.r)}" aria-hidden="true"></i>${esc(o.t)}</label>`)
+              .join('')}</div>`
+          : ''
+      }<span class="zad-ivk">Result${opts.length ? ' <em>(set by the answer; change it if needed)</em>' : ''}</span><div class="zad-seg" role="radiogroup">${IVR.map(
+        ([v, l, t]) =>
+          `<label class="${x.r == v ? 'on z-' + t : ''}"><input type="radio" name="iv-${esc(a.id)}-${q.id}" value="${v}" data-iv="${esc(a.id)}" data-q="${q.id}" ${x.r == v ? 'checked' : ''}>${l}</label>`
+      ).join('')}</div><input type="text" class="zad-ivn" data-iv="${esc(a.id)}" data-q="${q.id}" maxlength="400" aria-label="Other answer for question ${i + 1}" placeholder="${ivPh(x)}" value="${esc(x.n || '')}"></fieldset></li>`;
+    }).join('');
+    const sum = edit
+      ? `<label class="zad-ivs" for="iv-sum-${esc(a.id)}">Overall impression (optional)</label><textarea id="iv-sum-${esc(a.id)}" rows="2" data-iv="${esc(a.id)}" data-sum="1" placeholder="e.g. Experienced, calm, knows the city well.">${esc(d.sum)}</textarea>`
+      : d.sum
+        ? `<p class="zad-line"><b>Overall:</b> ${esc(d.sum)}</p>`
+        : '';
+    return `<section class="zad-iv-g"><div class="zad-ch"><h3>Interview guide</h3><span class="mu" data-ivc="${esc(a.id)}">${ivCount(a, d)}</span></div>${
+      edit
+        ? '<p class="mu zad-line">Ask each question and tap the answer closest to what the applicant said; it sets the result. Type in the small field only when the answer is unusual. Every question needs a result, and any Fail stops the applicant at this stage.</p>'
+        : ''
+    }<ol class="zad-chk zad-ivl">${rows}</ol>${sum}${
+      edit
+        ? `<div class="zad-acts"><button class="btn sm o" data-a="zad-ivs" data-id="${esc(a.id)}">Save interview notes</button><span class="mu" data-ivsaved="${esc(a.id)}">${ivDraft[a.id] ? 'Unsaved changes' : saved}</span></div>`
+        : `<p class="mu zad-line">${saved}</p>`
+    }</section>`;
+  };
+  /* the "other answer" field asks for a reason only when a Concern or Fail has no picked answer */
+  const ivPh = x => ((x.r == 'fail' || x.r == 'concern') && !x.a ? 'Required: what did they say?' : 'Other answer or detail (optional)');
+  const ivPaint = (fs, x) => {
+    const tone = (IVR.find(z => z[0] == x.r) || [])[2];
+    fs.querySelectorAll('.zad-seg label').forEach(l => {
+      const inp = l.querySelector('input');
+      inp.checked = inp.value == x.r;
+      l.className = inp.checked ? 'on z-' + tone : '';
+    });
+    fs.querySelectorAll('.zad-ivo label').forEach(l => (l.className = l.querySelector('input').value == x.a ? 'on' : ''));
+    const n = fs.querySelector('.zad-ivn');
+    if (n) n.placeholder = ivPh(x);
+  };
+  /* typing in the guide: keep the draft, and update the look without redrawing the page */
+  const ivInput = e => {
+    const el = e.target.closest && e.target.closest('[data-iv]');
+    if (!el) return;
+    const a = S.apps.find(x => x.id == el.dataset.iv);
+    if (!a) return;
+    const d = (ivDraft[a.id] = ivState(a));
+    if (el.dataset.sum) d.sum = el.value;
+    else {
+      const x = (d.ans[el.dataset.q] = d.ans[el.dataset.q] || { r: '', n: '' });
+      if (el.type == 'radio' && el.dataset.ivo) {
+        const o = ((ivQs(a).find(q => q.id == el.dataset.q) || {}).opts || []).find(o => o.id == el.value);
+        if (o) Object.assign(x, { a: o.id, r: o.r }); // the answer suggests the result
+        ivPaint(el.closest('fieldset'), x);
+      } else if (el.type == 'radio') {
+        x.r = el.value;
+        ivPaint(el.closest('fieldset'), x);
+      } else x.n = el.value;
+    }
+    const c = document.querySelector(`[data-ivc="${a.id}"]`),
+      s = document.querySelector(`[data-ivsaved="${a.id}"]`);
+    if (c) c.innerHTML = ivCount(a, d);
+    if (s) s.textContent = 'Unsaved changes';
+  };
+  document.addEventListener('input', ivInput);
+  document.addEventListener('change', ivInput);
+  const ivSave = async id => {
+    const a = S.apps.find(x => x.id == id),
+      d = a && ivState(a);
+    if (!d) return { ok: false, err: 'Application not found.' };
+    const j = await RQ('appAction', { id, act: 'ivsave', ans: d.ans, sum: d.sum });
+    if (j.ok) delete ivDraft[id];
+    return j;
+  };
   const STAGES = [
+    ['Waiting for Owner', 'Waiting for owner'],
     ['Pending Review', 'Pending review'],
     ['Under Verification', 'Under verification'],
     ['Interview Scheduled', 'Interview'],
@@ -376,11 +500,11 @@
             ['Under Verification', 'Awaiting Additional Documents'].includes(s)
               ? `<div class="ad-row zad-iv"><input id="f-${id}-p" placeholder="Interview place, e.g. ZamMove office" aria-label="Interview place"><input id="f-${id}-w" type="datetime-local" aria-label="Interview date and time">${btn('app', 'Schedule interview', `data-id="${id}" data-x="interview"`)}</div>`
               : ''
-          }${s == 'Interview Scheduled' ? btn('app', 'Interview held: to orientation', `data-id="${id}" data-x="orient"`) : ''}${s == 'For Orientation' && !a.orient ? btn('app', 'Mark orientation completed', `data-id="${id}" data-x="orientdone"`) : ''}${s == 'For Orientation' && a.orient ? btn('app', 'Approve role', `data-id="${id}" data-x="approve"`) : ''}<details class="zad-more"><summary class="btn o sm">More actions ▾</summary><div class="zad-menu">${
+          }${s == 'Interview Scheduled' ? `<button class="btn sm" data-a="zad-ivo" data-id="${esc(id)}">Interview passed: to orientation</button>` : ''}${s == 'For Orientation' && !a.orient ? btn('app', 'Mark orientation completed', `data-id="${id}" data-x="orientdone"`) : ''}${s == 'For Orientation' && a.orient ? btn('app', 'Approve role', `data-id="${id}" data-x="approve"`) : ''}<details class="zad-more"><summary class="btn o sm">More actions ▾</summary><div class="zad-menu">${
             ['Under Verification', 'Interview Scheduled'].includes(s) ? `<div class="ad-row"><input id="f-${id}-n" placeholder="What is needed, e.g. barangay clearance" aria-label="Document to request">${btn('app', 'Request document', `data-id="${id}" data-x="request"`, 'o')}</div>` : ''
           }<button class="btn sm d" data-a="zad-rej" data-id="${esc(id)}">Reject application…</button></div></details></div>`
         : `<p class="mu">${esc(s)} ${day(since(a))}${a.reason ? ' · ' + esc(a.reason) : ''}</p>`;
-      detail = `<section class="card zad-detail"><div class="zad-ch"><h2>${esc(u.name || a.user)}</h2>${open ? dot(`${esc(STAGES.find(x => x[0] == s)[1])} ${ago(since(a))}`, 'wait') : tag(s)}</div><p class="mu zad-line">Wants to ${a.role == 'owner' ? 'list vehicles' : 'drive'} · ${mono(id)} · applied ${a.hist && a.hist[0] ? new Date(a.hist[0].t).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' }) : '—'}${i.license ? ' · license ' + mono(i.license) : ''} · ${esc(i.phone || u.ph || '')}</p>${i.license ? `<p class="mu zad-line">License valid until ${dateCell(i.licExp)} · clearance until ${dateCell(i.clrExp)}</p>` : ''}${a.iv ? `<p class="zad-line">Interview: <b>${esc(a.iv.when)}</b> at <b>${esc(a.iv.where)}</b></p>` : ''}<ul class="zad-chk">${docs || '<li><div><b>No documents uploaded</b><small>Ask the applicant to upload them</small></div></li>'}${req}</ul>${acts}      }</section>`;
+      detail = `<section class="card zad-detail"><div class="zad-ch"><h2>${esc(u.name || a.user)}</h2>${open ? dot(`${esc(STAGES.find(x => x[0] == s)[1])} ${ago(since(a))}`, 'wait') : tag(s)}</div><p class="mu zad-line">Wants to ${a.role == 'owner' ? 'list vehicles' : 'drive'} · ${mono(id)} · applied ${a.hist && a.hist[0] ? new Date(a.hist[0].t).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' }) : '—'}${i.license ? ' · license ' + mono(i.license) : ''} · ${esc(i.phone || u.ph || '')}</p>${i.license ? `<p class="mu zad-line">License valid until ${dateCell(i.licExp)} · clearance until ${dateCell(i.clrExp)}</p>` : ''}${a.iv ? `<p class="zad-line">Interview: <b>${esc(a.iv.when)}</b> at <b>${esc(a.iv.where)}</b></p>` : ''}<ul class="zad-chk">${docs || '<li><div><b>No documents uploaded</b><small>Ask the applicant to upload them</small></div></li>'}${req}</ul>${ivGuide(a)}${acts}</section>`;
     }
     /* the reject dialog sits outside the cards so it covers the whole page */
     const rej = a && apRej == a.id ? rejDlg(a) : '';
@@ -430,10 +554,30 @@
       }
       if (a == 'zad-rej-x') return (apRej = null), render();
       let r, done;
+      if (a == 'zad-ivs') {
+        r = ivSave(id);
+        done = 'Interview notes saved.';
+      }
+      if (a == 'zad-ivo') {
+        r = (async () => {
+          if (ivDraft[id]) {
+            const s = await ivSave(id);
+            if (!s.ok) return s;
+          }
+          return RQ('appAction', { id, act: 'orient' });
+        })();
+        done = 'Interview recorded. The applicant moves to orientation.';
+      }
       if (a == 'zad-assign') {
         const drv = (document.getElementById('f-as-' + id) || {}).value;
         r = RQ('adminAssign', { id, driver: drv });
         done = `${id} assigned to ${nm(drv)}.`;
+      }
+      if (a == 'zad-resolve') {
+        const dd = t.dataset.d,
+          fv = k => ((document.getElementById(`f-${id}-${k}-${dd}`) || {}).value || '').trim();
+        r = RQ('vResolve', { id, disc: dd, res: fv('rs'), mc: fv('rm') });
+        done = `${dd} resolved. The driver can continue the checks.`;
       }
       if (a == 'zad-waive') {
         r = RQ('vException', { id, reason: (document.getElementById('f-' + id + '-exc') || {}).value || '' });

@@ -160,6 +160,24 @@
         if (b.st == 'Interrupted')
           out.push(`<div class="z7-it"><b>${esc(b.id)} is stopped</b> ${tag('Interrupted', 'r')}<p style="margin:6px 0 0">${esc((b.int || {}).why || '')} ZamMove is deciding the next step and will contact you.</p></div>`);
       });
+    (S.pay || []).forEach(p => {
+      if (p.kind == 'cancel_fee' && p.payer == em && p.status == 'Due')
+        out.push(CANCEL_DUE(p));
+      if (p.kind == 'cancel_fee' && p.payer == em && p.status == 'Submitted')
+        out.push(`<div class="z7-it"><b>Cancellation fee for ${esc(p.bid)}</b> ${tag('Waiting for the cashier')}</div>`);
+      if (p.kind == 'deposit_refund' && p.to == em && p.from && p.status == 'Sent')
+        out.push(REFUND_SENT(p));
+      else if (p.kind == 'deposit_refund' && p.to == em && p.from && p.status == 'Due')
+        out.push(`<div class="z7-it"><b>Deposit refund of ${peso(p.amount)} for ${esc(p.bid)}</b> ${tag('Being prepared')}<p style="margin:6px 0 0">The owner sends it to you; you are notified when it is sent.</p></div>`);
+      else if (['refund', 'deposit_refund'].includes(p.kind) && p.to == em && p.status == 'Due')
+        out.push(`<div class="z7-it"><b>Refund of ${peso(p.amount)} for ${esc(p.bid)}</b> ${tag('Being prepared')}<p style="margin:6px 0 0">The ZamMove cashier sends it to you; you are notified when it is paid.</p></div>`);
+    });
+    return out.length ? `<section class="card z7-card" style="margin:12px 0"><h2 style="font-size:20px">Needs your attention</h2>${out.join('')}</section>` : '';
+  };
+  /* customer, Report page only: wrong change from a cash payment. Closed until the customer opens it to report. */
+  const changeCard = () => {
+    const em = me(),
+      out = [];
     /* cash receipts from the last 24 hours: check the change, report it if wrong */
     const mineB = new Set((S.bk || []).filter(b => b.cu == em).map(b => b.id)),
       cases = (S.inc || []).filter(c => c.kind == 'change' && c.by == em),
@@ -170,7 +188,7 @@
       .forEach(p => (byBk[p.bid] = byBk[p.bid] || []).push(p));
     Object.entries(byBk).forEach(([bid, ps]) => {
       const last = Math.max(...ps.map(p => new Date(p.t).getTime()));
-      if (Date.now() - last > H || cases.some(c => c.bid == bid)) return;
+      if (Date.now() - last > H || cases.some(c => c.bid == bid && c.st != 'Withdrawn')) return;
       const id = esc(bid),
         lines = ps
           .map(p => `${p.kind == 'down' ? 'Down payment' : 'Final payment'} ${peso(p.amount)} cash` + (p.rcv != null ? ` · you gave ${peso(p.rcv)} · change ${peso(p.chg)}` : ''))
@@ -180,24 +198,26 @@
       );
     });
     cases
-      .filter(c => c.st == 'Submitted' || Date.now() - new Date(c.dt || c.t).getTime() < 7 * 864e5)
-      .forEach(c =>
-        out.push(
-          `<div class="z7-it"><b>Wrong change report for ${esc(c.bid)}: ${peso(c.amt)}</b> ${c.st == 'Submitted' ? tag('Waiting for the cashier') : tag(c.st == 'Upheld' ? 'Upheld' : 'Not upheld', c.st == 'Upheld' ? '' : 'r')}${c.decision ? `<p style="margin:6px 0 0">${esc(c.decision)}</p>` : ''}</div>`
-        )
-      );
-    (S.pay || []).forEach(p => {
-      if (p.kind == 'cancel_fee' && p.payer == em && p.status == 'Due')
-        out.push(
-          `<div class="z7-it"><b>Cancellation fee for ${esc(p.bid)}: ${peso(p.amount)}</b> ${tag('Due', 'r')}<p style="margin:6px 0">It goes to the driver who already travelled to you. New bookings are possible once it is paid.</p><div class="wsa" style="margin-top:6px;align-items:center"><select id="z7-fm-${esc(p.id)}" style="width:auto"><option>GCash</option><option>Cash</option></select><input id="z7-fr-${esc(p.id)}" placeholder="GCash reference (10–13 digits)" style="width:auto;flex:1 1 220px"><button class="btn sm" data-a="z7-fee" data-id="${esc(p.bid)}" data-p="${esc(p.id)}">Pay fee</button></div></div>`
-        );
-      if (p.kind == 'cancel_fee' && p.payer == em && p.status == 'Submitted')
-        out.push(`<div class="z7-it"><b>Cancellation fee for ${esc(p.bid)}</b> ${tag('Waiting for the cashier')}</div>`);
-      if (['refund', 'deposit_refund'].includes(p.kind) && p.to == em && p.status == 'Due')
-        out.push(`<div class="z7-it"><b>Refund of ${peso(p.amount)} for ${esc(p.bid)}</b> ${tag('Being prepared')}<p style="margin:6px 0 0">The ZamMove cashier sends it to you; you are notified when it is paid.</p></div>`);
-    });
-    return out.length ? `<section class="card z7-card" style="margin:12px 0"><h2 style="font-size:20px">Needs your attention</h2>${out.join('')}</section>` : '';
+      .filter(c => !(c.wd && c.wd.draft) && (['Submitted', 'Unconfirmed'].includes(c.st) || Date.now() - new Date(c.dt || c.t).getTime() < 7 * 864e5))
+      .forEach(c => {
+        const cid = esc(c.id),
+          head = `<b>Wrong change report for ${esc(c.bid)}: ${peso(c.amt)}</b>`;
+        if (c.st == 'Unconfirmed')
+          return out.push(`<div class="z7-it">${head} ${tag('Not sent yet')}<p style="margin:6px 0">“${esc(c.d)}”</p><p class="mu" style="margin:0 0 6px;font-size:14px">Only you can see it. The driver is flagged only if you send it. Dismiss it if you made a mistake.</p><div class="wsa"><button class="btn sm" data-a="z7-cok" data-id="${cid}">Confirm and send</button><button class="btn o sm" data-a="z7-cdm" data-id="${cid}">Dismiss</button></div></div>`);
+        if (c.st == 'Withdrawn') return out.push(`<div class="z7-it">${head} ${tag('Withdrawn')}</div>`);
+        if (c.st == 'Submitted')
+          return out.push(`<div class="z7-it">${head} ${tag('Waiting for the cashier')}<details style="margin-top:6px"><summary style="cursor:pointer;min-height:36px;display:flex;align-items:center;font-weight:600">Withdraw this report</summary><input id="z7-cw-${cid}" maxlength="300" placeholder="Why? e.g. I found the missing change"><div class="wsa" style="margin-top:6px"><button class="btn o sm" data-a="z7-cwd" data-id="${cid}">Withdraw report</button></div></details></div>`);
+        out.push(`<div class="z7-it">${head} ${tag(c.st == 'Upheld' ? 'Upheld' : 'Not upheld', c.st == 'Upheld' ? '' : 'r')}${c.decision ? `<p style="margin:6px 0 0">${esc(c.decision)}</p>` : ''}</div>`);
+      });
+    if (!out.length) return '';
+    const open = cases.some(c => c.st == 'Submitted');
+    return `<details class="card z7-card z7-chgw" style="margin:12px 0"${open ? ' open' : ''}><summary style="cursor:pointer;min-height:44px;display:flex;align-items:center;font-size:18px;font-weight:700">Got the wrong change from a cash payment?</summary><p class="mu" style="margin:4px 0 8px">Cash payments from the last ${R().CHANGE_H || 24} hours, and your wrong-change reports.</p>${out.join('')}</details>`;
   };
+  const CANCEL_DUE = p =>
+    `<div class="z7-it"><b>${/No-show/.test(p.note || '') ? 'No-show fee' : 'Cancellation fee'} for ${esc(p.bid)}: ${peso(p.amount)}</b>${p.disp && !p.disp.closed ? ' <span class="mu">(disputed, under review)</span>' : ''} ${tag('Due', 'r')}<p style="margin:6px 0">It goes to the driver who already travelled to you. New bookings are possible once it is paid.</p><div class="wsa" style="margin-top:6px;align-items:center"><select id="z7-fm-${esc(p.id)}" style="width:auto"><option>GCash</option><option>Cash</option></select><input id="z7-fr-${esc(p.id)}" placeholder="GCash reference (10–13 digits)" style="width:auto;flex:1 1 220px"><button class="btn sm" data-a="z7-fee" data-id="${esc(p.bid)}" data-p="${esc(p.id)}">Pay fee</button></div></div>`;
+  const REFUND_SENT = p =>
+    `<div class="z7-it"><b>Deposit refund of ${peso(p.amount)} for ${esc(p.bid)}</b> ${tag('Confirm it', 'r')}<p style="margin:6px 0">The owner says they sent it by ${esc(p.method)}. Confirm you received it, or report that it did not arrive.</p><div class="wsa"><button class="btn sm" data-a="nav" data-v="rent">Open My rentals</button></div></div>`;
+
 
   /* ---------- driver: money on hand and trip tools ---------- */
   const cashBar = () => {
@@ -207,11 +227,11 @@
       blocked = c.overdue || c.held >= c.cap;
     return `<section class="card z7-card" style="margin:12px 0"><div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:baseline"><h2 style="font-size:20px;margin:0">Company money on hand</h2><b style="font-size:20px">${peso(Math.max(0, c.held))} <span class="mu" style="font-size:14px;font-weight:400">of ${peso(c.cap)} limit</span></b></div><div style="height:8px;border-radius:99px;background:var(--s2);margin:10px 0 8px;overflow:hidden"><i style="display:block;height:100%;width:${pct}%;background:${blocked ? 'var(--err)' : pct > 75 ? '#d97706' : 'var(--ac)'}"></i></div><p class="mu" style="margin:0;font-size:14px">${
       c.overdue
-        ? '<b style="color:var(--err)">A remittance is overdue: you cannot accept new jobs until you remit.</b>'
+        ? '<b style="color:var(--err)">A turnover or remittance is overdue: you cannot accept new jobs until you settle it.</b>'
         : c.held >= c.cap
-          ? '<b style="color:var(--err)">Limit reached: remit to the cashier before accepting new jobs.</b>'
-          : 'Collected fares minus your share, until the cashier receives your remittance.'
-    }${c.credit ? ` Cancellation fees owed to you: ${peso(c.credit)} (deducted from your next remittance).` : ''}${c.debit ? ` Wrong-change refunds to pay back: ${peso(c.debit)} (added to your next remittance).` : ''}${c.strikes ? ` Late/no-show strikes: ${c.strikes}.` : ''}</p></section>`;
+          ? '<b style="color:var(--err)">Limit reached: turn the money over to your owner (or remit older trips) before accepting new jobs.</b>'
+          : 'Fares you collected minus your share: money for your owner (and ZamMove, for older trips) that you still hold.'
+    }${c.credit ? ` Cancellation fees owed to you: ${peso(c.credit)} (deducted from your next remittance).` : ''}${c.debit ? ` Charges to pay back (wrong change, incident decisions): ${peso(c.debit)} (added to your next remittance).` : ''}${c.strikes ? ` Late/no-show strikes: ${c.strikes}.` : ''}</p></section>`;
   };
   const placeOpts = cur => {
     const names = PL.map(p => p[0]);
@@ -235,13 +255,7 @@
           parts.push(
             `<details style="margin-top:8px"><summary style="cursor:pointer;min-height:36px;display:flex;align-items:center;font-weight:600">Locations don’t match the pins? Propose a corrected price</summary><div class="wsf"><div><label for="z7-pu-${id}">Actual pickup</label><select id="z7-pu-${id}">${placeOpts(b.pu)}</select></div><div><label for="z7-dr-${id}">Actual drop-off</label><select id="z7-dr-${id}">${placeOpts(b.dr)}</select></div></div><label for="z7-why-${id}">What does not match?</label><input id="z7-why-${id}" placeholder="e.g. the drop-off is in Vitali, not Putik"><div class="wsa"><button class="btn sm o" data-a="z7-rq" data-id="${id}">Send to the customer</button></div><p class="mu" style="font-size:13.5px;margin:6px 0 0">The customer accepts the new price or cancels at no charge.</p></details>`
           );
-        if (b.st != 'Interrupted')
-          parts.push(
-            `<details style="margin-top:8px"><summary style="cursor:pointer;min-height:36px;display:flex;align-items:center;font-weight:600">Report a problem (breakdown, accident, cannot continue)</summary><label for="z7-pb-${id}">What happened?</label><textarea id="z7-pb-${id}" rows="2" style="width:100%" placeholder="e.g. flat tire on the bridge, cannot continue"></textarea><div class="wsa"><button class="btn sm d" data-a="z7-prob" data-id="${id}">Stop the trip and alert ZamMove</button></div></details>`
-          );
-        parts.push(
-          `<details style="margin-top:8px"><summary style="cursor:pointer;min-height:36px;display:flex;align-items:center;font-weight:600">Report the customer (non-payment, conduct, unsafe cargo)</summary><div class="wsf"><div><label for="z7-ic-${id}">Category</label><select id="z7-ic-${id}"><option value="">Choose…</option><option>Customer did not pay</option><option>Customer conduct</option><option>Unsafe or illegal cargo</option><option>Damaged items</option><option>Vehicle accident</option><option>Other</option></select></div><div><label for="z7-is-${id}">Severity</label><select id="z7-is-${id}"><option>Low</option><option selected>Medium</option><option>High</option></select></div></div><label for="z7-id-${id}">Describe it</label><textarea id="z7-id-${id}" rows="2" style="width:100%"></textarea><div class="wsa"><button class="btn sm o" data-a="z7-inc" data-id="${id}">Send report</button></div></details>`
-        );
+        /* breakdowns and reports about the customer: the "Report a problem" button (25-report.js) */
         return `<section class="card z7-card" style="margin:12px 0"><h2 style="font-size:20px;margin:0">Trip tools · <span class="n">${id}</span></h2><div class="mu" style="font-size:14px">${esc(b.st)} · ${esc(String(b.pu).split(',')[0])} → ${esc(String(b.dr).split(',')[0])}</div>${parts.join('')}</section>`;
       })
       .join('');
@@ -276,13 +290,16 @@
     const ws = S.ws || 'customer';
     let html = '',
       top = false;
-    if (ws == 'customer' && ['home', 'bookings', 'track'].includes(typeof view != 'undefined' ? view : '')) {
-      html = custCard();
-      top = true; // above the page (the home page starts with a large hero)
-    }
+    const v = typeof view != 'undefined' ? view : '';
+    if (ws == 'customer' && ['bookings', 'track'].includes(v)) html = custCard(); // not on Home: it stays clean
+    if (ws == 'customer' && v == 'reports') html = changeCard();
     if (ws == 'driver') {
       const pg = (S.wp || {}).driver || 'dash';
       html = drvCases() + drvTools() + (['dash', 'earn', 'req'].includes(pg) ? cashBar() : '');
+    }
+    if (typeof window.ZM_CASES == 'function') {
+      const x = window.ZM_CASES(ws, typeof view != 'undefined' ? view : '');
+      html = (x.top || '') + html + (x.end || '');
     }
     const box = app.querySelector(':scope > .z7-box, .z7-box');
     if (box && box.dataset.h == html) return;
@@ -361,7 +378,10 @@
       }
       if (a == 'z7-rq') return run(ZAPI.act('requote', { id, pu: v('z7-pu-' + id), dr: v('z7-dr-' + id), reason: v('z7-why-' + id) }), 'Sent to the customer.');
       if (a == 'z7-chg')
-        return run(ZAPI.act('changeDispute', { id, amt: v('z7-ca-' + id), gave: v('z7-cg-' + id), d: v('z7-cd-' + id) }), 'Report sent. The cashier will decide.');
+        return run(ZAPI.act('changeDispute', { id, amt: v('z7-ca-' + id), gave: v('z7-cg-' + id), d: v('z7-cd-' + id) }), 'Saved, not sent yet. Check it and press Confirm and send.');
+      if (a == 'z7-cok') return run(ZAPI.act('caseConfirm', { id }), 'Report sent. The cashier will decide.');
+      if (a == 'z7-cdm') return run(ZAPI.act('caseWithdraw', { id }), 'Report dismissed. Nobody saw it.');
+      if (a == 'z7-cwd') return run(ZAPI.act('caseWithdraw', { id, why: v('z7-cw-' + id) }), 'Report withdrawn. The driver was told.');
       if (a == 'z7-chr') return run(ZAPI.act('changeReply', { id, note: v('z7-cr-' + id) }), 'Your answer was sent to the cashier.');
       if (a == 'z7-prob') return run(ZAPI.act('tripProblem', { id, reason: v('z7-pb-' + id) }), 'Trip stopped. ZamMove was alerted.');
       if (a == 'z7-inc') {

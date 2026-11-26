@@ -90,12 +90,83 @@
     }).join('')}</ol>`;
   };
 
-  /* payment form inside the action box (same ids and action as the old form, so the old handler runs) */
+  /* payment box inside the action box: the customer chooses Cash, GCash, or part of each.
+     GCash uses the same ids and action as the old form (the old "pay" handler runs); cash is handed to the
+     driver, who records it and sends a receipt with the change. */
+  const PM = [['cash', 'Cash'], ['gcash', 'GCash'], ['both', 'Cash + GCash']];
   const payBox = (b, k) => {
     const left = ZPAY.r2(ZPAY.due(b, k) - paid(b, k)),
-      err = msg['b' + b.id] || '';
-    return `<div class="zb-pay"><div class="zb-fld"><label for="pg${b.id}">GCash amount</label><div class="zb-peso"><span>₱</span><input id="pg${b.id}" type="number" min="0" step="0.01" value="${left}"></div></div><div class="zb-fld"><label for="pr${b.id}">GCash reference no. (13 digits)</label><input id="pr${b.id}" inputmode="numeric" maxlength="13" placeholder="e.g. 7012398765432"${err ? ' class="is-bad" aria-invalid="true"' : ''}></div>${btn('Submit GCash reference', 'pay', `data-id="${b.id}" data-k="${k}"`)}</div>${err ? `<p class="zb-fe" role="alert">${esc(err)}</p>` : ''}<details class="zb-pf"><summary>Add a screenshot of the payment (optional)</summary><input type="file" accept="image/*" id="pp${b.id}"></details><p class="zb-hint">Paying cash? Hand it to ${first(drvU(b) && drvU(b).name)}; ${b.drvUser ? 'they confirm' : 'the driver confirms'} it in the app.</p>`;
+      err = msg['b' + b.id] || '',
+      m = msg['pm' + b.id] || 'cash',
+      dn = first(drvU(b) && drvU(b).name) || 'the driver',
+      half = ZPAY.r2(Math.round(left / 2));
+    const pick = `<div class="zb-pm" role="radiogroup" aria-label="How will you pay?">${PM.map(
+      ([v, l]) => `<button type="button" role="radio" aria-checked="${m == v}" class="${m == v ? 'on' : ''}" data-a="zb-pm" data-id="${b.id}" data-m="${v}">${l}</button>`
+    ).join('')}</div>`;
+    const payTo = b.payTo ? `<p class="zb-note zb-payto">Send GCash to the vehicle owner: <b class="n">${esc(String(b.payTo.no).replace(/^(\d{4})(\d{3})(\d{4})$/, '$1 $2 $3'))}</b> (${esc(b.payTo.name)}).</p>` : '';
+    const ref = `${payTo}<div class="zb-fld"><label for="pr${b.id}">GCash reference no. (13 digits)</label><input id="pr${b.id}" inputmode="numeric" maxlength="13" placeholder="e.g. 7012398765432"${err ? ' class="is-bad" aria-invalid="true"' : ''}></div>`,
+      shot = `<details class="zb-pf"><summary>Add a screenshot of the payment (optional)</summary><input type="file" accept="image/*" id="pp${b.id}"></details>`,
+      fe = err ? `<p class="zb-fe" role="alert">${esc(err)}</p>` : '';
+    const cashIn = (c, label) =>
+      `<div class="zb-fld"><label for="cg${b.id}">${label}</label><div class="zb-peso"><span>₱</span><input id="cg${b.id}" type="number" min="${c}" step="0.01" value="${c}" data-cg="${b.id}" data-cash="${c}"></div></div><p class="zb-split" id="zb-chg-${b.id}">Exact amount: no change.</p>`;
+    let body;
+    if (m == 'cash')
+      body = `<div class="zb-pay" data-left="${left}">${cashIn(left, `Cash you will hand ${esc(dn)} (₱${left} due)`)}${btn('Tell ' + esc(dn) + ' how I pay', 'zb-decl', `data-id="${b.id}" data-k="${k}" data-m="cash"`)}</div>${fe}<p class="zb-hint">${esc(dn)} enters the same amounts when collecting. If they differ, ${esc(dn)} must explain, and both versions are on your receipt.</p>`;
+    else if (m == 'gcash')
+      body = `<div class="zb-pay"><div class="zb-fld"><label for="pg${b.id}">GCash amount</label><div class="zb-peso"><span>₱</span><input id="pg${b.id}" type="number" min="0" step="0.01" value="${left}" readonly></div></div>${ref}${btn('Submit GCash reference', 'zb-decl', `data-id="${b.id}" data-k="${k}" data-m="gcash"`)}</div>${fe}${shot}<p class="zb-hint">Send ${peso(left)} by GCash, then enter the reference number. ${esc(dn)} checks it arrived.</p>`;
+    else
+      body = `<div class="zb-pay zb-pay3" data-left="${left}"><div class="zb-fld"><label for="pg${b.id}">GCash part</label><div class="zb-peso"><span>₱</span><input id="pg${b.id}" type="number" min="1" max="${left}" step="0.01" value="${half}" data-split="${b.id}"></div></div>${ref}<div class="zb-fld"><label>Cash part</label><div class="zb-peso"><span>₱</span><input id="pc${b.id}" type="number" value="${ZPAY.r2(left - half)}" readonly tabindex="-1"></div></div>${cashIn(ZPAY.r2(left - half), 'Cash you will hand over')}${btn('Tell ' + esc(dn) + ' how I pay', 'zb-decl', `data-id="${b.id}" data-k="${k}" data-m="both"`)}</div>${fe}${shot}<p class="zb-split" id="zb-split-${b.id}">Hand the other <b>${peso(ZPAY.r2(left - half))}</b> in cash to ${esc(dn)}. Total ${peso(left)}.</p>`;
+    return `<p class="zb-pmq">How will you pay?</p>${pick}${body}`;
   };
+  /* what the customer told the driver; they can change it until the driver records the payment */
+  const declBox = (b, k) => {
+    const d = (b.decl || {})[k];
+    if (!d) return '';
+    const dn = first(drvU(b) && drvU(b).name) || 'the driver';
+    const rows = [
+      d.g ? ['GCash', `${peso(d.g)} · ref <span class="n">${esc(d.ref)}</span>`] : null,
+      d.c ? ['Cash part', peso(d.c)] : null,
+      d.c ? ['Cash you hand over', peso(d.cg)] : null,
+      d.c ? ['Change to get back', `<b>${peso(d.chg)}</b>`] : null,
+    ].filter(Boolean);
+    return `<div class="zb-decl"><b>You told ${esc(dn)}:</b><dl>${rows.map(r => `<div><dt>${r[0]}</dt><dd>${r[1]}</dd></div>`).join('')}</dl><p class="zb-note">${esc(dn)} enters the same amounts when collecting. If they differ, ${esc(dn)} must explain, and both versions go on your receipt.</p>${btn('Change how I pay', 'zb-redo', `data-id="${b.id}"`, 'sec')}</div>`;
+  };
+  const declared = (b, k) => !!((b.decl || {})[k]) && !msg['redo' + b.id];
+
+  /* "Cash + GCash": the cash part updates as the GCash part is typed */
+  document.addEventListener('input', e => {
+    const id = e.target && e.target.dataset && e.target.dataset.split;
+    if (!id) return;
+    const box = e.target.closest('[data-left]'),
+      left = +(box && box.dataset.left) || 0,
+      g = Math.min(left, Math.max(0, +e.target.value || 0)),
+      out = document.getElementById('zb-split-' + id),
+      b = S.bk.find(x => x.id == id),
+      dn = first(drvU(b) && drvU(b).name) || 'the driver';
+    if (out) out.innerHTML = g >= left ? `That is the full amount: choose <b>GCash</b> instead.` : `Hand the other <b>${peso(ZPAY.r2(left - g))}</b> in cash to ${esc(dn)}. Total ${peso(left)}.`;
+    const pc = document.getElementById('pc' + id),
+      cg = document.getElementById('cg' + id),
+      cash = ZPAY.r2(left - g);
+    if (pc) pc.value = cash;
+    if (cg) {
+      cg.dataset.cash = cash;
+      cg.min = cash;
+      if (+cg.value < cash) cg.value = cash;
+      chgLine(id);
+    }
+  });
+  const chgLine = id => {
+    const cg = document.getElementById('cg' + id),
+      out = document.getElementById('zb-chg-' + id);
+    if (!cg || !out) return;
+    const cash = +cg.dataset.cash || 0,
+      gave = +cg.value || 0;
+    out.innerHTML = gave < cash ? `<b style="color:var(--err)">That is less than the ${peso(cash)} cash part.</b>` : gave == cash ? 'Exact amount: no change.' : `Your change: <b>${peso(ZPAY.r2(gave - cash))}</b>. It is on your receipt.`;
+  };
+  document.addEventListener('input', e => {
+    const id = e.target && e.target.dataset && e.target.dataset.cg;
+    if (id) chgLine(id);
+  });
 
   /* star rating (uses the existing "star" and "review" actions) */
   const rateBox = b => {
@@ -103,8 +174,13 @@
     return `<div class="zb-stars" role="radiogroup" aria-label="Rating">${[1, 2, 3, 4, 5].map(i => `<button data-a="star" data-id="${b.id}" data-n="${i}" role="radio" aria-checked="${n == i}" aria-label="${i} star${i > 1 ? 's' : ''}" class="${i <= n ? 'on' : ''}">${i <= n ? '★' : '☆'}</button>`).join('')}</div><div class="zb-fld" style="margin-top:12px"><label for="rt${b.id}">Comment (optional)</label><input id="rt${b.id}" placeholder="e.g. Careful with the fridge, arrived on time"></div><input type="hidden" id="sv${b.id}" value="">${msg['r' + b.id] ? `<p class="zb-fe" role="alert">${esc(msg['r' + b.id])}</p>` : ''}<div class="zb-acts" style="margin-top:12px">${btn('Submit rating', 'review', `data-id="${b.id}"`)}</div>`;
   };
 
+  /* the cash still to hand over after a partial GCash payment ("Cash + GCash") */
+  const cashLeft = (b, k, s) => {
+    const rest = ZPAY.r2(ZPAY.due(b, k) - paid(b, k) - s.amount);
+    return rest > 0.005 ? ` Hand the other <b>${peso(rest)}</b> in cash to ${esc(first((drvU(b) || {}).name) || 'the driver')}.` : '';
+  };
   /* what happens next: title, text, tone, optional body, and the buttons under the box */
-  const action = b => {
+  const action0 = b => {
     const u = drvU(b),
       dn = first(u && u.name),
       fee = cancelFee(b),
@@ -130,13 +206,19 @@
         return A('ok', `${dn} is on the way to your pickup`, 'Have your items near the door and someone at the address. Follow the van live on the Track page.', '', track + cancel + cnote);
       case 'Awaiting Down Payment': {
         const s = sub(b, 'down');
-        return s
-          ? A('wait', `Waiting for ${dn} to confirm your GCash payment`, `You sent ${peso(s.amount)} with reference ${esc(s.ref)}${s.t ? ' at ' + hm(s.t) : ''}. Loading starts once ${dn} confirms. This usually takes under 2 minutes.`, '', track)
+        if (declared(b, 'down'))
+          return A('wait', `Waiting for ${dn} to record your payment`, `Loading starts once ${dn} records it. This usually takes under 2 minutes.`, declBox(b, 'down'), track + cancel + cnote);
+        return s && !msg['redo' + b.id]
+          ? A('wait', `Waiting for ${dn} to confirm your GCash payment`, `You sent ${peso(s.amount)} with reference ${esc(s.ref)}${s.t ? ' at ' + hm(s.t) : ''}.${cashLeft(b, 'down', s)} Loading starts once ${dn} confirms. This usually takes under 2 minutes.`, '', track)
           : A('wait', `Pay the ${peso(ZPAY.due(b, 'down') - paid(b, 'down'))} down payment`, `${dn} arrived at ${hm(evAt(b, ['Awaiting Down Payment']))}. Pay in cash, or send it by GCash and enter the reference number. Loading starts once ${dn} confirms the payment.`, payBox(b, 'down'), track + cancel + cnote);
       }
       case 'Down Payment Confirmed': {
-        const p = S.pay.filter(x => x.bid == b.id && x.kind == 'down' && ZPAY.counted(x)).pop() || {};
-        return A('ok', `${peso(paid(b, 'down'))} received${p.t ? ' at ' + hm(p.t) : ''}`, `${dn} confirmed your ${p.ref ? 'GCash payment (ref ' + esc(p.ref) + ')' : 'payment'}. Next: ${dn} loads your items and runs the pre-departure checks.`, '', track);
+        const ps = S.pay.filter(x => x.bid == b.id && x.kind == 'down' && ZPAY.counted(x)),
+          p = ps[ps.length - 1] || {},
+          ms = [...new Set(ps.map(x => x.method))],
+          g = ps.find(x => x.method == 'GCash'),
+          how = ms.length > 1 ? 'cash and GCash payment' : ms[0] == 'GCash' ? `GCash payment${g && g.ref ? ' (ref ' + esc(g.ref) + ')' : ''}` : ms[0] == 'Cash' ? 'cash payment' : 'payment';
+        return A('ok', `${peso(paid(b, 'down'))} received${p.t ? ' at ' + hm(p.t) : ''}`, `${dn} confirmed your ${how}. Next: ${dn} loads your items and runs the pre-departure checks.`, '', track);
       }
       case 'Items Loaded':
         return A('wait', `Give ${dn} your Start PIN`, 'Everything is loaded. Check the plate, confirm the items, then give your Start PIN so the trip can start.', '', btn('Show Start PIN', 'trk', `data-id="${b.id}"`));
@@ -148,8 +230,10 @@
         return A('ok', 'Delivered and confirmed', `Delivery was confirmed with your Delivery PIN. ${dn} will ask for the balance next.`, '', track);
       case 'Awaiting Final Payment': {
         const s = sub(b, 'final');
-        return s
-          ? A('wait', `Waiting for ${dn} to confirm your GCash payment`, `You sent ${peso(s.amount)} with reference ${esc(s.ref)}. The trip completes once ${dn} confirms.`, '', '')
+        if (declared(b, 'final'))
+          return A('wait', `Waiting for ${dn} to record your payment`, `The trip completes once ${dn} records it.`, declBox(b, 'final'), '');
+        return s && !msg['redo' + b.id]
+          ? A('wait', `Waiting for ${dn} to confirm your GCash payment`, `You sent ${peso(s.amount)} with reference ${esc(s.ref)}.${cashLeft(b, 'final', s)} The trip completes once ${dn} confirms.`, '', '')
           : A('wait', `Pay the ${peso(ZPAY.due(b, 'final') - paid(b, 'final'))} balance`, `Delivered${evAt(b, ['Delivery Confirmation']) ? ' at ' + hm(evAt(b, ['Delivery Confirmation'])) : ''} and confirmed with your Delivery PIN. Pay ${dn} in cash, or send it by GCash and enter the reference number.`, payBox(b, 'final'), '');
       }
       case 'Completed': {
@@ -171,8 +255,62 @@
     return A('wait', esc(b.st), '', '', track);
   };
 
+  /* change the date or time (free before the driver sets off), and the no-show fee with its dispute */
+  const RESCH = ['Pending', 'No driver found', 'Accepted'];
+  const action = b => {
+    const x = action0(b);
+    /* reservations and groups */
+    if (b.pkg) {
+      const rb = S.bk.find(y => y.id == b.pkg.ret);
+      x.body += `<p class="zb-pkg">Reservation: we drop off on ${esc(b.dt)} and pick up on ${rb ? esc(rb.dt + ' ' + rb.tm) : 'the date you chose'} (${b.pkg.days} day${b.pkg.days > 1 ? 's' : ''} held at ${peso(b.pkg.holdFee)}/day = ${peso(b.pkg.hold)}). This price covers both trips.</p>`;
+    }
+    if (b.pkgOf) x.body += `<p class="zb-pkg">Prepaid pick-up of reservation <b class="n">${esc(b.pkgOf)}</b>: nothing to pay on this trip. Same driver and vehicle.</p>`;
+    if (b.grp) {
+      const n = S.bk.filter(y => y.grp == b.grp).length;
+      x.body += `<p class="zb-pkg">Part of group <b class="n">${esc(b.grp)}</b>: ${n} booking${n > 1 ? 's' : ''} for one move.</p>`;
+    }
+    if (['Pending', 'Accepted', 'No driver found'].includes(b.st) && !b.pkgOf) x.acts += btn('Add a vehicle or drop-off', 'zx-more', `data-id="${b.id}"`, 'sec');
+    if (window.ZREC) x.body += ZREC.card(b);
+    /* the owner's discount, and every payment on this booking with the running balance */
+    if (b.odisc) x.body += `<p class="zb-pkg">Owner discount: <b>−${peso(b.odisc.amt)}</b> (${esc(b.odisc.why)}). Your balance is lower.</p>`;
+    const P = (S.pay || []).filter(p => p.bid == b.id && ['down', 'final'].includes(p.kind) && ['Recorded by driver', 'Verified', 'Submitted'].includes(p.status)).sort((a, c) => ((a.ct || a.t) < (c.ct || c.t) ? -1 : 1));
+    if (P.length) {
+      const due = ZPAY.r2((+b.tot || 0) - ((b.odisc && +b.odisc.amt) || 0));
+      let run = 0;
+      x.body += `<details class="zb-led"><summary>Payment history (${P.length}) · balance ${peso(Math.max(0, due - P.filter(p => p.status != 'Submitted').reduce((s, p) => s + p.amount, 0)))}</summary><table><thead><tr><th>When</th><th>What</th><th>Method</th><th class="n">Amount</th><th class="n">Balance</th></tr></thead><tbody>${P.map(p => {
+        if (p.status != 'Submitted') run += p.amount;
+        const t = p.ct || p.t;
+        return `<tr><td>${t ? new Date(t).toLocaleString('en-PH', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '—'}</td><td>${p.kind == 'down' ? 'Down payment' : 'Balance'}${p.status == 'Submitted' ? ' (waiting)' : ''}</td><td>${esc(p.method)}${p.tx && p.tx.chg ? ` · change ${peso(p.tx.chg)}` : ''}</td><td class="n">${peso(p.amount)}</td><td class="n">${peso(Math.max(0, due - run))}</td></tr>`;
+      }).join('')}</tbody></table></details>`;
+    }
+    if (RESCH.includes(b.st) && (b.resch || []).length < 3) {
+      x.acts += btn('Change date or time', 'zb-rs', `data-id="${b.id}"`, 'sec');
+      if (msg.rs == b.id) {
+        const today = new Date(Date.now() + 8 * 36e5).toISOString().slice(0, 10);
+        x.body += `<div class="zb-rs"><b>New pickup time</b><div class="zb-rsf"><label>Date<input type="date" id="zb-rsd-${b.id}" min="${today}" value="${esc(b.dt)}"></label><label>Time<input type="time" id="zb-rst-${b.id}" value="${esc(b.tm)}"></label></div><p class="zb-note">Free.${b.drvUser ? ' Your driver keeps the job if they are free at the new time; otherwise it goes to other drivers.' : ''}</p><div class="err" id="zb-rse-${b.id}"></div><div class="zb-acts">${btn('Save new time', 'zb-rs-go', `data-id="${b.id}"`)}${btn('Close', 'zb-rs', 'data-id=""', 'sec')}</div></div>`;
+      }
+    }
+    if (b.st == 'Cancelled' && b.cxl && b.cxl.noShow) {
+      const fee = (S.pay || []).find(p => p.bid == b.id && p.kind == 'cancel_fee');
+      x.h = 'Closed as a no-show';
+      x.p = `Your driver waited at the pickup and you did not come out, so a ${peso(b.cf)} no-show fee (10%) applies. It goes to the driver.`;
+      if (fee && fee.status == 'Waived') x.p = 'ZamMove reviewed it and waived the no-show fee.';
+      else if (fee && fee.disp && !fee.disp.closed) x.body += '<p class="zb-note">You disputed this fee. ZamMove is reviewing it; you can still book meanwhile.</p>';
+      else if (fee && fee.disp && fee.disp.closed) x.body += `<p class="zb-note">ZamMove reviewed your dispute: the fee stands. ${esc(fee.disp.closed.note)}</p>`;
+      else if (fee && fee.status == 'Due')
+        x.body += `<div class="zb-rs"><b>Was this wrong?</b><label for="zb-nsd-${b.id}" class="zb-note">For example, the driver went to the wrong address, or you were there.</label><textarea id="zb-nsd-${b.id}" rows="2" style="width:100%" placeholder="What happened?"></textarea><div class="err" id="zb-nse-${b.id}"></div><div class="zb-acts">${btn('Dispute the no-show', 'zb-nsd', `data-id="${b.id}"`, 'sec')}</div></div>`;
+    }
+    return x;
+  };
+
   /* driver row on the card */
+  /* who handles the cargo: the helpers the driver named (registered by the vehicle owner) */
   const drvRow = b => {
+    const row = drvRow0(b),
+      H = (b.helpers || []).map(x => esc(x.name));
+    return row && H.length ? row + `<p class="zb-note zb-help">Helpers: <b>${H.join(', ')}</b></p>` : row && +b.mv > 0 && !['Completed', 'Cancelled', 'Rejected'].includes(b.st) ? row + `<p class="zb-note zb-help">Your ${b.mv} helper${b.mv > 1 ? 's are' : ' is'} named by the driver before departure.</p>` : row;
+  };
+  const drvRow0 = b => {
     const u = drvU(b);
     if (!u || ['Cancelled', 'Rejected'].includes(b.st)) return '';
     const v = vehOf(b),
@@ -442,6 +580,73 @@
       const t = e.target.closest('[data-a]');
       if (!t || !S.me) return;
       const a = t.dataset.a;
+      if (a == 'zb-pm') {
+        e.preventDefault();
+        e.stopPropagation();
+        msg['pm' + t.dataset.id] = t.dataset.m;
+        msg['b' + t.dataset.id] = '';
+        return render();
+      }
+      if (a == 'zb-redo') {
+        e.preventDefault();
+        e.stopPropagation();
+        msg['redo' + t.dataset.id] = 1;
+        return render();
+      }
+      if (a == 'zb-decl') {
+        e.preventDefault();
+        e.stopPropagation();
+        const id = t.dataset.id,
+          k = t.dataset.k,
+          m = t.dataset.m,
+          b = S.bk.find(x => x.id == id);
+        if (!b) return;
+        const left = ZPAY.r2(ZPAY.due(b, k) - paid(b, k)),
+          num = x => +((document.getElementById(x + id) || {}).value || 0),
+          g = m == 'cash' ? 0 : m == 'gcash' ? left : num('pg'),
+          c = ZPAY.r2(left - g),
+          f = (document.getElementById('pp' + id) || {}).files;
+        t.disabled = true;
+        new Promise(r => (f && f[0] ? img(f[0], r) : r(''))).then(pf =>
+          ZAPI.act('payDeclare', { id, kind: k, g, c, cg: c ? num('cg') : 0, ref: ((document.getElementById('pr' + id) || {}).value || '').trim(), pf }).then(r => {
+            t.disabled = false;
+            msg['b' + id] = r.ok ? '' : r.err;
+            if (r.ok) {
+              msg['redo' + id] = 0;
+              toast('Sent to your driver');
+            }
+            render();
+          })
+        );
+        return;
+      }
+      if (a == 'zb-rs') {
+        e.preventDefault();
+        e.stopPropagation();
+        msg.rs = t.dataset.id;
+        return render();
+      }
+      if (a == 'zb-rs-go' || a == 'zb-nsd') {
+        e.preventDefault();
+        e.stopPropagation();
+        const id = t.dataset.id;
+        t.disabled = true;
+        const call = a == 'zb-rs-go'
+          ? ZAPI.act('reschedule', { id, dt: ($('#zb-rsd-' + id) || {}).value, tm: ($('#zb-rst-' + id) || {}).value })
+          : ZAPI.act('noShowDispute', { id, note: (($('#zb-nsd-' + id) || {}).value || '').trim() });
+        call.then(r => {
+          t.disabled = false;
+          if (!r.ok) {
+            const x = $((a == 'zb-rs-go' ? '#zb-rse-' : '#zb-nse-') + id);
+            if (x) x.textContent = r.err;
+            return;
+          }
+          if (a == 'zb-rs-go') msg.rs = '';
+          toast(a == 'zb-rs-go' ? (r.kept === false ? 'New time saved. Your driver is not free then, so other drivers are asked.' : 'New time saved') : 'Sent to ZamMove for review');
+          render();
+        });
+        return;
+      }
       if (a == 'zb-keep') {
         e.preventDefault();
         e.stopPropagation();
@@ -466,12 +671,30 @@
     if (e.key == 'Escape' && $('.zb-dlg')) $('[data-a="zb-keep"]').click();
   });
 
+  /* phones: scroll each progress timeline to its current step; drop the edge fade at the end */
+  const progScroll = () =>
+    document.querySelectorAll('.zb-prog').forEach(ol => {
+      if (ol.dataset.sc || ol.scrollWidth <= ol.clientWidth + 2) return;
+      ol.dataset.sc = '1';
+      const now = ol.querySelector('li.now') || [...ol.querySelectorAll('li.done')].pop();
+      if (now) ol.scrollLeft = Math.max(0, now.offsetLeft - ol.offsetLeft - 72);
+      const edge = () => ol.classList.toggle('end', ol.scrollLeft + ol.clientWidth >= ol.scrollWidth - 4);
+      edge();
+      ol.addEventListener('scroll', edge, { passive: true });
+    });
+  let rsT = 0;
+  window.addEventListener('resize', () => {
+    clearTimeout(rsT);
+    rsT = setTimeout(progScroll, 150);
+  });
+
   /* ---------- render hook ---------- */
   const _r = render;
   render = function () {
     const out = _r.apply(this, arguments);
     if (S.me && S.ws == 'customer' && view == 'track') layoutTrack();
     if (S.me && S.ws == 'customer' && view == 'book') layoutBook();
+    setTimeout(progScroll, 0);
     return out;
   };
   render();

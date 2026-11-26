@@ -1,0 +1,805 @@
+/* verify.css — the pre-departure verification pop-up (driver and customer) and its summary card.
+   Neutral colours come from the app's theme variables; accent and status colours are the --zb-* tokens
+   from trips.css. */
+
+/* ---------- the card on the page ---------- */
+.vz.vzs {
+  padding: 20px 22px;
+  border-radius: 16px;
+  border: 1.5px solid var(--zb-act-ln, #ebcb86);
+  background: var(--zb-act-bg, #fdf8ec);
+}
+.vzs-h {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+.vz.vzs h2 {
+  margin: 0 0 4px;
+  font-size: 21px;
+}
+.vzs-h p {
+  margin: 0;
+  color: var(--tx2);
+  font-size: 15px;
+}
+.vzs-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  list-style: none;
+  margin: 16px 0;
+  padding: 0;
+}
+.vzs-steps li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--bd);
+  background: var(--s);
+  color: var(--tx2);
+  font-size: 13.5px;
+  font-weight: 600;
+}
+.vzs-steps li.done {
+  border-color: transparent;
+  background: var(--zb-ok-bg, #e2f3ea);
+  color: var(--zb-ok, #1d6b47);
+}
+.vzs-steps li.now {
+  border-color: var(--zb-pri, #0f766e);
+  color: var(--zb-pri, #0f766e);
+}
+.vzs-go {
+  min-height: 50px;
+  padding: 0 26px;
+  font-size: 16px;
+}
+
+/* ---------- the pop-up ---------- */
+body.vzm-lock {
+  overflow: hidden;
+}
+.vzm-ov {
+  position: fixed;
+  inset: 0;
+  z-index: 1200; /* above the app header stripe (z-index 1000) */
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(17, 24, 39, 0.62);
+  animation: vzm-fade 0.15s ease-out;
+}
+@keyframes vzm-fade {
+  from {
+    opacity: 0;
+  }
+}
+.vzm {
+  width: 100%;
+  max-width: 760px;
+  max-height: min(94vh, 900px);
+  display: flex;
+  flex-direction: column;
+  border-radius: 20px;
+  background: var(--s);
+  color: var(--tx);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.35);
+  overflow: hidden;
+  outline: none;
+}
+.vzm-h {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 22px 24px 12px;
+}
+.vzm-k {
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--zb-pri, #0f766e);
+}
+.vzm-h h2 {
+  margin: 2px 0 4px;
+  font-size: 26px;
+  line-height: 1.15;
+}
+.vzm-ref {
+  font-size: 14px;
+  color: var(--mu);
+}
+.vzm-x {
+  flex: none;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  border: 1px solid var(--bd);
+  background: var(--s);
+  color: var(--tx2);
+  font-size: 26px;
+  line-height: 1;
+  cursor: pointer;
+}
+.vzm-x:hover {
+  background: var(--s2);
+}
+
+/* progress */
+.vzm-st {
+  display: flex;
+  gap: 8px;
+  margin: 0;
+  padding: 4px 24px 14px;
+  list-style: none;
+}
+.vzm-st li {
+  flex: 1 1 0;
+  min-width: 0;
+}
+.vzm-st button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 6px 10px;
+  border-radius: 12px;
+  border: 1px solid var(--bd);
+  background: var(--s2);
+  color: var(--mu);
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+.vzm-st button:disabled {
+  cursor: default;
+}
+.vzm-st i {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--bd);
+  color: var(--tx2);
+  font-style: normal;
+  font-size: 13px;
+}
+.vzm-st li.done button {
+  border-color: transparent;
+  background: var(--zb-ok-bg, #e2f3ea);
+  color: var(--zb-ok, #1d6b47);
+}
+.vzm-st li.done i {
+  background: var(--zb-ok, #1d6b47);
+  color: #fff;
+}
+.vzm-st li.now i,
+.vzm-st li.sel i {
+  background: var(--zb-pri, #0f766e);
+  color: #fff;
+}
+.vzm-st li.sel button {
+  border-color: var(--zb-pri, #0f766e);
+  box-shadow: inset 0 0 0 1px var(--zb-pri, #0f766e);
+  color: var(--tx);
+}
+.vzm-st button:focus-visible,
+.vzm-x:focus-visible {
+  outline: 2px solid var(--zb-pri, #0f766e);
+  outline-offset: 2px;
+}
+
+/* trip strip */
+.vzm-trip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0 24px 6px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--s2);
+}
+.vzm-trip small {
+  display: block;
+  font-size: 12px;
+  color: var(--mu);
+}
+.vzm-trip b {
+  display: block;
+  font-size: 14.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* body and footer */
+.vzm-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px 24px 22px;
+}
+.vzm-f {
+  padding: 12px 24px 18px;
+  border-top: 1px solid var(--bd);
+  background: var(--s);
+}
+.vzm-f .vz-m {
+  margin: 0 0 10px;
+}
+.vzm-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+.vzm-nav .btn {
+  min-height: 46px;
+  padding: 0 24px;
+}
+.vzm-hint {
+  color: var(--mu);
+  font-size: 14px;
+}
+
+/* content */
+.vzm-sec h3,
+.vzm-h3 {
+  margin: 4px 0 6px;
+  font-size: 21px;
+}
+.vzm-h3 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 18px;
+}
+.vzm-h3 i {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--zb-pri, #0f766e);
+  color: #fff;
+  font-style: normal;
+  font-size: 14px;
+}
+.vzm-lead {
+  margin: 0 0 16px;
+  color: var(--tx2);
+  font-size: 15.5px;
+}
+.vzm-sub {
+  margin: 8px 0 0;
+  color: var(--mu);
+  font-size: 14px;
+}
+.vzm-l {
+  display: block;
+  margin: 14px 0 6px;
+  font-size: 14px;
+  font-weight: 600;
+}
+.vzm-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.vzm-row input {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+.vzm-pin,
+.vzm-plin {
+  min-height: 64px;
+  font-size: 30px;
+  font-weight: 700;
+  text-align: center;
+}
+.vzm-pin {
+  letter-spacing: 0.45em;
+  text-indent: 0.45em;
+}
+.vzm-plin {
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.vzm-b {
+  min-height: 64px;
+  padding: 0 26px;
+  font-size: 17px;
+}
+.vzm-go {
+  width: 100%;
+  min-height: 58px;
+  margin: 14px 0;
+  font-size: 17px;
+}
+.vzm-alt {
+  margin-top: 14px;
+}
+.vzm-alt summary {
+  cursor: pointer;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  font-weight: 600;
+  color: var(--zb-pri, #0f766e);
+}
+.vzm-call {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin-top: 14px;
+  padding: 0 16px;
+  border-radius: 999px;
+  border: 1px solid var(--bd);
+  color: var(--tx);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+/* status boxes */
+.vzm-ok,
+.vzm-wait,
+.vzm-er {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 12px 0;
+  padding: 14px 16px;
+  border-radius: 14px;
+}
+.vzm-ok {
+  background: var(--zb-ok-bg, #e2f3ea);
+  color: var(--zb-ok, #1d6b47);
+}
+.vzm-wait {
+  background: var(--zb-wait-bg, #fbf0d9);
+  color: var(--zb-wait, #8a5a12);
+}
+.vzm-er {
+  background: var(--zb-bad-bg, #fde8ea);
+  color: var(--zb-bad, #b3202f);
+  font-weight: 600;
+}
+.vzm-ok b,
+.vzm-wait b {
+  display: block;
+}
+.vzm-ok span,
+.vzm-wait span {
+  font-size: 14px;
+}
+.vzm-tick {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  display: grid !important;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--zb-ok, #1d6b47);
+  color: #fff;
+  font-size: 16px !important;
+  font-weight: 700;
+}
+.vzm-dots {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: vzm-pulse 1.2s ease-in-out infinite;
+}
+@keyframes vzm-pulse {
+  50% {
+    opacity: 0.25;
+    transform: scale(0.7);
+  }
+}
+
+/* cards */
+.vzm-card {
+  margin: 12px 0;
+  padding: 16px;
+  border: 1px solid var(--bd);
+  border-radius: 14px;
+  background: var(--s2);
+}
+.vzm-card > b:first-child {
+  display: block;
+  margin-bottom: 6px;
+}
+.vzm-cap {
+  display: block;
+  margin: 14px 0 4px;
+  font-size: 13px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--mu);
+}
+.vzm-kv {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  border-top: 1px solid var(--bd);
+  font-size: 15px;
+}
+.vzm-card > .vzm-cap + .vzm-kv {
+  border-top: 0;
+}
+.vzm-t2 {
+  color: var(--zb-ok, #1d6b47);
+  font-weight: 700;
+}
+.vzm-veh {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.vzm-veh small,
+.vzm-veh b,
+.vzm-veh span {
+  display: block;
+}
+.vzm-veh b {
+  font-size: 19px;
+  margin: 2px 0;
+}
+.vzm-plate {
+  flex: none;
+  padding: 6px 16px;
+  border: 3px solid var(--tx);
+  border-radius: 10px;
+  background: var(--s);
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-align: center;
+}
+.vzm-plate small {
+  display: block;
+  margin-top: 2px;
+  font-size: 11.5px;
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--mu);
+}
+.vzm-who {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.vzm-av {
+  flex: none;
+  width: 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--zb-ok-bg, #e2f3ea);
+  color: var(--zb-pri, #0f766e);
+  font-weight: 700;
+}
+.vzm-wm {
+  flex: 1 1 200px;
+  min-width: 0;
+}
+.vzm-wm b,
+.vzm-wm small {
+  display: block;
+  margin: 0;
+}
+.vzm-wm b {
+  display: inline;
+  font-size: 18px;
+}
+.vzm-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--zb-ok-bg, #e2f3ea);
+  color: var(--zb-ok, #1d6b47);
+  font-size: 12.5px;
+  font-weight: 700;
+}
+.vzm-wm .vzm-call {
+  margin-top: 8px;
+  min-height: 38px;
+}
+
+/* customer: PIN */
+.vzm-g2c {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  align-items: start;
+}
+.vzm-g2c .vzm-card {
+  margin: 0;
+}
+.vzm-pinbox {
+  text-align: center;
+}
+.vzm-digits {
+  margin: 8px 0 0;
+  font-size: 44px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: var(--zb-pri, #0f766e);
+}
+.vzm-qr {
+  display: grid;
+  place-items: center;
+  margin: 12px 0;
+}
+.vzm-qr svg {
+  width: 168px;
+  height: 168px;
+  padding: 8px;
+  border-radius: 12px;
+  background: #fff;
+}
+.vzm-ph {
+  display: block;
+  max-width: 180px;
+  margin-top: 10px;
+  border-radius: 10px;
+}
+.vzm-ck {
+  display: flex;
+  gap: 10px;
+  margin: 4px 0 14px;
+  font-size: 15.5px;
+}
+
+/* driver: checklist */
+.vzm-count {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 4px 0 14px;
+}
+.vzm-count label {
+  font-weight: 600;
+}
+.vzm-count input {
+  width: 96px;
+  min-height: 52px;
+  font-size: 24px;
+  font-weight: 700;
+  text-align: center;
+}
+.vzm-items {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0 0 14px;
+  padding: 0;
+  list-style: none;
+}
+.vzm-items li {
+  padding: 12px 14px;
+  border: 1px solid var(--bd);
+  border-radius: 12px;
+  background: var(--s2);
+}
+.vzm-items .p-ck {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 15.5px;
+}
+.vzm-fr {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 22px;
+  margin: 10px 0 0 30px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--bd);
+}
+.vzm-opt {
+  margin: 0 0 14px;
+}
+.vzm-g2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 14px;
+}
+.vzm-conf {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--bd);
+}
+.vzm-conf .vzm-b {
+  width: 100%;
+}
+.vzm-cond {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 2px 18px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.vzm-cond li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 5px 0;
+  border: 0;
+  background: none;
+  color: var(--mu);
+  font-size: 14px;
+  font-weight: 500;
+}
+.vzm-cond li svg {
+  flex: none;
+}
+.vzm-cond li.vzm-y {
+  color: var(--zb-ok, #1d6b47);
+}
+.vzm-cond li.vzm-n {
+  color: var(--zb-bad, #b3202f);
+  font-weight: 600;
+}
+@media (max-width: 640px) {
+  .vzm-cond {
+    grid-template-columns: 1fr;
+  }
+}
+.vzm .vz-g {
+  margin: 12px 0;
+}
+
+/* phones: full screen, one column */
+@media (max-width: 640px) {
+  .vzm-ov {
+    padding: 0;
+    align-items: stretch;
+  }
+  .vzm {
+    max-width: none;
+    max-height: none;
+    height: 100%;
+    border-radius: 0;
+  }
+  .vzm-h {
+    padding: 16px 16px 8px;
+  }
+  .vzm-h h2 {
+    font-size: 22px;
+  }
+  .vzm-st {
+    padding: 4px 16px 12px;
+    gap: 6px;
+  }
+  .vzm-st button {
+    padding: 6px;
+    justify-content: center;
+  }
+  .vzm-st li:not(.sel) span {
+    display: none;
+  }
+  .vzm-st li.sel,
+  .vzm-st:not(:has(.sel)) li.now {
+    flex: 3 1 0;
+  }
+  .vzm-st:not(:has(.sel)) li.now span {
+    display: inline;
+  }
+  .vzm-trip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin: 0 16px 4px;
+  }
+  .vzm-body {
+    padding: 12px 16px 18px;
+  }
+  .vzm-f {
+    padding: 10px 16px calc(14px + env(safe-area-inset-bottom));
+  }
+  .vzm-g2c,
+  .vzm-g2 {
+    grid-template-columns: 1fr;
+  }
+  .vzm-pin {
+    font-size: 26px;
+    letter-spacing: 0.35em;
+  }
+  .vzm-b {
+    width: 100%;
+  }
+  .vzm-digits {
+    font-size: 38px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .vzm-ov,
+  .vzm-dots {
+    animation: none;
+  }
+}
+
+/* the app's checkbox style adds a top margin and the page's input sizes: reset them inside the pop-up */
+.vzm .p-ck {
+  margin-top: 0;
+}
+.vzm .p-ck input[type='checkbox'] {
+  width: 22px;
+  height: 22px;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  flex: 0 0 22px;
+}
+.vzm-fr .p-ck {
+  font-size: 14.5px;
+}
+.vzm-ck {
+  align-items: flex-start;
+}
+.vzm-ck input[type='checkbox'] {
+  margin-top: 2px !important;
+}
+/* nothing to show in the footer: hide it */
+.vzm-nav:empty {
+  display: none;
+}
+.vzm-f:has(.vz-m:empty):has(.vzm-nav:empty) {
+  display: none;
+}
+
+/* the app paints the colour stripe on every <header>: not on the pop-up */
+.vzm .vzm-h {
+  background-image: none;
+}
+
+/* delivery: QR for the customer, scan button for the driver */
+.dz-qr {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin: 8px 0;
+}
+.dz-qrc {
+  width: 132px;
+  flex: none;
+  background: #fff;
+  padding: 6px;
+  border-radius: 10px;
+}
+.dz-qrc svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+.dz-in {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.dz-in input {
+  flex: 1;
+  min-width: 0;
+}
+#dz-cam {
+  margin-top: 8px;
+}

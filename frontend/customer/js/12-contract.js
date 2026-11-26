@@ -207,7 +207,7 @@ ${open && !both(r) ? `<p class="mu" style="font-size:13px;margin:0 0 6px">${isRe
 <div class="wsa">${btn('zct-open', canSign ? 'Read and sign' : 'View contract', r.id, canSign ? '' : 'o')}${btn('zct-print', 'Print', r.id)}</div></div>`;
   };
   const shareBox = r => {
-    if (r.st != 'Active' || r.cu != me()) return '';
+    if (r.st != 'Active' || r.cu != me() || (r.rq && !r.rq.redo)) return ''; // no tracking once the vehicle is handed back
     const on = st.watch != null && st.id == r.id;
     return `<div class="vz-bc" id="rt-box" data-id="${esc(r.id)}" style="margin-top:8px"><b>Share location</b> <span class="tag ${on ? 'g' : 'r'}">${on ? 'Sharing' : 'Not sharing'}</span>
 <p class="mu" style="font-size:13px;margin:6px 0">${on ? 'Keep this page open while you drive. Only the owner and ZamMove staff can see the location, and only until the vehicle is returned.' : 'Your contract asks you to share your location while you drive the rented vehicle. Turn it on before you leave the pickup.'}</p>
@@ -224,7 +224,7 @@ ${on ? btn('zct-gps-stop', 'Pause sharing', r.id) : btn('zct-gps-start', 'Share 
   const ownerBar = r => {
     if (!r.veh) return '';
     let h = contractBar(r, false);
-    if (r.st == 'Active')
+    if (r.st == 'Active' && !(r.rq && !r.rq.redo)) // no live map once the renter has handed the vehicle back
       h += `<div class="vz-bc" style="margin-top:8px"><div class="row" style="padding:0"><b>Vehicle location</b><span>${locText(r)}</span></div><div class="wsa" style="margin-top:6px">${btn('zct-track', 'Track on map', r.id, '')}</div></div>`;
     return h;
   };

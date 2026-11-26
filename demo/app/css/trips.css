@@ -1013,3 +1013,121 @@ html[data-mode='dark'] {
   font-size: 13.5px;
   color: var(--mu, #5b6470);
 }
+
+/* how the customer pays: Cash, GCash, or both */
+.zb-pmq { margin: 4px 0 8px; font-weight: 600; }
+.zb-pm { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.zb-pm button { min-height: 40px; padding: 0 16px; border-radius: 999px; border: 1px solid var(--bd, #d8dde3); background: var(--s, #fff); font: inherit; font-weight: 600; cursor: pointer; color: inherit; }
+.zb-pm button.on { border-color: var(--pri, #0f766e); background: color-mix(in srgb, var(--pri, #0f766e) 10%, transparent); color: var(--pri, #0f766e); box-shadow: inset 0 0 0 1px var(--pri, #0f766e); }
+.zb-pm button:focus-visible { outline: 2px solid var(--pri, #0f766e); outline-offset: 2px; }
+.zb-cash { margin: 0; padding: 12px 14px; border-radius: 10px; background: color-mix(in srgb, var(--pri, #0f766e) 7%, transparent); }
+.zb-split { margin: 8px 0 0; padding: 10px 12px; border-radius: 10px; background: color-mix(in srgb, var(--pri, #0f766e) 7%, transparent); }
+.zb-peso input[readonly] { background: transparent; }
+
+/* phones: the driver's name and vehicle get the full width, the buttons go underneath;
+   the progress timeline scrolls with a fade at the edge (and starts at the current step, see 19-trips.js) */
+@media (max-width: 600px) {
+  .zb-dt {
+    flex: 1 1 calc(100% - 60px);
+  }
+  .zb-drv > .zb-btn,
+  .zb-drv > button,
+  .zb-drv > a {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+  .zb-prog {
+    -webkit-mask-image: linear-gradient(to right, #000 0, #000 82%, transparent 100%);
+    mask-image: linear-gradient(to right, #000 0, #000 82%, transparent 100%);
+    scroll-snap-type: x proximity;
+  }
+  .zb-prog li {
+    scroll-snap-align: start;
+  }
+  .zb-prog.end {
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+}
+
+/* what the customer told the driver about the payment */
+.zb-decl {
+  margin-top: 10px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--s);
+  border: 1px solid var(--bd);
+}
+.zb-decl dl {
+  margin: 8px 0 6px;
+  display: grid;
+  gap: 4px;
+}
+.zb-decl dl > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 14.5px;
+}
+.zb-decl dt {
+  color: var(--tx2);
+}
+.zb-decl dd {
+  margin: 0;
+  text-align: right;
+}
+.zb-decl .zb-btn {
+  margin-top: 6px;
+}
+.zh-rcb {
+  min-height: 34px;
+  padding: 0 12px;
+  font-size: 13px;
+}
+.sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+/* driver: labelled payment fields */
+.zd-f {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1 1 150px;
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--tx2);
+}
+.zd-f input {
+  width: 100%;
+  font-weight: 400;
+}
+/* booking: payment history with the running balance */
+.zb-led {
+  margin-top: 8px;
+}
+.zb-led summary {
+  cursor: pointer;
+  font-weight: 600;
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+}
+.zb-led table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+}
+.zb-led th,
+.zb-led td {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--bd);
+  text-align: left;
+}
+.zb-led .n {
+  text-align: right;
+}

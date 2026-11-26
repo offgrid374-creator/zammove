@@ -146,7 +146,7 @@
     const w = waitSecs(b),
       ready = w >= NOSHOW_MIN * 60,
       cn = first(custOf(b).name);
-    return `<section class="zt-card ztd-ns"><h2>If the customer doesn’t come out</h2><ol><li>Call ${cn} from this screen.</li><li>Wait at the pickup address until the ${NOSHOW_MIN}-minute timer ends.</li><li>Report a no-show. An admin reviews it before anything is charged.</li></ol><button class="zb-btn ${ready ? 'dng' : 'sec'}" data-a="ztd-noshow" data-id="${esc(b.id)}" id="ztd-nsb"${ready ? '' : ' disabled'}>${ready ? 'Report no-show' : `Report no-show (after ${NOSHOW_MIN}:00)`}</button></section>`;
+    return `<section class="zt-card ztd-ns"><h2>If the customer doesn’t come out</h2><ol><li>Call ${cn} from this screen.</li><li>Wait at the pickup address until the ${NOSHOW_MIN}-minute timer ends.</li><li>Mark the no-show. The booking closes and the customer owes a 10% fee, which goes to you. The customer can dispute it, and ZamMove reviews disputes.</li></ol><button class="zb-btn ${ready ? 'dng' : 'sec'}" data-a="ztd-noshow" data-id="${esc(b.id)}" id="ztd-nsb"${ready ? '' : ' disabled'}>${ready ? 'Mark as no-show' : `Mark as no-show (after ${NOSHOW_MIN}:00)`}</button></section>`;
   };
 
   const layoutTrip = () => {
@@ -206,12 +206,15 @@
       }
       if (noShowCase(b) && waitSecs(b) > 120) L.insertAdjacentHTML('beforeend', noShowCard(b));
       else L.insertAdjacentHTML('beforeend', timeline(b));
-      /* road route map from 16-ops stays, under the timeline */
+      /* road route map from 16-ops: full width under the next step, so the driver sees where to go first */
       const route = card.querySelector('.zo-route');
       if (route) {
-        route.classList.add('zt-card');
+        route.classList.add('zt-card', 'ztd-map');
         route.querySelectorAll('a[href*="waze.com"]').forEach(a => a.remove()); // OpenStreetMap / Google only
-        L.appendChild(route);
+        const t = route.querySelector('b');
+        const toPickup = ['Accepted', 'On the Way to Pickup', 'Awaiting Down Payment', 'Down Payment Confirmed', 'Items Loaded'].includes(b.st);
+        if (t && /Best route/.test(t.textContent)) t.textContent = toPickup ? 'Route to the pickup' : 'Route to the drop-off';
+        (wrap.querySelector('.ztd-loc') || wrap.querySelector('.ztd-next')).insertAdjacentElement('afterend', route); // the location line is absent until sharing starts
       }
       R.insertAdjacentHTML('beforeend', custCard(b) + collectCard(b));
       if (tools && !n) {
@@ -220,6 +223,7 @@
       }
       card.replaceWith(wrap);
       setTimeout(() => window.dispatchEvent(new Event('resize')), 60);
+      setTimeout(() => window.dispatchEvent(new Event('zm-refit')), 120); // zoom the route map to the route at its new size
     });
     if (h1 && app.querySelector('.ztd h1')) h1.remove();
   };
@@ -243,17 +247,18 @@
       if (!t) return;
       e.preventDefault();
       e.stopPropagation();
-      /* open the existing "Report the customer" form from 17-improve, pre-filled */
       const id = t.dataset.id,
-        d = [...document.querySelectorAll('.z7-card details')].find(x => /Report the customer/.test(x.textContent));
-      if (!d) return toast('Open Trip tools to report the customer.');
-      d.open = true;
-      const ta = document.getElementById('z7-id-' + id);
-      if (ta && !ta.value) ta.value = `Customer did not come out. I waited ${NOSHOW_MIN} minutes at the pickup address and called.`;
-      const sel = document.getElementById('z7-ic-' + id);
-      if (sel) [...sel.options].some(o => /conduct|other/i.test(o.text) && ((sel.value = o.value || o.text), true));
-      d.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      ta && ta.focus();
+        b = S.bk.find(x => x.id == id);
+      if (!b) return;
+      const fee = Math.round((+b.tot || 0) * 10) / 100;
+      if (!confirm(`Mark ${id} as a no-show?\n\nThe booking closes and the customer owes a ${peso(fee)} no-show fee, which goes to you. Only do this if you waited at the right address and called.`)) return;
+      t.disabled = true;
+      ZAPI.act('noShow', { id }).then(r => {
+        t.disabled = false;
+        if (!r.ok) return toast(r.err);
+        toast(`Closed as a no-show. ${peso(r.fee)} fee is due to you.`);
+        render();
+      });
     },
     true
   );

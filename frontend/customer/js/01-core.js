@@ -137,11 +137,16 @@ const PL = [
   ['Zamboanga City Public Market', 6.9041, 122.0744],
 ];
 const zcBox = (la, lo) => la >= 6.85 && la <= 7.5 && lo >= 121.9 && lo <= 122.4;
+/* outside the city even though the name contains "Zamboanga": the provinces and their towns */
+const OUTSIDE_ZC = /zamboanga\s+(del\s+sur|del\s+norte|sibugay)|\b(pagadian|dipolog|dapitan|ipil|isabela\s+city|basilan|sulu|jolo|tawi-tawi|molave|tukuran|dumingag|sindangan|liloy|kabasalan|diplahan|labason)\b/;
 const inZC = t => {
-  t = (t || '').toLowerCase();
-  if (t.includes('zamboanga')) return true;
+  t = String(t || '').toLowerCase();
+  /* a picked or pinned place carries coordinates: they decide */
   const c = t.match(/\((-?\d+\.\d+), (-?\d+\.\d+)\)/);
   if (c) return zcBox(+c[1], +c[2]);
+  if (OUTSIDE_ZC.test(t) && !/zamboanga\s+city/.test(t)) return false;
+  if (/zamboanga\s+city/.test(t)) return true;
+  if (t.includes('zamboanga') && !OUTSIDE_ZC.test(t)) return true;
   return PL.some(x => t.includes(x[0].split(',')[0].toLowerCase()));
 };
 const peso = n =>
