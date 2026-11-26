@@ -1,6 +1,7 @@
 'use strict';
 /* Accounts: signup, login (with lockout), password reset, one-time owner setup, profile, verification, notifications. */
 const { now, sha256, pin6, str, img, ok, no, hashPassword, checkPassword } = require('../util');
+const C = require('./constants');
 
 const EMAIL = /^\S+@\S+\.\S+$/,
   PHONE = /^(09|\+639)\d{9}$/;
@@ -32,8 +33,10 @@ module.exports = (S, h) => {
       else if (pwErr(u.pw)) e = pwErr(u.pw);
       else if (!p.terms) e = 'Please accept the Terms and Privacy Policy.';
       else if (h.U(u.em)) e = 'Email already registered.';
+      const brgy = str(p.brgy, 120);
+      if (!e && brgy && !C.coord(brgy)) e = 'Choose your barangay from the list.';
       if (e) return no(e);
-      const rec = { ...u, pw: hashPassword(u.pw), ver: false, code: pin6(), codeT: Date.now(), roles: [], cr: now(), tv: 0 };
+      const rec = { ...u, ...(brgy ? { brgy, loc: C.coord(brgy) } : {}), pw: hashPassword(u.pw), ver: false, code: pin6(), codeT: Date.now(), roles: [], cr: now(), tv: 0 };
       S.users.push(rec);
       h.sim(rec.ph, 'SMS', `ZamMove: your verification code is ${rec.code}. Do not share it.`, rec.em);
       h.au(rec.em, 'signup', null);
@@ -154,7 +157,9 @@ module.exports = (S, h) => {
         if (n.length < 3) return no('Enter your full name.');
         if (!PHONE.test(ph)) return no('Enter a valid PH mobile number.');
         if (ad.length < 8) return no('Enter your complete address.');
-        Object.assign(me, { name: n, ph, ad });
+        const brgy = str(p.brgy, 120);
+        if (brgy && !C.coord(brgy)) return no('Choose your barangay from the list.');
+        Object.assign(me, { name: n, ph, ad, ...(brgy ? { brgy, loc: C.coord(brgy) } : {}) });
         h.au(me.em, 'profile updated', null);
         return ok({ me: meOf(me) });
       },

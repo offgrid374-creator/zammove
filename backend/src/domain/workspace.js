@@ -42,6 +42,21 @@ module.exports = (S, h) => ({
       const miss = C.DOCS[r].filter((n, i) => !n.includes('(if any)') && !fileFor(r, i));
       if (miss.length) return no('Upload: ' + miss.join(', ') + '.');
     }
+    /* drivers join through a vehicle owner: the owner they apply to approves before ZamMove reviews.
+       Skipped when that owner already recommended them, or when they are (or are becoming) an owner themselves. */
+    let employer = '',
+      needOwner = false;
+    if (rs.includes('driver')) {
+      const rec = S.asg.find(x => x.driver == me.em && x.st == 'Waiting for Application'),
+        recOwner = rec ? (h.vOf(rec.vehicle) || {}).owner : '';
+      const self = rs.includes('owner') || h.okr(me, 'owner');
+      employer = recOwner || (p.selfDrive && self ? me.em : h.fromKey ? h.fromKey(str(p.employer, 20)) : '');
+      if (!employer && self) employer = me.em;
+      if (!employer) return no('Choose the vehicle owner you will drive for.');
+      const eo = h.U(employer);
+      if (employer != me.em && !(eo && h.okr(eo, 'owner') && h.acct(eo))) return no('Choose an active vehicle owner from the list.');
+      needOwner = employer != me.em && !recOwner;
+    }
     me.roles = me.roles || [];
     for (const r of rs) {
       me.roles = me.roles.filter(x => x.t != r);
@@ -50,7 +65,8 @@ module.exports = (S, h) => ({
         id: rid('AP'),
         user: me.em,
         role: r,
-        st: 'Pending Review',
+        st: r == 'driver' && needOwner ? 'Waiting for Owner' : 'Pending Review',
+        ...(r == 'driver' ? { employer } : {}),
         info: {
           phone,
           address,
@@ -68,10 +84,11 @@ module.exports = (S, h) => ({
         req: '',
         iv: null,
         orient: false,
-        hist: [{ st: 'Pending Review', t: now(), by: me.em }],
+        hist: [{ st: r == 'driver' && needOwner ? 'Waiting for Owner' : 'Pending Review', t: now(), by: me.em }],
       });
     }
-    h.au(me.em, 'application submitted', { roles: rs });
+    if (needOwner) h.ntf(employer, 'Driver application', `${me.name} wants to drive for you. Approve or decline under Drivers.`);
+    h.au(me.em, 'application submitted', { roles: rs, employer: employer || null });
     return ok();
   },
   uploadDoc(me, p) {
@@ -103,6 +120,7 @@ module.exports = (S, h) => ({
     };
     if (['Approved', 'Rejected'].includes(s)) return no('This application is already closed.');
     if (a.user == me.em) return no('You cannot decide your own application. Another administrator must do it.');
+    if (s == 'Waiting for Owner' && act != 'reject') return no('Waiting for the vehicle owner to approve this driver first.');
     if (act == 'verify') {
       if (s != 'Pending Review') return no('Only new applications can start verification.');
       go('Under Verification');
@@ -118,8 +136,36 @@ module.exports = (S, h) => ({
       if (note.length < 5) return no('Describe what is needed.');
       a.req = note;
       go('Awaiting Additional Documents');
+    } else if (act == 'ivsave') {
+      if (s != 'Interview Scheduled') return no('Interview notes can only be recorded while the interview is scheduled.');
+      const Q = C.IVQ[a.role] || [],
+        inp = p.ans && typeof p.ans == 'object' ? p.ans : {},
+        ans = {};
+      for (const q of Q) {
+        const x = inp[q.id] || {},
+          o = (q.opts || []).find(o => o.id == x.a),
+          r = ['pass', 'concern', 'fail'].includes(x.r) ? x.r : o ? o.r : '',
+          n = str(x.n, 400);
+        if (r || n || o) ans[q.id] = { r, n, ...(o ? { a: o.id } : {}) };
+      }
+      a.ivr = { ans, sum: str(p.sum, 600), by: me.em, t: now() };
+      h.au(me.em, 'interview notes saved', { app: a.id, answered: Object.values(ans).filter(x => x.r).length, of: Q.length });
+      return ok({ ivr: a.ivr });
     } else if (act == 'orient') {
       if (s != 'Interview Scheduled') return no('Schedule and hold the interview first.');
+      const Q = C.IVQ[a.role] || [],
+        ans = (a.ivr && a.ivr.ans) || {},
+        open = Q.filter(q => !(ans[q.id] && ans[q.id].r));
+      if (open.length)
+        return no(`Record the interview first: ${open.length} of ${Q.length} questions have no result yet. Save the interview notes.`);
+      /* a Concern or Fail is explained by a picked answer or by a note */
+      const why = Q.find(q => ['fail', 'concern'].includes(ans[q.id].r) && !ans[q.id].a && ans[q.id].n.length < 5);
+      if (why) return no(`Pick the applicant\u2019s answer or write a note for "${why.short}" to explain the ${ans[why.id].r == 'fail' ? 'Fail' : 'Concern'}.`);
+      const failed = Q.filter(q => ans[q.id].r == 'fail');
+      if (failed.length)
+        return no(
+          `The applicant failed ${failed.length} question${failed.length > 1 ? 's' : ''} (${failed.map(q => q.short).join(', ')}). Reject the application, or change the result if it was a mistake.`
+        );
       go('For Orientation');
     } else if (act == 'orientdone') {
       if (s != 'For Orientation') return no('The applicant is not at the orientation stage.');
@@ -133,6 +179,7 @@ module.exports = (S, h) => ({
       go('Approved');
       Object.assign(r, { st: 'approved', by: me.em, at: now() });
       if (a.role == 'driver') {
+        if (a.employer) u.employer = a.employer; // works for this owner only
         u.dx = { lic: a.info.licExp || '', clr: a.info.clrExp || '' };
         u.lic = a.info.license || u.lic;
         /* linked owner recommendations go straight to the driver for an answer */
@@ -199,13 +246,15 @@ module.exports = (S, h) => ({
     if (S.vh.some(v => norm(v.plate) == norm(plate))) return no('This plate number is already registered.');
     if (!regExp || new Date(regExp) < new Date()) return no('The registration must not be expired.');
     if (!img(p.doc)) return no('Upload the registration document (OR/CR).');
-    /* legal documents: hauling for hire needs an LTFRB franchise (CPC); every vehicle needs CTPL insurance */
+    /* legal documents: hauling for hire needs a franchise (LTFRB CPC; city MTOP for 3-wheelers); every vehicle needs CTPL insurance */
     const legal = h.legalOf(ty, p);
     if (legal.err) return no(legal.err);
     const spec = h.vSpec(ty, p);
     if (spec.err) return no(spec.err);
     const load = h.loadSpec(ty, p);
     if (load.err) return no(load.err);
+    const ck = h.catCheck ? h.catCheck(brand, model, !!p.catReq) : {};
+    if (ck.err) return no(ck.err);
     const v = {
       id: rid('VH'),
       owner: me.em,
@@ -229,16 +278,16 @@ module.exports = (S, h) => ({
       status: 'Unavailable',
       selfReq: isDrv && !!p.self && !ty.rentOnly, // "I will drive it myself": set as its driver on approval
       legal: legal.rec,
+      ...(ck.req ? { catReq: { brand, model } } : {}), // not in the catalog yet: the admin adds it when approving
       hist: [{ e: 'Registered' + (isOwn ? '' : ' by a driver'), t: now(), by: me.em }],
     };
     S.vh.push(v);
     h.au(me.em, 'vehicle registered', { vehicle: v.id, self: v.selfReq });
     h.staffEms().forEach(em =>
-      h.ntf(em, 'Vehicle to verify', `${me.name} registered ${brand} ${model} (${plate}).`)
+      h.ntf(em, 'Vehicle to verify', `${me.name} registered ${brand} ${model} (${plate}).` + (ck.req ? ' This brand/model is not in the catalog yet: add it under Catalog & fuel.' : ''))
     );
     return ok({ id: v.id, ownerOnApproval: !isOwn });
   },
-  /* owner: renew the franchise or insurance (new number, expiry and photo) */
   /* owner: correct a hauling vehicle's max load and bed size (never above its type's rating) */
   vehSpecs(me, p) {
     const v = h.vOf(p.id);
@@ -256,11 +305,12 @@ module.exports = (S, h) => ({
     h.au(me.em, 'vehicle specs', { vehicle: v.id, kg: load.kg });
     return ok();
   },
+  /* owner: renew the franchise or insurance (new number, expiry and photo) */
   vehLegal(me, p) {
     const v = h.vOf(p.id);
     if (!v || v.owner != me.em || !h.acct(me)) return no('Vehicle not found.');
     const ty = C.VT.find(x => x.id == v.type) || {};
-    const legal = h.legalOf(ty, p);
+    const legal = h.legalOf(ty, p, v.legal);
     if (legal.err) return no(legal.err);
     v.legal = legal.rec;
     v.hist.push({ e: 'Legal documents updated', t: now(), by: me.em });
@@ -305,7 +355,10 @@ module.exports = (S, h) => ({
             C.DEP_MAX.toLocaleString() +
             '.'
         );
-      v.rent = { on: true, day, dep };
+      /* optional: also offered with one of the owner's drivers, at this extra rate per day */
+      const drv = p.drv === undefined || p.drv === '' || p.drv === null ? +(v.rent || {}).drv || 0 : Math.round(+p.drv);
+      if (!(drv == 0 || (drv >= 300 && drv <= 20000))) return no('Set the driver rate between ₱300 and ₱20,000 a day, or 0 for self-drive only.');
+      v.rent = { on: true, day, dep, ...(drv ? { drv } : {}) };
     }
     v.hist.push({
       e: on

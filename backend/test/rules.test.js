@@ -2,7 +2,7 @@
 /* Business-rule tests: the acceptance checks of fix-plan Phases 1-5, now enforced by the server. */
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { setup, future } = require('./_setup');
+const { legacySetup: setup, future } = require('./_setup'); // written for the older driver → ZamMove flow
 
 async function toItemsLoaded(t, id, drv = 'd1@t.ph') {
   assert.ok((await t.act(drv, 'accept', { id })).ok);
@@ -78,26 +78,14 @@ test('full trip: Start PIN, plate, checklist, confirmations, Delivery PIN, payme
     /not correct/
   );
   assert.ok((await t.act('d1@t.ph', 'vVerify', { id, input: pin.pin })).ok);
-  assert.match((await t.act('d1@t.ph', 'vPlate', { id, input: 'ZZZ 9999' })).err, /mismatch/);
+  /* one typo on the plate only warns; the right plate goes through, nothing is reported */
+  assert.match((await t.act('d1@t.ph', 'vPlate', { id, input: 'ZZZ 9999' })).err, /does not match.*enter it again/);
   assert.ok((await t.act('d1@t.ph', 'vPlate', { id, input: 'AAA1111' })).ok);
+  assert.equal(t.bk(id).ver.disc.length, 0, 'a single typo is not reported');
   assert.ok((await t.act('d1@t.ph', 'vSave', { id, count: 4, items: [true, true], frag: [] })).ok);
   assert.ok((await t.act('d1@t.ph', 'vDriverConfirm', { id })).ok);
   assert.match((await t.act('d1@t.ph', 'vAuthorize', { id })).err, /Customer confirmation/);
   assert.ok((await t.act('c1@t.ph', 'vCustomerConfirm', { id, reviewed: true })).ok);
-  assert.match(
-    (await t.act('d1@t.ph', 'vAuthorize', { id })).err,
-    /unresolved cargo discrepancy/,
-    'the plate mismatch blocks departure'
-  );
-  assert.equal(
-    (await t.act('d1@t.ph', 'vResolve', { id, disc: 'DS-1', res: 'Typo on site' })).ok,
-    false,
-    'drivers cannot resolve'
-  );
-  assert.ok(
-    (await t.act('a@t.ph', 'vResolve', { id, disc: 'DS-1', res: 'Driver mistyped, plate checked by phone' }))
-      .ok
-  );
   assert.ok((await t.act('d1@t.ph', 'vAuthorize', { id })).ok);
   assert.equal(t.bk(id).st, 'In Transit');
   assert.match((await t.act('d1@t.ph', 'step', { id, to: 'Delivery Confirmation' })).err, /Delivery PIN/);
@@ -196,6 +184,17 @@ test('rentals: deposit split, cashier verification, ownership', async () => {
     (await t.act('c2@t.ph', 'rentalPay', { id: r.id, amount: 100, method: 'Cash' })).err,
     /not found/
   );
+  /* nothing is paid while the owner is still reviewing the request */
+  assert.match(
+    (await t.act('c1@t.ph', 'rentalPay', { id: r.id, amount: 5500, method: 'GCash', ref: '5555555555' })).err,
+    /Wait for the owner to approve/
+  );
+  const owner = t.S.rn.find(x => x.id == r.id).owner;
+  assert.ok((await t.act(owner, 'rentalDecision', { id: r.id, act: 'approve' })).ok);
+  /* GCash goes to the owner's own number, so the owner must have one */
+  assert.match((await t.act('c1@t.ph', 'rentalPay', { id: r.id, amount: 5500, method: 'GCash', ref: '5555555555' })).err, /has not added a GCash number/);
+  assert.match((await t.act(owner, 'ownerGcash', { no: '0917123', name: 'Owner' })).err, /11 digits/);
+  assert.ok((await t.act(owner, 'ownerGcash', { no: '0917 123 4567', name: 'Oscar Owner' })).ok);
   assert.ok(
     (await t.act('c1@t.ph', 'rentalPay', { id: r.id, amount: 5500, method: 'GCash', ref: '5555555555' })).ok
   );
@@ -212,8 +211,11 @@ test('rentals: deposit split, cashier verification, ownership', async () => {
     false,
     'customer cannot verify'
   );
-  assert.ok((await t.act('k@t.ph', 'payVerify', { id: ps[0].id, ok: true })).ok);
-  assert.match((await t.act('k@t.ph', 'payVerify', { id: ps[1].id, ok: false })).err, /reason/);
+  assert.equal(ps[0].to, owner, 'paid to the owner');
+  assert.match((await t.act('c2@t.ph', 'payVerify', { id: ps[0].id, ok: true })).err, /Only a cashier/);
+  assert.ok((await t.act(owner, 'payVerify', { id: ps[0].id, ok: true })).ok, 'the owner confirms GCash to their own number');
+  assert.equal(ps[0].coll, owner);
+  assert.match((await t.act(owner, 'payVerify', { id: ps[1].id, ok: false })).err, /reason/);
   assert.equal(t.d.h.paySum(r.id, 'deposit'), 5000);
 });
 
@@ -314,7 +316,7 @@ test('3-wheeler bookings, vehicle color/year at registration, driver and vehicle
   const pic = 'data:image/jpeg;base64,AAAA';
   assert.match(
     (
-      await t.act('o@t.ph', 'addVehicle', { ins: 'CTPL-778899', insExp: future(300), cpc: 'CPC-2024-0001', cpcExp: future(500), kg: 400, 
+      await t.act('o@t.ph', 'addVehicle', { ins: 'CTPL-778899', insDoc: pic, cpcDoc: pic, insExp: future(300), cpc: 'CPC-2024-0001', cpcExp: future(500), kg: 400, 
         type: 'tw',
         brand: 'Bajaj',
         model: 'RE Cargo',
@@ -327,7 +329,7 @@ test('3-wheeler bookings, vehicle color/year at registration, driver and vehicle
   );
   assert.match(
     (
-      await t.act('o@t.ph', 'addVehicle', { ins: 'CTPL-778899', insExp: future(300), cpc: 'CPC-2024-0001', cpcExp: future(500), kg: 400, 
+      await t.act('o@t.ph', 'addVehicle', { ins: 'CTPL-778899', insDoc: pic, cpcDoc: pic, insExp: future(300), cpc: 'CPC-2024-0001', cpcExp: future(500), kg: 400, 
         type: 'tw',
         brand: 'Bajaj',
         model: 'RE Cargo',
@@ -340,7 +342,7 @@ test('3-wheeler bookings, vehicle color/year at registration, driver and vehicle
     ).err,
     /model year/
   );
-  const v = await t.act('o@t.ph', 'addVehicle', { ins: 'CTPL-778899', insExp: future(300), cpc: 'CPC-2024-0001', cpcExp: future(500), kg: 400, 
+  const v = await t.act('o@t.ph', 'addVehicle', { ins: 'CTPL-778899', insDoc: pic, cpcDoc: pic, insExp: future(300), cpc: 'CPC-2024-0001', cpcExp: future(500), kg: 400, 
     type: 'tw',
     brand: 'Bajaj',
     model: 'RE Cargo',

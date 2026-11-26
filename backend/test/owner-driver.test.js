@@ -16,7 +16,7 @@ const car = x => ({
   year: 2021,
   regExp: future(400),
   doc: pic,
-  ins: 'CTPL-778899', insExp: future(300), cpc: 'CPC-2024-0001', cpcExp: future(500),
+  ins: 'CTPL-778899', insDoc: pic, cpcDoc: pic, insExp: future(300), cpc: 'CPC-2024-0001', cpcExp: future(500),
   seats: 3,
   trans: 'Manual',
   fuel: 'Diesel',

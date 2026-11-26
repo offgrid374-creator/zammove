@@ -8,7 +8,7 @@ const { setup, world, future } = require('./_setup');
 const pic = 'data:image/jpeg;base64,AAAA';
 const reg = x => ({
   type: 'l3', brand: 'Mitsubishi', model: 'L300', plate: 'LDV 7788', color: 'White', year: 2022,
-  regExp: future(300), doc: pic, ins: 'CTPL-778899', insExp: future(300), cpc: 'CPC-2024-0001', cpcExp: future(500),
+  regExp: future(300), doc: pic, ins: 'CTPL-778899', insDoc: pic, cpcDoc: pic, insExp: future(300), cpc: 'CPC-2024-0001', cpcExp: future(500),
   ...x,
 });
 

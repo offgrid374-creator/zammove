@@ -60,7 +60,13 @@ async function setup(data = world(), store = memoryStore()) {
   );
   const d = createDomain(st.S);
   const me = em => st.S.users.find(u => u.em == em);
-  const act = (em, name, p = {}) => st.run(() => d.actions[name](me(em), p));
+  const act = (em, name, p = {}) =>
+    st.run(() => {
+      const r = d.actions[name](me(em), p);
+      /* rentals made in older tests use the plain owner release/return; handover tests set t.hv = true */
+      if (name == 'createRental' && r && r.ok && !t.hv) delete st.S.rn.find(x => x.id == r.id).hv;
+      return r;
+    });
   const bk = id => st.S.bk.find(b => b.id == id);
   const booking = (em, x = {}) =>
     act(em, 'createBooking', {
@@ -74,6 +80,18 @@ async function setup(data = world(), store = memoryStore()) {
       sz: 'M',
       ...x,
     });
-  return { st, d, S: st.S, me, act, bk, booking, store };
+  const t = { st, d, S: st.S, me, act, bk, booking, store, hv: false };
+  return t;
 }
-module.exports = { setup, world, user, driver, van, future };
+/* bookings made before the driver → owner → ZamMove change: the driver remits to ZamMove directly */
+async function legacySetup(...a) {
+  const t = await setup(...a);
+  const b0 = t.booking;
+  t.booking = async (em, x) => {
+    const r = await b0(em, x);
+    if (r.ok) delete t.bk(r.id).flow;
+    return r;
+  };
+  return t;
+}
+module.exports = { setup, legacySetup, world, user, driver, van, future };

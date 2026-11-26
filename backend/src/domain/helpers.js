@@ -26,7 +26,7 @@ module.exports = function makeHelpers(S) {
     const o = v && h.U(v.owner);
     return !!o && h.acct(o) && !(o.roles || []).some(r => r.t == 'owner' && r.st == 'revoked');
   };
-  h.vOper = v => !!v && v.approval == 'Approved' && v.status == 'Available' && h.ownerActive(v);
+  h.vOper = v => !!v && v.approval == 'Approved' && v.status == 'Available' && h.ownerActive(v) && !(h.U(v.owner) || {}).rentPaused; // paused: owner overdue on their ZamMove remittance
 
   h.done = b => ['Completed', 'Cancelled', 'Rejected'].includes(b.st);
   /* fares per vehicle type: the built-in rates, overridden by the administrator's settings */
@@ -58,8 +58,11 @@ module.exports = function makeHelpers(S) {
       trans = p.trans || 'Manual',
       fuel = p.fuel || 'Diesel';
     if (!(seats >= 1 && seats <= 30)) return { err: 'Seats must be between 1 and 30.' };
-    if (!['Manual', 'Automatic'].includes(trans)) return { err: 'Choose Manual or Automatic.' };
-    if (!['Diesel', 'Gasoline', 'Electric'].includes(fuel)) return { err: 'Choose the fuel type.' };
+    /* the lists come from the admin catalog (catalog.js); the defaults keep older callers working */
+    const TR = h.catTrans ? h.catTrans() : ['Manual', 'Automatic'],
+      FU = h.catFuels ? h.catFuels() : ['Diesel', 'Gasoline', 'Electric', 'Hybrid'];
+    if (!TR.includes(trans)) return { err: 'Choose the transmission from the list.' };
+    if (!FU.includes(fuel)) return { err: 'Choose the fuel type from the list.' };
     return { seats, trans, fuel };
   };
   /* load limit of one vehicle: what its owner entered, otherwise its type's limit */
@@ -82,9 +85,16 @@ module.exports = function makeHelpers(S) {
     const cap = `${kg.toLocaleString('en-PH')} kg` + (b ? ` · ${b[0]} × ${b[1]}${b[2] ? ' × ' + b[2] : ''} ft${b[2] ? '' : ' open'} bed` : '');
     return { kg, bed, cap };
   };
-  /* legal documents of a vehicle: CTPL insurance always, LTFRB franchise (CPC) for hauling types */
+  /* which franchise a hauling type needs: LTFRB grants it for vans and trucks for hire; for tricycles
+     (3-wheelers) it is the city's Motorized Tricycle Operator's Permit (MTOP) */
+  h.frOf = ty =>
+    (ty || {}).fr == 'mtop'
+      ? { name: 'city tricycle franchise (MTOP)', Name: 'City tricycle franchise (MTOP)' }
+      : { name: 'LTFRB franchise (CPC)', Name: 'LTFRB franchise (CPC)' };
+  /* legal documents of a vehicle: CTPL insurance always, and the franchise for hauling types */
   const D8 = /^\d{4}-\d{2}-\d{2}$/;
-  h.legalOf = (ty, p) => {
+  /* old: the vehicle's current documents; on a renewal an unchanged document keeps its photo */
+  h.legalOf = (ty, p, old) => {
     const t = new Date(Date.now() + 8 * 36e5).toISOString().slice(0, 10),
       ins = String(p.ins || '').trim().slice(0, 40),
       insExp = String(p.insExp || '').slice(0, 10),
@@ -93,11 +103,18 @@ module.exports = function makeHelpers(S) {
     if (ins.length < 4) return { err: 'Enter the CTPL insurance policy number.' };
     if (!D8.test(insExp) || insExp <= t) return { err: 'The insurance must not be expired (enter its expiry date).' };
     if (!ty.rentOnly) {
-      if (cpc.length < 5) return { err: 'Enter the LTFRB franchise (CPC) number. Hauling for hire requires it.' };
-      if (!D8.test(cpcExp) || cpcExp <= t) return { err: 'The LTFRB franchise must not be expired (enter its expiry date).' };
+      const F = h.frOf(ty);
+      if (cpc.length < 5) return { err: `Enter the ${F.name} number. Hauling for hire requires it.` };
+      if (!D8.test(cpcExp) || cpcExp <= t) return { err: `The ${F.name} must not be expired (enter its expiry date).` };
     }
-    const doc = f => (typeof f == 'string' && /^data:image\//.test(f) && f.length < 2.8e6 ? f : '');
-    return { rec: { ins, insExp, insDoc: doc(p.insDoc), ...(ty.rentOnly ? {} : { cpc, cpcExp, cpcDoc: doc(p.cpcDoc) }), t: now() } };
+    const doc = f => (typeof f == 'string' && /^data:image\//.test(f) && f.length < 2.8e6 ? f : ''),
+      O = old || {},
+      insDoc = doc(p.insDoc) || (O.ins == ins && O.insExp == insExp ? O.insDoc || '' : ''),
+      cpcDoc = ty.rentOnly ? '' : doc(p.cpcDoc) || (O.cpc == cpc && O.cpcExp == cpcExp ? O.cpcDoc || '' : '');
+    if (!insDoc) return { err: 'Upload a photo of the CTPL insurance policy, so the admin can check the number and expiry.' };
+    if (!ty.rentOnly && !cpcDoc)
+      return { err: `Upload a photo of the ${h.frOf(ty).name}, so the admin can check the number and expiry.` };
+    return { rec: { ins, insExp, insDoc, ...(ty.rentOnly ? {} : { cpc, cpcExp, cpcDoc }), t: now() } };
   };
   /* what is missing or expired (strict: missing counts too, used when approving) */
   h.legalIssues = (v, ty, strict) => {
@@ -107,8 +124,8 @@ module.exports = function makeHelpers(S) {
     if (!L.insExp) strict && out.push('CTPL insurance missing');
     else if (L.insExp < t) out.push('Insurance expired on ' + L.insExp);
     if (!(ty || {}).rentOnly) {
-      if (!L.cpcExp) strict && out.push('LTFRB franchise (CPC) missing');
-      else if (L.cpcExp < t) out.push('LTFRB franchise expired on ' + L.cpcExp);
+      if (!L.cpcExp) strict && out.push(h.frOf(ty).Name + ' missing');
+      else if (L.cpcExp < t) out.push(h.frOf(ty).Name + ' expired on ' + L.cpcExp);
     }
     return out;
   };
@@ -120,7 +137,15 @@ module.exports = function makeHelpers(S) {
     !!v.rent &&
     !!v.rent.on &&
     +v.rent.day > 0 &&
+    !(h.U(v.owner) || {}).rentPaused && // listings pause while the owner owes ZamMove for too long
     !['Maintenance', 'Unavailable'].includes(v.status);
+  /* a reservation holds its vehicle between the drop-off and the pick-up (the customer pays a daily hold fee) */
+  h.heldOn = (vid, dt, b) =>
+    S.bk.some(x => {
+      if (!x.pkg || x.veh != vid || x.st == 'Cancelled' || (b && (b.id == x.id || b.pkgOf == x.id))) return false;
+      const r = S.bk.find(y => y.id == x.pkg.ret);
+      return !!r && !h.done(r) && dt > x.dt && dt < r.dt;
+    });
   /* rentals that hold the vehicle on a date (approved or released; pending requests do not block hauling) */
   h.rentedOn = (vid, dt) =>
     S.rn.some(r => r.veh == vid && ['Approved', 'Active'].includes(r.st) && r.s <= dt && dt <= r.e);
@@ -150,14 +175,16 @@ module.exports = function makeHelpers(S) {
       ],
       [
         'Your vehicle is free for this schedule',
-        !!v && !S.bk.some(x => x.id != b.id && x.veh == v.id && !h.done(x) && h.ovl(x, b)),
+        !!v && !S.bk.some(x => x.id != b.id && x.veh == v.id && !h.done(x) && h.ovl(x, b)) && !h.heldOn(v.id, b.dt, b),
       ],
       [
         'You are set to Available and not in the middle of a trip',
         h.dAv(em) == 'Available' && !h.onRoad(em, b.id),
       ],
       ['Your vehicle type matches the booking (' + hv.n + ')', !!v && v.type == b.vid],
+      ['Your vehicle matches the customer’s preferences', !b.pref || !h.prefOk || h.prefOk(b.pref, v, em)],
       ['Your vehicle is not rented out that day', !!v && !h.rentedOn(v.id, b.dt)],
+      ['You are not driving a rental that day', !S.rn.some(r => r.withDrv && r.withDrv.em == em && ['Approved', 'Active'].includes(r.st) && r.s <= b.dt && b.dt <= r.e)],
       [
         b.wt ? `Your vehicle can carry this load (about ${(+b.wt).toLocaleString('en-PH')} kg)` : 'Your vehicle can carry this load',
         !b.wt || (!!v && h.vKg(v) >= b.wt),
@@ -186,7 +213,7 @@ module.exports = function makeHelpers(S) {
         x => x.id != p.id && x.vid == p.vid && !h.done(x) && x.st != 'No driver found' && h.ovl(x, p)
       );
     const busy = new Set(O.filter(x => x.veh).map(x => x.veh));
-    V.forEach(v => h.rentedOn(v.id, p.dt) && busy.add(v.id));
+    V.forEach(v => (h.rentedOn(v.id, p.dt) || h.heldOn(v.id, p.dt)) && busy.add(v.id));
     return V.filter(v => !busy.has(v.id)).length - O.filter(x => !x.veh).length;
   };
   h.eligibleDrivers = b =>
@@ -195,7 +222,7 @@ module.exports = function makeHelpers(S) {
   /* one payment model */
   h.counted = p => !!p && C.PAY_OK.includes(p.status);
   h.half = b => Math.round(Math.round((+b.tot || 0) * 100) / 2) / 100;
-  h.due = (b, k) => (k == 'down' ? h.half(b) : r2((+b.tot || 0) - h.half(b)));
+  h.due = (b, k) => (k == 'down' ? h.half(b) : r2(Math.max(0, (+b.tot || 0) - h.half(b) - ((b.odisc && +b.odisc.amt) || 0)))); // an owner discount lowers the balance
   h.paySum = (bid, kind) =>
     r2(
       S.pay
@@ -227,9 +254,10 @@ module.exports = function makeHelpers(S) {
       comm = S.cfg.comm == null ? 15 : +S.cfg.comm;
     const share = r2((pool * pct) / 100),
       zc = r2((pool * comm) / 100),
-      own = r2(Math.max(0, pool - share - zc));
+      disc = r2((b.odisc && +b.odisc.amt) || 0), // an owner discount comes out of the owner's share only
+      own = r2(Math.max(0, pool - share - zc) - disc);
     const v = h.vOf(b.veh) || {};
-    return { fare, fee, pool, pct, comm, mov, drv: r2(share + mov), zc, own, zam: r2(fee + zc), owner: v.owner || '' };
+    return { fare, fee, pool, pct, comm, mov, drv: r2(share + mov), zc, own, zam: r2(fee + zc), owner: v.owner || '', ...(disc ? { odisc: disc } : {}) };
   };
   h.dueFor = b => r2(Math.max(0, h.gross(b) - h.splitOf(b).drv));
   /* trips a driver must remit: completed, or closed early with money collected */
@@ -242,17 +270,21 @@ module.exports = function makeHelpers(S) {
   h.cashHeld = em =>
     r2(
       S.bk
-        .filter(b => b.drvUser == em && h.closedPaid(b) && !(b.rem && h.remOk(b.rem)))
-        .reduce((s, b) => s + h.dueFor(b), 0) + h.drvDebit(em) - h.drvCredit(em)
+        .filter(b => b.drvUser == em && h.closedPaid(b) && b.flow != 'owner' && !(b.rem && h.remOk(b.rem)))
+        .reduce((s, b) => s + h.dueFor(b), 0) +
+        h.drvDebit(em) -
+        h.drvCredit(em) +
+        (h.turnOwed ? h.turnOwed(em) : 0) // owners' money the driver still holds (driver → owner → ZamMove)
     );
   /* a week's trips are due 3 days after the week ends (Monday + 10 days) */
   h.overdue = em =>
     S.bk.some(
-      b => b.drvUser == em && h.closedPaid(b) && !b.rem && b.cd && Date.now() > new Date(h.wk(b.cd)).getTime() + 10 * 864e5
-    );
+      b => b.drvUser == em && h.closedPaid(b) && b.flow != 'owner' && !b.rem && b.cd && Date.now() > new Date(h.wk(b.cd)).getTime() + 10 * 864e5
+    ) || (h.turnOverdue ? h.turnOverdue(em) : false);
   /* upheld wrong-change claims a driver must pay back, not yet added to a remittance */
+  h.DEBIT_KINDS = ['change_charge', 'case_charge'];
   h.drvDebit = em =>
-    r2(S.pay.filter(p => p.kind == 'change_charge' && p.payer == em && p.status == 'Due').reduce((s, p) => s + p.amount, 0));
+    r2(S.pay.filter(p => h.DEBIT_KINDS.includes(p.kind) && p.payer == em && p.status == 'Due' && !(h.viaOwner && h.viaOwner(p))).reduce((s, p) => s + p.amount, 0)); // older bookings only
   /* a strike on a driver (late, no-show, wrong change); 3 in 90 days send the driver to admin review */
   h.strike = (em, bid, why) => {
     const d = h.U(em);
@@ -267,19 +299,30 @@ module.exports = function makeHelpers(S) {
   };
   /* verified cancellation fees owed to a driver, not yet set off against a remittance */
   h.drvCredit = em =>
-    r2(S.pay.filter(p => p.kind == 'cancel_fee' && p.to == em && p.status == 'Verified' && !p.applied).reduce((s, p) => s + p.amount, 0));
+    r2(S.pay.filter(p => p.kind == 'cancel_fee' && p.to == em && p.status == 'Verified' && !p.applied && !(h.viaOwner && h.viaOwner(p))).reduce((s, p) => s + p.amount, 0)); // older bookings only
   /* owner earnings: payable only once ZamMove actually has the money
        trips: after the driver's remittance is verified; rentals: when completed (the cashier verified the payments) */
   h.ownerBal = em => {
-    const trips = S.bk.filter(b => h.closedPaid(b) && h.splitOf(b).owner == em),
+    const trips = S.bk.filter(b => h.closedPaid(b) && b.flow != 'owner' && h.splitOf(b).owner == em),
       ok = trips.filter(b => b.rem && h.remOk(b.rem)),
-      rents = S.rn.filter(r => r.owner == em && r.st == 'Completed' && r.split);
+      rents = S.rn.filter(r => r.owner == em && ['Completed', 'Cancelled'].includes(r.st) && r.split), // a late cancellation fee counts too
+      closedIds = new Set(S.rn.filter(r => r.owner == em && ['Completed', 'Cancelled'].includes(r.st)).map(r => r.id));
     const earnedTrips = r2(ok.reduce((s, b) => s + h.splitOf(b).own, 0)),
       waiting = r2(trips.filter(b => !ok.includes(b)).reduce((s, b) => s + h.splitOf(b).own, 0)),
       earnedRent = r2(rents.reduce((s, r) => s + r.split.own + (r.split.kept || 0), 0));
     const earned = r2(earnedTrips + earnedRent);
-    const paid = r2(S.pay.filter(p => p.kind == 'owner_payout' && p.to == em).reduce((s, p) => s + p.amount, 0));
-    return { earned, earnedTrips, earnedRent, waiting, paid, due: r2(earned - paid) };
+    /* rental cash the owner received at pickup (completed rentals): ZamMove's commission and the deposit refund are in it */
+    const doneIds = closedIds,
+      refunded = r2(S.pay.filter(p => ['deposit_refund', 'refund'].includes(p.kind) && p.from == em && ['Sent', 'Paid'].includes(p.status)).reduce((s, p) => s + p.amount, 0)),
+      held = r2(S.pay.filter(p => p.coll == em && p.status == 'Verified' && doneIds.has(p.bid)).reduce((s, p) => s + p.amount, 0) - refunded),
+      heldOpen = r2(S.pay.filter(p => p.coll == em && p.status == 'Verified' && !doneIds.has(p.bid)).reduce((s, p) => s + p.amount, 0));
+    const paid = r2(S.pay.filter(p => p.kind == 'owner_payout' && p.to == em).reduce((s, p) => s + p.amount, 0)),
+      settled = r2(S.pay.filter(p => p.kind == 'owner_remit' && p.payer == em && p.status == 'Verified').reduce((s, p) => s + p.amount, 0)),
+      sent = r2(S.pay.filter(p => p.kind == 'owner_remit' && p.payer == em && p.status == 'Submitted').reduce((s, p) => s + p.amount, 0));
+    /* driver → owner → ZamMove: ZamMove's portion of trips on the owner's vehicles, and fees/charges for their drivers */
+    const tripsOwed = h.ownerTripsOwed ? h.ownerTripsOwed(em) : 0,
+      cross = h.ownerCross ? h.ownerCross(em) : 0;
+    return { earned, earnedTrips, earnedRent, waiting, paid, held, heldOpen, settled, sent, tripsOwed, cross, due: r2(earned - paid - held + settled - tripsOwed + cross) };
   };
   h.ntfOwner = (b, head, body) => {
     const v = b && h.vOf(b.veh);
@@ -293,7 +336,7 @@ module.exports = function makeHelpers(S) {
     x.setUTCDate(x.getUTCDate() - ((x.getUTCDay() + 6) % 7));
     return x.toISOString().slice(0, 10);
   };
-  h.remBks = em => S.bk.filter(b => b.drvUser == em && h.closedPaid(b) && !b.rem);
+  h.remBks = em => S.bk.filter(b => b.drvUser == em && h.closedPaid(b) && b.flow != 'owner' && !b.rem); // older trips: driver → ZamMove
   h.cancelFee = b => (C.CANCEL_FREE.includes(b.st) ? 0 : Math.round((+b.tot || 0) * 10) / 100);
   h.rentPaid = r => h.paySum(r.id);
   h.depOf = r => +r.dep || 2000; // deposit fixed on the rental when it was requested (₱2,000 for rentals made before per-vehicle deposits)
@@ -339,7 +382,7 @@ module.exports = function makeHelpers(S) {
       t = Date.now();
     let ch = 0;
     S.bk.forEach(b => {
-      if (b.st != 'Pending' || b.drvUser || !b.cr) return;
+      if (b.st != 'Pending' || b.drvUser || !b.cr || b.pkgOf) return;
       const t0 = h.t0(b),
         from = new Date(b.pendFrom || b.cr).getTime(),
         /* same-day: the usual waiting time; scheduled: open until OPEN_UNTIL_H hours before pickup; never past pickup */
@@ -360,6 +403,61 @@ module.exports = function makeHelpers(S) {
         ch = 1;
       }
     });
+    /* a driver who accepted but is late: tell everyone at LATE_MIN; at GHOST_MIN without setting off, the job reopens */
+    S.bk.forEach(b => {
+      if (!b.drvUser || !['Accepted', 'On the Way to Pickup'].includes(b.st) || b.pkgOf) return;
+      const late = t - h.t0(b);
+      if (late > C.LATE_MIN * 6e4 && !b.lateWarn) {
+        b.lateWarn = now();
+        h.ntf(b.cu, 'Your driver is late', `${b.id}: your driver has not arrived ${C.LATE_MIN} minutes after the pickup time. You can keep waiting, chat or call the driver, or cancel at no charge (the driver gets a strike).`);
+        h.ntf(b.drvUser, 'You are late', `${b.id}: you are ${C.LATE_MIN} minutes past the pickup time. Head to the pickup now or tell the customer. If you have not set off within ${C.GHOST_MIN} minutes of the pickup time, the job is given to another driver.`);
+        h.staffEms().forEach(em => h.ntf(em, 'Driver late', `${b.id} (${b.dt} ${b.tm}): the driver is ${C.LATE_MIN} minutes late (${b.st}).`));
+        if (h.ntfOwner) h.ntfOwner(b, 'Driver late', `${b.id}: your driver is ${C.LATE_MIN} minutes late.`);
+        ch = 1;
+      }
+      if (b.st == 'Accepted' && late > C.GHOST_MIN * 6e4) {
+        const drv = b.drvUser,
+          name = b.drv || (h.U(drv) || {}).name || 'The driver';
+        h.strike(drv, b.id, 'Did not come to the pickup');
+        (b.ghosted = b.ghosted || []).push({ drv, t: now() });
+        b.declined = [...new Set([...(b.declined || []), drv])];
+        delete b.drvUser;
+        delete b.veh;
+        delete b.drv;
+        delete b.acc;
+        delete b.lateWarn;
+        /* the linked reserved pick-up was promised to the same driver: release it too */
+        S.bk.filter(x => x.pkgOf == b.id && x.drvUser == drv && x.st == 'Accepted').forEach(x => {
+          delete x.drvUser;
+          delete x.veh;
+          delete x.drv;
+          x.released = true;
+          h.ev(x, 'system', 'Pending', 'Released: the driver did not come to the first pickup');
+        });
+        h.ev(b, 'system', 'No driver found', `${name} did not set off ${C.GHOST_MIN} minutes after the pickup time. The job was taken back.`);
+        h.au('system', 'driver no-show', { bk: b.id, driver: drv });
+        h.ntf(b.cu, 'We are finding you another driver', `${b.id}: your driver did not come. Choose a new time and re-submit it in My bookings (no charge), or cancel. ZamMove staff were told and can assign a driver.`);
+        h.ntf(drv, 'Job taken back', `${b.id}: you did not set off ${C.GHOST_MIN} minutes after the pickup time, so the job was taken back and a strike was recorded.`);
+        h.staffEms().forEach(em => h.ntf(em, 'Driver did not come', `${b.id}: ${name} never set off. The booking is open again; assign a driver or contact the customer.`));
+        ch = 1;
+      }
+    });
+    /* a trip that stops moving with the customer's items on board: staff and the customer are told once */
+    S.bk.forEach(b => {
+      if (!['Down Payment Confirmed', 'Items Loaded', 'In Transit'].includes(b.st) || b.stallWarn) return;
+      const last = (b.ev || []).slice(-1)[0],
+        since = last ? t - new Date(last.t).getTime() : 0,
+        gpsAge = b.gps && b.gps.ms ? t - b.gps.ms : Infinity,
+        limit = h.dur(b.km) + 2 * 36e5;
+      if (since > limit && gpsAge > 30 * 6e4) {
+        b.stallWarn = now();
+        h.staffEms().forEach(em => h.ntf(em, 'Trip not moving', `${b.id}: no update for ${Math.round(since / 36e5)} hours (${b.st}) and no recent location. Call the driver and the customer.`));
+        h.ntf(b.cu, 'Checking on your trip', `${b.id}: your trip has had no update for a while. ZamMove staff were told and will call your driver. Use Report a problem if something is wrong.`);
+        ch = 1;
+      }
+    });
+    if (h.sweepRentals && h.sweepRentals()) ch = 1;
+    if (h.sweepDrafts && h.sweepDrafts()) ch = 1;
     return ch;
   };
 

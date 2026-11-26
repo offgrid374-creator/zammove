@@ -3,7 +3,7 @@
    account suspension, role revoking, handing back a job, owner notifications and live trip view. */
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { setup } = require('./_setup');
+const { legacySetup: setup } = require('./_setup'); // these tests cover the older driver → ZamMove flow
 
 /* drive a booking from Pending to Completed with driver D1 on van V1 (owner O) */
 async function complete(t, id) {
@@ -57,7 +57,7 @@ test('every completed trip is split: service fee + commission to ZamMove, driver
   assert.ok((await t.act('a@t.ph', 'cfgSplit', { comm: 10, drvPct: 25 })).ok);
   assert.equal(t.d.h.splitOf(t.bk(id)).own, 1248);
   /* the owner's share becomes payable only when ZamMove has the money (driver's remittance verified) */
-  assert.deepEqual(t.d.h.ownerBal('o@t.ph'), { earned: 0, earnedTrips: 0, earnedRent: 0, waiting: 1248, paid: 0, due: 0 });
+  assert.deepEqual(t.d.h.ownerBal('o@t.ph'), { earned: 0, earnedTrips: 0, earnedRent: 0, waiting: 1248, paid: 0, held: 0, heldOpen: 0, settled: 0, sent: 0, tripsOwed: 0, cross: 0, due: 0 });
 });
 
 test('split settings are validated; agreements leave room for the commission', async () => {
@@ -104,7 +104,7 @@ test('remittance due follows the split, and the cashier pays the owner from his 
       })
     ).ok
   );
-  assert.deepEqual(t.d.h.ownerBal('o@t.ph'), { earned: 1248, earnedTrips: 1248, earnedRent: 0, waiting: 0, paid: 1000, due: 248 });
+  assert.deepEqual(t.d.h.ownerBal('o@t.ph'), { earned: 1248, earnedTrips: 1248, earnedRent: 0, waiting: 0, paid: 1000, held: 0, heldOpen: 0, settled: 0, sent: 0, tripsOwed: 0, cross: 0, due: 248 });
   assert.ok(t.S.nt.some(n => n.to == 'o@t.ph' && n.h == 'Payout sent'));
   assert.ok(
     t.d.view(t.me('o@t.ph')).pay.some(p => p.kind == 'owner_payout' && p.amount == 1000),

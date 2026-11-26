@@ -2,7 +2,7 @@
 /* Shared business constants. The frontend keeps display copies; the backend values are the ones that count. */
 /* hauling vehicle types; 'tw' = 3-wheeler cargo (Bajaj RE / Piaggio Ape class). Prices are placeholders for the company to confirm. */
 const HV = [
-  { id: 'tw', n: '3-Wheeler', cap: 'Bajaj / Piaggio type · 500 kg · 5 ft bed', base: 600, km: 15, kg: 500, bed: [5, 4, 0], fits: 'A few boxes, one appliance or a small cabinet' },
+  { id: 'tw', n: '3-Wheeler', fr: 'mtop', cap: 'Bajaj / Piaggio type · 500 kg · 5 ft bed', base: 600, km: 15, kg: 500, bed: [5, 4, 0], fits: 'A few boxes, one appliance or a small cabinet' },
   { id: 'pk', n: 'Pickup Truck', cap: '1,000 kg · 8 ft open bed', base: 1200, km: 25, kg: 1000, bed: [8, 5, 0], fits: 'One room: a bed, a ref, a sofa and about 10 boxes' },
   { id: 'l3', n: 'L300 Van', cap: '1,500 kg · 10 ft covered', base: 1800, km: 30, kg: 1500, bed: [10, 5.5, 5.5], fits: 'A studio or two rooms, kept dry under a cover' },
   { id: 'cv', n: 'Closed Van', cap: '3,000 kg · 14 ft closed', base: 2500, km: 35, kg: 3000, bed: [14, 6.5, 6.5], fits: 'A two-to-three-bedroom house, fully enclosed' },
@@ -97,7 +97,7 @@ const DC = { ZAM10: 0.1, WELCOME: 0.05 },
 
 /* Self-drive rental agreement. The clauses are copied into each rental's contract when the owner approves it,
    so later edits here never change a contract that was already issued. Bump CONTRACT_V when you change them. */
-const CONTRACT_V = 2;
+const CONTRACT_V = 6; // 6: chosen pickup and return times, handover check with a code
 /* photos taken at release and at return (all required) */
 const HANDOVER_PH = [
   ['front', 'Front'],
@@ -108,6 +108,27 @@ const HANDOVER_PH = [
   ['fuel', 'Fuel gauge'],
 ];
 const CLAIM_DAYS = 3; // the owner may claim against the deposit up to 3 days after the return
+/* rental time rules */
+const RN_PICKUP_TM = '08:00'; // pickup time of rentals made before renters chose their own (Manila)
+const RN_RETURN_TM = '18:00'; // return time of those older rentals
+const RN_TM_MIN = '06:00', // renters pick pickup and return times in this window, every 30 minutes
+  RN_TM_MAX = '20:00';
+const HO_FAR_KM = 0.3; // at handover or return, a phone farther than this from the agreed place needs the owner's reason
+const HO_EARLY_H = 12; // the handover check can start this many hours before the pickup time
+const RN_PENDING_H = 24; // an unanswered request expires after 24 hours (or at pickup, if sooner)
+const RN_UNPAID_H = 12; // an approved rental not fully paid 12 hours before pickup is cancelled
+const RN_FREE_CXL_H = 48; // cancelling at least 48 hours before pickup is free; later, the owner keeps one day's fee
+const REFUND_REMIND_H = 24; // an owner who has not sent a refund is reminded after 24 hours
+const REFUND_ALERT_H = 48; // and ZamMove is alerted after 48 hours
+const REMIT_PAUSE_D = 14; // an owner who owes ZamMove for 14 days has their rental listings paused
+const NOSHOW_MIN = 15;
+const GHOST_MIN = 90; // a driver who accepted and has not set off this long after the pickup time loses the job
+const NOSHOW_FAR_KM = 1; // a no-show fee is refused when the driver's phone is farther than this from the pickup
+const OPEN_MAX = 5; // bookings one customer can have waiting for a driver at the same time
+const HOLD_FEE = 500; // ₱ per day a reserved vehicle is held between drop-off and pick-up (admin can change cfg.holdFee) // a driver may mark a no-show after waiting this long at the pickup
+const RET_CHECK_H = 24; // the owner checks a return within 24 hours, or it is accepted as the renter submitted it
+const RET_FAR_KM = 1; // a return submitted farther than this from the agreed return point is flagged to the owner
+const RET_PHOTO_MIN = 120; // a return photo whose file is older than this is flagged (it may not be from the return)
 const CONTRACT = [
   [
     'Parties and vehicle',
@@ -115,7 +136,7 @@ const CONTRACT = [
   ],
   [
     'Rental fee and deposit',
-    'The Renter pays the full rental fee and the refundable security deposit stated above through ZamMove before pickup. The vehicle is released only after both are verified. The deposit is returned when the rental is completed, less any amount kept under the Deposit claims clause.',
+    'The Renter pays the full rental fee and the refundable security deposit stated above to the Owner before pickup, by GCash to the Owner’s GCash number shown in ZamMove or in cash, and the Owner confirms each payment in ZamMove. The vehicle is released only after both are confirmed. The Owner keeps the deposit and returns it to the Renter when the rental is completed, less any amount kept under the Deposit claims clause, and records the refund in ZamMove; the Renter confirms receiving it. ZamMove’s commission is a matter between the Owner and ZamMove and is not charged to the Renter.',
   ],
   [
     'Authorized driver',
@@ -131,7 +152,11 @@ const CONTRACT = [
   ],
   [
     'Condition, fuel and odometer',
-    'At release and at return the Owner records the odometer, fuel level and condition in ZamMove with photos of the front, back, both sides, odometer and fuel gauge, and the Renter confirms them or reports a difference. The Renter returns the vehicle with the same fuel level, clean, with all keys, documents and accessories received.',
+    'At release the Owner records the odometer, fuel level and condition in ZamMove with photos of the front, back, both sides, odometer and fuel gauge, and the Renter confirms them or reports a difference. At return the Renter submits the same readings and photos in ZamMove at the return location, which records the time and the phone’s location. The Owner checks the vehicle against them within 24 hours: if it matches, the Owner marks it returned; if not, the Owner records the difference and the Renter confirms or disputes it. If the Owner does not respond within 24 hours, the return is accepted as the Renter submitted it. The Renter returns the vehicle with the same fuel level, clean, with all keys, documents and accessories received.',
+  ],
+  [
+    'Responsibility until return',
+    'The Renter is responsible for the vehicle, its keys and documents from release until the Owner confirms the return, or until the return is accepted after 24 hours. Keys may be left with someone else only if the Owner agrees; the Renter writes who has them in the return form.',
   ],
   [
     'Accidents, damage and loss',
@@ -139,7 +164,7 @@ const CONTRACT = [
   ],
   [
     'Deposit claims',
-    'Within 3 days after the return, the Owner may claim part or all of the deposit for damage, missing items, fuel or late return, with photos and the amount. The Renter may accept or dispute the claim in ZamMove; a ZamMove administrator decides disputes from the handover photos and evidence. The rest of the deposit is refunded when the rental is completed.',
+    'Within 3 days after the return, the Owner may claim part or all of the deposit for damage, missing items, fuel or late return, with photos and the amount. The Renter may accept or dispute the claim in ZamMove; a ZamMove administrator decides disputes from the handover photos and evidence. If no claim is made within 3 days after the return, the rental is completed automatically. The rest of the deposit is refunded when the rental is completed.',
   ],
   [
     'Traffic violations',
@@ -147,7 +172,7 @@ const CONTRACT = [
   ],
   [
     'Late return',
-    'The vehicle is returned at the return location on the end date. After a 2-hour grace period, every late day or part of a day is charged at the daily rate unless the Owner agrees to an extension in ZamMove.',
+    'The vehicle is returned at the return location by the return time on the end date. After a 2-hour grace period, every late day or part of a day is charged at the daily rate. The Renter may ask for an extension in ZamMove (My rentals → Change dates) before the end date; it applies only once the Owner accepts it, and the added days are paid at the daily rate.',
   ],
   [
     'Owner’s obligations',
@@ -155,7 +180,7 @@ const CONTRACT = [
   ],
   [
     'Cancellation',
-    'The Renter may cancel in ZamMove before the vehicle is released. Payments already verified are handled under ZamMove’s refund policy.',
+    'The Renter may cancel in ZamMove before the vehicle is released. Cancelling at least 48 hours before the pickup time on the pickup date is free; within 48 hours the Owner keeps one day’s rental fee from what was paid and refunds the rest, including the deposit. A request the Owner does not answer within 24 hours, or an approved rental that is not fully paid 12 hours before pickup, is cancelled automatically and anything paid is refunded in full. The Owner sends refunds within 48 hours and records them in ZamMove; the Renter confirms receiving them.',
   ],
   [
     'Personal data',
@@ -252,6 +277,7 @@ const CANCEL_OK = ['Pending', 'No driver found', 'Accepted', 'On the Way to Pick
 const RENTAL_FLOW = ['Pending', 'Approved', 'Active', 'Returned', 'Completed'];
 
 const APP_ST = [
+  'Waiting for Owner', // a driver applies to a vehicle owner, who approves first
   'Pending Review',
   'Under Verification',
   'Interview Scheduled',
@@ -260,6 +286,53 @@ const APP_ST = [
   'Approved',
   'Rejected',
 ];
+/* interview guide shown to the interviewer, per role. Each answer is Pass / Concern / Fail with a note;
+   every question needs a result, and a Concern or Fail needs a note, before orientation. Any Fail blocks it. */
+const IVQ = {
+  driver: [
+    { id: 'exp', short: 'driving experience', q: 'How many years have you driven professionally, and in what vehicles (pickup, L300, closed van, 6-wheeler)?', hint: 'Look for at least 2 years with a vehicle like the ones on ZamMove.' },
+    { id: 'lic', short: 'license codes', q: 'Which restriction codes are on your license? Show the card.', hint: 'The codes must cover the vehicle class. Compare with the uploaded license.' },
+    { id: 'route', short: 'local routes', q: 'How well do you know Zamboanga City routes, truck-ban hours and loading areas?', hint: 'Ask how they would get from Tetuan to Putik at 5 PM.' },
+    { id: 'rec', short: 'driving record', q: 'Have you had accidents, traffic violations or a suspended license in the last 3 years?', hint: 'Compare with the NBI or police clearance.' },
+    { id: 'load', short: 'cargo handling', q: 'How do you load and tie down a ref, a sofa and fragile boxes? What do you do when it rains?', hint: 'Heavy items first, against the cab; straps; a tarp on open beds.' },
+    { id: 'conf', short: 'handling problems', q: 'The customer refuses to pay the balance, or the drop-off address is wrong. What do you do?', hint: 'Stay calm, do not unload in a dispute, report it in the app, call ZamMove.' },
+    { id: 'app', short: 'using the app', q: 'Can you use a smartphone app with GPS, PIN codes and payment recording? Show your phone.', hint: 'They should share location and record a payment in a quick practice run.' },
+    { id: 'avail', short: 'availability', q: 'Which days and hours can you work? Early mornings or weekends?', hint: 'Note it for scheduling.' },
+  ],
+  owner: [
+    { id: 'units', short: 'vehicles and franchise', q: 'How many vehicles do you own, and which are franchised for hire?', hint: 'Vans and trucks need an LTFRB franchise (CPC); 3-wheelers need the city tricycle franchise (MTOP). Each is checked again when registered.' },
+    { id: 'maint', short: 'maintenance', q: 'Who maintains the vehicles and how often? When was each last serviced?', hint: 'Ask for service records or receipts.' },
+    { id: 'drv', short: 'drivers', q: 'Will you drive yourself, or assign drivers? How do you choose them?', hint: 'Assigned drivers must also apply and be approved.' },
+    { id: 'docs', short: 'registration and insurance', q: 'Are the registration (OR/CR) and CTPL insurance current for every unit?', hint: 'Expired documents stop a vehicle from taking jobs.' },
+    { id: 'exp', short: 'hauling experience', q: 'Have you hauled for hire before, on another platform or on your own?', hint: 'Experience helps, but is not required.' },
+    { id: 'rules', short: 'money rules', q: 'Can you explain back how the fare is split, how cash is remitted, and how rental deposits work?', hint: 'Correct anything they get wrong, then mark it.' },
+  ],
+};
+/* preset answers the interviewer taps instead of typing: [id, answer, suggested result].
+   Anything else the applicant says goes in the question's short "other answer" note. */
+const IVO = {
+  driver: {
+    exp: [['lt1', 'Less than 1 year', 'fail'], ['y12', '1 to 2 years', 'concern'], ['y35', '3 to 5 years', 'pass'], ['y5', 'More than 5 years', 'pass']],
+    lic: [['ok', 'Codes cover vans and trucks', 'pass'], ['light', 'Light vehicles only', 'concern'], ['nonpro', 'Non-professional or student permit', 'fail'], ['none', 'Could not show the license', 'fail']],
+    route: [['well', 'Knows the routes, truck-ban hours and loading areas', 'pass'], ['main', 'Knows the main roads only', 'concern'], ['new', 'New to Zamboanga City', 'concern']],
+    rec: [['clean', 'Clean record', 'pass'], ['minor', 'Minor violation, explained', 'concern'], ['acc', 'An accident in the last 3 years', 'concern'], ['susp', 'Suspended license or serious case', 'fail']],
+    load: [['good', 'Heavy items first, straps, tarp for rain', 'pass'], ['part', 'Partly correct, needs training', 'concern'], ['no', 'Does not know how to secure a load', 'fail']],
+    conf: [['calm', 'Stays calm, reports in the app, calls ZamMove', 'pass'], ['argue', 'Would argue or unload anyway', 'concern'], ['bad', 'Would keep the cargo or leave', 'fail']],
+    app: [['done', 'Shared location and recorded a payment', 'pass'], ['help', 'Needed help with the app', 'concern'], ['cant', 'Cannot use a smartphone app', 'fail']],
+    avail: [['full', 'Full-time, weekdays and weekends', 'pass'], ['wkday', 'Weekdays only', 'pass'], ['wkend', 'Weekends only', 'pass'], ['few', 'A few hours a week', 'concern']],
+  },
+  owner: {
+    units: [['all', 'All hauling units have a franchise', 'pass'], ['some', 'Some units are still applying', 'concern'], ['rent', 'Rental vehicles only, no hauling', 'pass'], ['none', 'Hauling units without a franchise', 'fail']],
+    maint: [['reg', 'Regular service with records', 'pass'], ['broken', 'Serviced only when something breaks', 'concern'], ['none', 'No maintenance plan', 'fail']],
+    drv: [['self', 'Will drive themself', 'pass'], ['assign', 'Will assign approved drivers', 'pass'], ['nodrv', 'Has no driver yet', 'concern']],
+    docs: [['ok', 'All OR/CR and CTPL are current', 'pass'], ['near', 'Some are near expiry', 'concern'], ['exp', 'Some are expired', 'fail']],
+    exp: [['hire', 'Hauled for hire before', 'pass'], ['biz', 'Other business experience', 'pass'], ['new', 'No experience yet', 'pass']],
+    rules: [['ok', 'Explained it correctly', 'pass'], ['fix', 'Needed corrections', 'concern'], ['no', 'Did not understand', 'fail']],
+  },
+};
+Object.entries(IVO).forEach(([role, qs]) =>
+  IVQ[role].forEach(q => (q.opts = (qs[q.id] || []).map(([id, t, r]) => ({ id, t, r }))))
+);
 const DOCS = {
   driver: [
     'Professional driver’s license',
@@ -330,11 +403,16 @@ const PL = [
   ['Zamboanga City Public Market', 6.9041, 122.0744],
 ];
 const zcBox = (la, lo) => la >= 6.85 && la <= 7.5 && lo >= 121.9 && lo <= 122.4;
+/* outside the city even though the name contains "Zamboanga": the provinces and their towns */
+const OUTSIDE_ZC = /zamboanga\s+(del\s+sur|del\s+norte|sibugay)|\b(pagadian|dipolog|dapitan|ipil|isabela\s+city|basilan|sulu|jolo|tawi-tawi|molave|tukuran|dumingag|sindangan|liloy|kabasalan|diplahan|labason)\b/;
 const inZC = t => {
   t = String(t || '').toLowerCase();
-  if (t.includes('zamboanga')) return true;
+  /* a picked or pinned place carries coordinates: they decide */
   const c = t.match(/\((-?\d+\.\d+), (-?\d+\.\d+)\)/);
   if (c) return zcBox(+c[1], +c[2]);
+  if (OUTSIDE_ZC.test(t) && !/zamboanga\s+city/.test(t)) return false;
+  if (/zamboanga\s+city/.test(t)) return true;
+  if (t.includes('zamboanga') && !OUTSIDE_ZC.test(t)) return true;
   return PL.some(x => t.includes(x[0].split(',')[0].toLowerCase()));
 };
 const coord = t => {
@@ -349,6 +427,11 @@ const hv = (a, b) => {
     y = (b[1] - a[1]) * r,
     h = Math.sin(x / 2) ** 2 + Math.cos(a[0] * r) * Math.cos(b[0] * r) * Math.sin(y / 2) ** 2;
   return 12742 * Math.asin(Math.sqrt(h));
+};
+/* straight-line km from a known place (or a "(lat, lng)" text) to a point; null when the place has no coordinates */
+const kmFrom = (t, la, lo) => {
+  const A = coord(t);
+  return A ? hv(A, [la, lo]) : null;
 };
 const kmBetween = (a, b) => {
   const A = coord(a),
@@ -401,12 +484,33 @@ module.exports = {
   MOV_MAX,
   SIZES,
   LATE_MIN,
+  GHOST_MIN,
+  NOSHOW_FAR_KM,
+  OPEN_MAX,
   OPEN_UNTIL_H,
   STRIKES_REVIEW,
   CHANGE_H,
   coord,
   HANDOVER_PH,
   CLAIM_DAYS,
+  RET_CHECK_H,
+  RN_PICKUP_TM,
+  RN_RETURN_TM,
+  RN_TM_MIN,
+  RN_TM_MAX,
+  HO_FAR_KM,
+  HO_EARLY_H,
+  RN_PENDING_H,
+  RN_UNPAID_H,
+  RN_FREE_CXL_H,
+  REFUND_REMIND_H,
+  REFUND_ALERT_H,
+  REMIT_PAUSE_D,
+  NOSHOW_MIN,
+  HOLD_FEE,
+  RET_FAR_KM,
+  RET_PHOTO_MIN,
+  kmFrom,
   CONTRACT_V,
   DRIVER_AGREEMENT_V,
   DRIVER_AGREEMENT,
@@ -422,6 +526,7 @@ module.exports = {
   RENTAL_FLOW,
   APP_ST,
   DOCS,
+  IVQ,
   ICT,
   ICTo,
   PIN_TTL,

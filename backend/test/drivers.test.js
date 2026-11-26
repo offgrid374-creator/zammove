@@ -86,8 +86,9 @@ test('recommendation waits for the application and moves to the driver when it i
   assert.ok((await apply()).ok);
   const app = t.S.apps.find(a => a.user == 'c2@t.ph');
   assert.deepEqual(app.rec, [r.id], 'the application shows the recommendation');
-  for (const act of ['verify', 'interview', 'orient', 'orientdone', 'approve'])
-    assert.ok((await t.act('a@t.ph', 'appAction', { id: app.id, act, when: '2026-12-01T10:00', where: 'Office' })).ok, act);
+  const ans = Object.fromEntries(require('../src/domain/constants').IVQ.driver.map(q => [q.id, { r: 'pass', n: '' }]));
+  for (const act of ['verify', 'interview', 'ivsave', 'orient', 'orientdone', 'approve'])
+    assert.ok((await t.act('a@t.ph', 'appAction', { id: app.id, act, ans, when: '2026-12-01T10:00', where: 'Office' })).ok, act);
   assert.equal(A(t, r.id).st, 'Awaiting Driver');
   assert.equal(t.S.users.find(u => u.em == 'c2@t.ph').dx.lic, future(500));
 });
@@ -128,6 +129,7 @@ test('ending: open requests are cancelled; an active assignment ends with a reas
 
 test('owners see a driver’s verification status, never their documents', async () => {
   const t = await pool();
+  t.d.h.U('p@t.ph').employer = 'o@t.ph'; // owners see only their own drivers
   const v = t.d.view(t.me('o@t.ph'));
   const p = v.users.find(u => u.em == 'p@t.ph');
   assert.equal(p.licExp, future(400));

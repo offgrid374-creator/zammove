@@ -6,8 +6,16 @@ const { now, r2, rid, str, ok, no, peso } = require('../util');
 
 module.exports = (S, h) => ({
   payVerify(me, p) {
-    if (!h.canCash(me)) return no('Only a cashier or administrator can verify payments.');
     const x = S.pay.find(y => y.id == p.id);
+    /* cash for a rental is handed to the vehicle owner at pickup, so the owner confirms it; GCash goes to ZamMove's account */
+    const rn = x && ['rental', 'deposit'].includes(x.kind) && S.rn.find(r => r.id == x.bid),
+      ownerCash = !!(rn && rn.owner == me.em && h.acct(me) && (x.method == 'Cash' || x.to == me.em)); // cash in hand, or GCash to the owner's own number
+    if (!h.canCash(me) && !ownerCash)
+      return no(
+        rn && rn.owner == me.em
+          ? 'This GCash payment went to ZamMove’s account, so a ZamMove cashier verifies it.'
+          : 'Only a cashier or administrator can verify payments.'
+      );
     if (!x || x.status != 'Submitted') return no('Payment not found or already decided.');
     if (x.kind == 'down' || x.kind == 'final')
       return no('Booking payments are confirmed by the driver who collects them.');
@@ -17,6 +25,8 @@ module.exports = (S, h) => ({
     x.status = p.ok ? 'Verified' : 'Rejected';
     x.vby = me.em;
     x.vt = now();
+    if (ownerCash && p.ok) x.coll = me.em; // the owner holds this cash; it is set off against the owner's payouts
+    if (rn && rn.st == 'Cancelled' && p.ok && h.lateRentalPay) h.lateRentalPay(rn, x); // confirmed after the rental was cancelled: refund it
     if (note) x.note = note;
     /* a rejected cancellation fee is due again; a verified one is credited to the driver */
     if (x.kind == 'cancel_fee') {
@@ -58,11 +68,12 @@ module.exports = (S, h) => ({
         st: 'Submitted',
         t: now(),
       };
-    /* upheld wrong-change claims are paid back through this remittance */
-    const debits = S.pay.filter(x => x.kind == 'change_charge' && x.payer == me.em && x.status == 'Due'),
+    /* upheld wrong-change claims and incident charges are paid back through this remittance */
+    const old = x => !(h.viaOwner && h.viaOwner(x)); // charges on new-flow bookings go through the owner
+    const debits = S.pay.filter(x => h.DEBIT_KINDS.includes(x.kind) && x.payer == me.em && x.status == 'Due' && old(x)),
       debit = r2(debits.reduce((s, x) => s + x.amount, 0));
     const owed = r2(l.reduce((s, b) => s + h.dueFor(b), 0) + debit),
-      cr = S.pay.filter(x => x.kind == 'cancel_fee' && x.to == me.em && x.status == 'Verified' && !x.applied),
+      cr = S.pay.filter(x => x.kind == 'cancel_fee' && x.to == me.em && x.status == 'Verified' && !x.applied && old(x)),
       credit = r2(Math.min(owed, cr.reduce((s, x) => s + x.amount, 0)));
     r.due = r2(owed - credit);
     if (credit) {
@@ -187,11 +198,59 @@ module.exports = (S, h) => ({
       h.ntf(d.em, 'Report ' + c.id, up ? `Upheld: ${peso(c.amt)} will be added to your next remittance, and a strike was recorded. ${note}` : `Not upheld: ${note}`);
     return ok();
   },
+  /* staff: decide a money dispute. ok=true sides with the person who acted:
+       a contested rental payment counts as received, a contested refund counts as sent, a contested no-show fee stands. */
+  moneyDecide(me, p) {
+    if (!h.canCash(me)) return no('Only a cashier or administrator can decide money disputes.');
+    const x = S.pay.find(y => y.id == p.id);
+    const open = x && (x.status == 'Disputed' || (['cancel_fee', 'down', 'final'].includes(x.kind) && x.disp && !x.disp.closed));
+    if (!open) return no('There is no open dispute on this payment.');
+    if ([x.payer, x.to, x.from].includes(me.em)) return no('You cannot decide a dispute you are part of.');
+    const note = str(p.note, 300);
+    if (note.length < 5) return no('Write the decision and the reason (at least 5 characters).');
+    const t = now(),
+      d = { ok: !!p.ok, note, by: me.em, t };
+    let tellA = '', tellB = '', a = '', b2 = '';
+    if (['down', 'final'].includes(x.kind)) {
+      /* GCash the owner says never reached their number */
+      const b = S.bk.find(y => y.id == x.bid) || {};
+      if (!p.ok) Object.assign(x, { status: 'Rejected', note: 'Not received (decided by ZamMove)' });
+      a = b.cu; b2 = h.splitOf(b).owner;
+      tellA = p.ok ? `ZamMove confirmed your ${peso(x.amount)} GCash for ${x.bid} reached the owner. ${note}` : `ZamMove found your ${peso(x.amount)} GCash for ${x.bid} did not reach the owner. Please pay it again (or show your GCash receipt). ${note}`;
+      tellB = p.ok ? `ZamMove decided the ${peso(x.amount)} GCash for ${x.bid} did reach you. ${note}` : `ZamMove agreed the ${peso(x.amount)} GCash for ${x.bid} did not arrive; the customer is asked to pay it. ${note}`;
+    } else if (x.kind == 'turnover') {
+      Object.assign(x, p.ok ? { status: 'Verified', vby: me.em, vt: t } : { status: 'Rejected' });
+      a = x.payer; b2 = x.to;
+      tellA = p.ok ? `ZamMove decided your ${peso(x.amount)} turnover reached your owner. ${note}` : `ZamMove could not confirm your ${peso(x.amount)} turnover. ${note}`;
+      tellB = p.ok ? `ZamMove decided the driver's ${peso(x.amount)} turnover reached you; it now counts. ${note}` : `ZamMove agreed the ${peso(x.amount)} turnover did not arrive. ${note}`;
+    } else if (['rental', 'deposit'].includes(x.kind)) {
+      Object.assign(x, p.ok ? { status: 'Verified', coll: x.to, vby: me.em, vt: t } : { status: 'Rejected' });
+      a = x.payer; b2 = x.to;
+      tellA = p.ok ? `ZamMove decided your ${peso(x.amount)} payment for ${x.bid} was received by the owner. ${note}` : `ZamMove could not confirm your ${peso(x.amount)} payment for ${x.bid}. ${note}`;
+      tellB = p.ok ? `ZamMove decided the renter’s ${peso(x.amount)} payment for ${x.bid} reached you; it now counts as paid. ${note}` : `ZamMove agreed the ${peso(x.amount)} payment for ${x.bid} was not received. ${note}`;
+    } else if (['deposit_refund', 'refund'].includes(x.kind)) {
+      Object.assign(x, p.ok ? { status: 'Paid', vby: me.em, vt: t } : { status: 'Due', sentT: null, rem1: null, alert: null, t });
+      a = x.to; b2 = x.from;
+      tellA = p.ok ? `ZamMove decided the ${peso(x.amount)} refund for ${x.bid} was sent to you. ${note}` : `ZamMove asked the owner to send your ${peso(x.amount)} refund for ${x.bid} again. ${note}`;
+      tellB = p.ok ? `ZamMove decided your ${peso(x.amount)} refund for ${x.bid} was sent. ${note}` : `ZamMove decided the ${peso(x.amount)} refund for ${x.bid} did not reach the renter. Send it within 48 hours and record it under Rentals. ${note}`;
+    } else if (x.kind == 'cancel_fee') {
+      if (!p.ok) x.status = 'Waived';
+      a = x.payer; b2 = x.to;
+      tellA = p.ok ? `ZamMove reviewed the no-show fee for ${x.bid}: it stands. ${note}` : `ZamMove waived the no-show fee for ${x.bid}. ${note}`;
+      tellB = p.ok ? `ZamMove upheld the no-show fee for ${x.bid}. ${note}` : `ZamMove waived the no-show fee for ${x.bid}. ${note}`;
+    } else return no('This kind of payment has no dispute.');
+    (x.disp = x.disp || {}).closed = d;
+    h.au(me.em, 'money dispute decided', { id: x.id, bid: x.bid, kind: x.kind, ok: !!p.ok });
+    if (a) h.ntf(a, 'Dispute decided', tellA);
+    if (b2) h.ntf(b2, 'Dispute decided', tellB);
+    return ok();
+  },
   refundPaid(me, p) {
     if (!h.canCash(me)) return no('Only a cashier or administrator can record refunds.');
     const x = S.pay.find(y => y.id == p.id && ['deposit_refund', 'refund'].includes(y.kind) && y.status == 'Due');
     if (!x) return no('Refund not found or already paid.');
     if (x.to == me.em) return no('You cannot pay a refund to yourself.');
+    if (x.from) return no('The vehicle owner holds this deposit and refunds it directly.');
     const m = p.method == 'Cash' ? 'Cash' : 'GCash',
       ref = str(p.ref, 30);
     if (m == 'GCash' && !/^\d{10,13}$/.test(ref)) return no('Enter the GCash reference number (10–13 digits).');

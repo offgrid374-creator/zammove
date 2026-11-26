@@ -1,4 +1,5 @@
 'use strict';
+const { CALL_OUT } = require('./domain/incidents');
 /* Role-scoped read model. The browser only ever receives what the logged-in user may see.
    Password hashes, reset codes, token versions and PIN/QR secrets never leave the server. */
 
@@ -6,12 +7,21 @@ const C = require('./domain/constants');
 
 module.exports = (S, h) => {
   const stripPin = p => (p ? { exp: p.exp, att: p.att, lock: p.lock, used: p.used } : p);
-  const cleanBk = b => ({
+  /* chat messages never travel with the state (GET /api/chat serves them to members and staff) */
+  const noChat = x => {
+    if (!x || !x.chat) return x;
+    const { chat, ...rest } = x;
+    return rest;
+  };
+  const cleanBk = b0 => {
+    const b = noChat(b0);
+    return {
     ...b,
     split: h.splitOf(b),
     ver: b.ver ? { ...b.ver, pin: stripPin(b.ver.pin), qr: null } : b.ver,
     dver: b.dver ? { ...b.dver, pin: stripPin(b.dver.pin) } : b.dver,
-  });
+    };
+  };
   const openBk = (b, em) => ({
     id: b.id,
     pu: b.pu,
@@ -40,6 +50,8 @@ module.exports = (S, h) => {
   const customerBk = b => {
     const x = cleanBk(b);
     delete x.split; // the customer sees the fare only
+    const vo = b.flow == 'owner' && h.U((h.vOf(b.veh) || {}).owner);
+    if (vo && vo.gcash) x.payTo = { name: vo.gcash.name, no: vo.gcash.no }; // GCash goes to the vehicle owner
     if (!C.TRACK_ST.includes(b.st)) {
       delete x.gps;
       delete x.trail;
@@ -63,6 +75,11 @@ module.exports = (S, h) => {
     dr: b.dr,
     cd: b.cd,
     split: h.splitOf(b),
+    disc: b.disc || 0,
+    ...(b.odisc ? { odisc: b.odisc } : {}),
+    ...(b.grp ? { grp: b.grp } : {}),
+    ...(b.pkg ? { pkg: b.pkg } : {}),
+    ...(b.pkgOf ? { pkgOf: b.pkgOf } : {}),
     /* the owner follows his vehicles during active trips (no trail, no customer details) */
     ...(C.TRACK_ST.includes(b.st) && b.gps
       ? {
@@ -82,6 +99,23 @@ module.exports = (S, h) => {
     const { pw, reset, tv, code, codeT, vatt, ...rest } = u;
     return rest;
   };
+  /* what a person involved in an incident case may see: status, the request to them, the decision,
+     and their own statement and evidence; never the staff's call log, internal notes or others' statements */
+  const partyCase = (c, em) => {
+    if (c.kind == 'change') return c;
+    const { calls, stmts, evid, log, ask, ...rest } = c,
+      asked = (ask || []).includes(em);
+    return {
+      ...rest,
+      ask: asked ? [em] : [], // an evidence request is shown only to the people asked
+      parties: h.caseParties(c).map(x => ({ em: x.em, role: x.role })),
+      log: (log || [])
+        .filter(l => !['note', 'call', 'statement'].includes(l.act))
+        .map(l => ({ t: l.t, act: l.act, note: l.act == 'decide' || (l.act == 'evidence' && asked) ? l.note : '' })),
+      stmts: stmts && stmts[em] ? { [em]: stmts[em] } : {},
+      evid: (evid || []).filter(x => x.by == em),
+    };
+  };
   const staffUser = u => {
     const { pw, reset, tv, code, codeT, vatt, ...rest } = u;
     return rest;
@@ -95,6 +129,7 @@ module.exports = (S, h) => {
       em: u.em,
       ph: u.ph,
       ...(u.photo ? { photo: u.photo } : {}),
+      ...(u.gcash ? { gcash: u.gcash } : {}), // an owner's GCash for rental payments (meant to be shared with renters)
       roles: roles.map(r => ({ t: r.t, st: r.st })),
       ...(u.status ? { status: u.status } : {}),
       ...(drv
@@ -136,7 +171,15 @@ module.exports = (S, h) => {
     return t.length > 4 ? t.slice(0, 3) + ' ••' + t.slice(-2) : '••';
   };
   /* a rental's location is shown only while the vehicle is out (release until return) */
-  const liveRn = r => {
+  /* handover codes never leave the server (the renter gets theirs once, from hoIssue) */
+  const noCodes = r => {
+    if (!r.ho) return r;
+    const ho = {};
+    for (const [k, o] of Object.entries(r.ho)) ho[k] = { ...o, pin: o.pin ? stripPin(o.pin) : o.pin };
+    return { ...r, ho, vplate: (h.vOf(r.veh) || {}).plate || '' };
+  };
+  const liveRn = r0 => {
+    const r = noCodes(noChat(r0));
     if (r.st == 'Active' || !(r.gps || r.trail)) return r;
     const { gps, trail, ...x } = r;
     return x;
@@ -156,6 +199,7 @@ module.exports = (S, h) => {
         trans: v.trans,
         fuel: v.fuel,
         day: v.rent.day,
+        drvDay: +v.rent.drv || 0, // offered with a driver at this extra rate per day (0 = self-drive only)
         dep: +v.rent.dep || C.DEP,
         desc: v.desc,
         photo: v.photo || '',
@@ -174,7 +218,21 @@ module.exports = (S, h) => {
       comm: S.cfg.comm == null ? 15 : S.cfg.comm,
       drvPct: S.cfg.drvPct || 20,
       cashCap: +S.cfg.cashCap || 5000,
+      cat: h.cat ? h.cat() : null, // the admin catalog: brands → models, fuels, colours, transmissions
+      fuel: S.cfg.fuel || null,
+      fuelK: h.fuelK ? h.fuelK() : 1,
     },
+    /* operational hauling vehicles for booking preferences (no emails: drivers by pseudonymous key) */
+    haulList: S.vh
+      .filter(v => h.vOper(v) && !(C.VT.find(t => t.id == v.type) || {}).rentOnly)
+      .map(v => {
+        const a = S.asg.find(x => x.vehicle == v.id && x.st == 'Active'),
+          d = a && h.U(a.driver);
+        const o = h.U(v.owner) || {},
+          at = (d && d.loc) || o.loc || C.coord(String((d && d.ad) || o.ad || '')), // barangay-level only (rounded)
+          near = at ? [Math.round(at[0] * 100) / 100, Math.round(at[1] * 100) / 100] : null;
+        return { type: v.type, brand: v.brand, model: v.model, color: v.color, seats: v.seats, fuel: v.fuel, drv: d ? d.name : '', dk: d && h.pkey ? h.pkey(d.em) : '', near };
+      }),
     fleet: {
       HV: h.rates(),
       RV: C.RV,
@@ -183,10 +241,13 @@ module.exports = (S, h) => {
       DEP: C.DEP,
       DEP_MAX: C.DEP_MAX,
       HANDOVER_PH: C.HANDOVER_PH,
+      RET_CHECK_H: C.RET_CHECK_H,
       CLAIM_DAYS: C.CLAIM_DAYS,
     },
     rentList: rentList(), // the vehicle catalogue the screens show (server is the source)
-    rules: { MOV_MAX: C.MOV_MAX, SIZES: C.SIZES, LATE_MIN: C.LATE_MIN, OPEN_UNTIL_H: C.OPEN_UNTIL_H, CHANGE_H: C.CHANGE_H },
+    /* how many vehicles of each hauling type can take a job now (approved, with an active, approved driver) */
+    typeAvail: Object.fromEntries(C.HV.map(v => [v.id, h.fleetOf(v.id).length])),
+    rules: { MOV_MAX: C.MOV_MAX, SIZES: C.SIZES, LATE_MIN: C.LATE_MIN, OPEN_UNTIL_H: C.OPEN_UNTIL_H, CHANGE_H: C.CHANGE_H, IVQ: C.IVQ, CALL_OUT },
     ratings: h.ratings(),
     rnAvail: S.rn
       .filter(r => ['Pending', 'Approved', 'Active'].includes(r.st))
@@ -215,7 +276,7 @@ module.exports = (S, h) => {
     ...(all ? { drvCash: Object.fromEntries(S.users.filter(u => h.okr(u, 'driver')).map(u => [u.em, cashOf(u.em)])) } : {}),
   });
   return function viewFor(me) {
-    if (!me) return { ...empty, ...base() };
+    if (!me) return { ...empty, ...base(), haulList: [], ratings: {} }; // visitors: no driver names or emails
     const em = me.em,
       nt = S.nt.filter(n => n.to == em && !n.sim); // simulated SMS/email are not in-app notifications
     if (h.isAdmin(me)) {
@@ -224,8 +285,9 @@ module.exports = (S, h) => {
         users: S.users.map(u => (u.em == em ? selfUser(u) : staffUser(u))),
         bk: S.bk.map(cleanBk),
         rn: S.rn.map(liveRn),
+        fuelReqs: S.cfg.fuelReqs || [],
         pay: S.pay,
-        inc: S.inc,
+        inc: S.inc.filter(c => c.st != 'Unconfirmed' && !(c.wd && c.wd.draft)), // unsent and dismissed drafts are private to their reporter
         rev: S.rev,
         nt,
         apps: S.apps,
@@ -249,7 +311,7 @@ module.exports = (S, h) => {
     for (const b of S.bk) {
       if ((isDrv && b.drvUser == em) || isSub) bk.set(b.id, cleanBk(b));
       else if (b.cu == em) bk.set(b.id, customerBk(b));
-      else if (isDrv && b.st == 'Pending' && !b.drvUser) bk.set(b.id, openBk(b, em));
+      else if (isDrv && b.st == 'Pending' && !b.drvUser && (!b.pkgOf || b.released)) bk.set(b.id, openBk(b, em));
       else if ((isOwn && b.veh && ownVeh.has(b.veh)) || isCash) bk.set(b.id, ownerBk(b));
       else continue;
       if (b.cu == em || b.drvUser == em || isSub) {
@@ -260,7 +322,7 @@ module.exports = (S, h) => {
     }
     myAsg.forEach(a => vh.add(a.vehicle));
     /* rentals: the renter sees the full vehicle and the owner's contact once approved; the owner sees the renter */
-    const rnMine = S.rn.filter(r => r.cu == em || (r.veh && ownVeh.has(r.veh)));
+    const rnMine = S.rn.filter(r => r.cu == em || (r.veh && ownVeh.has(r.veh)) || (r.withDrv && r.withDrv.em == em));
     rnMine.forEach(r => {
       if (r.cu == em && r.veh && ['Approved', 'Active', 'Returned'].includes(r.st)) {
         vh.add(r.veh);
@@ -271,15 +333,19 @@ module.exports = (S, h) => {
     const asg = S.asg.filter(a => a.driver == em || ownVeh.has(a.vehicle));
     asg.forEach(a => users.add(a.driver));
     S.vh.filter(v => vh.has(v.id)).forEach(v => users.add(v.owner));
-    if (isOwn) S.users.filter(u => h.okr(u, 'driver')).forEach(u => users.add(u.em)); // driver pool
+    /* owners see only their own drivers and the people who applied to drive for them */
+    if (isOwn) S.users.filter(u => h.okr(u, 'driver') && h.driverOwner(u.em) == em).forEach(u => users.add(u.em));
+    if (isOwn) S.apps.filter(a => a.employer == em).forEach(a => users.add(a.user));
     const ids = new Set([...S.bk.filter(b => b.cu == em).map(b => b.id), ...rnMine.map(r => r.id)]);
     const drvIds = new Set(S.bk.filter(b => b.drvUser == em || (b.veh && ownVeh.has(b.veh))).map(b => b.id));
     const dp = {};
     [...users].forEach(u => {
       if (S.dp[u] && (u == em || isOwn)) dp[u] = S.dp[u];
     });
+    const R = h.ratings();
     return {
       ...base(),
+      ratings: isSub || isCash ? R : Object.fromEntries(Object.entries(R).filter(([k]) => k == em || users.has(k))),
       users: S.users
         .filter(u => u.em == em || users.has(u.em) || isCash || isSub)
         .map(u =>
@@ -292,16 +358,27 @@ module.exports = (S, h) => {
       bk: [...bk.values()],
       rn: rnMine.map(liveRn),
       pay: S.pay.filter(p => p.payer == em || p.to == em || ids.has(p.bid) || drvIds.has(p.bid) || isCash), // p.to: payouts to an owner
-      inc: S.inc.filter(c => c.by == em || isSub || (c.kind == 'change' && c.driver == em)), // a driver sees wrong-change reports about them, to answer
+      inc: S.inc
+        .filter(c => (c.st != 'Unconfirmed' && !(c.wd && c.wd.draft)) || c.by == em) // drafts and dismissed drafts stay with their reporter
+        .filter(c => c.by == em || isSub || (c.kind == 'change' && c.driver == em) || (c.kind != 'change' && h.caseParties(c).some(x => x.em == em)))
+        .map(c => (isSub ? c : partyCase(c, em))), // people involved see their case, not the staff's calls, notes or others' statements
       rev: S.rev.filter(r => r.by == em || drvIds.has(r.bid)),
       nt,
-      apps: S.apps.filter(a => a.user == em),
+      apps: S.apps.filter(a => a.user == em || (isOwn && a.employer == em)).map(({ ivr, ...a }) => a), // interview notes stay with the staff
+      /* applying drivers choose an owner (by pseudonymous key); drivers name helpers from their owner's crew */
+      owners: S.users.filter(u => h.okr(u, 'owner') && h.acct(u) && u.em != em).map(u => ({ k: h.pkey(u.em), name: u.name, ad: String(u.ad || '').split(',')[0], vehicles: S.vh.filter(v => v.owner == u.em && v.approval == 'Approved').length })),
+      crew: isDrv ? h.crewOf(h.driverOwner(em)) : isOwn ? h.crewOf(em) : [],
+      ...(isDrv ? { turn: h.turnInfo(em) } : {}),
+      ...(isOwn ? { drvBal: h.ownerDrivers(em).map(d => ({ em: d, name: (h.U(d) || {}).name || '', bal: h.turnBal(d, em), pending: h.turnPending(d, em), overdue: h.turnOverdue(d) })) } : {}),
+      undo: h.undoables(em), // what this person can still undo (5 minutes)
+      chats: h.chatThreads(em), // conversations: who, unread count, last message (not the messages)
+      myDrivers: isOwn ? S.users.filter(u => h.okr(u, 'driver') && h.driverOwner(u.em) == em).map(u => u.em) : [],
       vh: S.vh.filter(v => vh.has(v.id)).map(v => (ownVeh.has(v.id) ? v : pubVeh(v))),
       asg,
       dp,
       rem: S.rem.filter(r => r.drv == em || isCash),
       au: [],
-      ...(isOwn ? { ownerBal: h.ownerBal(em) } : {}),
+      ...(isOwn ? { ownerBal: h.ownerBal(em), fuelReqs: (S.cfg.fuelReqs || []).filter(x => x.by == em) } : {}),
       ...(isDrv ? { cash: cashOf(em) } : {}),
       ...(isCash ? money(false) : {}),
     };

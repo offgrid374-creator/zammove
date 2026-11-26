@@ -51,7 +51,7 @@ module.exports = (S, h) => {
     return '';
   };
 
-  return {
+  const A = {
     /* owner: report a driver who drives (or drove) one of his vehicles; goes to the admin's incident cases */
     ownerReport(me, p) {
       if (!h.okr(me, 'owner') || !h.acct(me))
@@ -91,6 +91,25 @@ module.exports = (S, h) => {
       return ok({ id: c.id });
     },
 
+    /* cashier: record money an owner pays back to ZamMove (rental cash they kept beyond their share) */
+    ownerRemit(me, p) {
+      if (!h.canCash(me)) return no('Only a cashier or administrator can record what an owner paid back.');
+      const o = U(p.owner);
+      if (!o || !h.okr(o, 'owner')) return no('Choose a vehicle owner.');
+      const amt = r2(p.amount),
+        owes = r2(-h.ownerBal(o.em).due);
+      if (!(amt > 0)) return no('Enter the amount received.');
+      if (amt > owes + 0.005) return no('That is more than the owner owes (' + peso(Math.max(0, owes)) + ').');
+      const method = p.method == 'GCash' ? 'GCash' : 'Cash',
+        ref = str(p.ref, 30);
+      if (method == 'GCash' && !/^\d{10,13}$/.test(ref)) return no('Enter the GCash reference number (10–13 digits).');
+      const x = h.payMk({ bid: '', kind: 'owner_remit', method, amount: amt, ref: ref || rid('CSH'), payer: o.em, status: 'Verified' });
+      Object.assign(x, { by: me.em, vby: me.em, vt: now(), note: str(p.note, 200) });
+      S.pay.push(x);
+      h.au(me.em, 'owner paid back', { owner: o.em, amount: amt, method });
+      h.ntf(o.em, 'Payment received', `ZamMove received ${peso(amt)} from you (rental cash). Thank you.`);
+      return ok();
+    },
     /* cashier: record money paid out to a vehicle owner from his earned share */
     ownerPayout(me, p) {
       if (!h.canCash(me)) return no('Only a cashier or administrator can record owner payouts.');
@@ -234,6 +253,9 @@ module.exports = (S, h) => {
       return ok();
     },
   };
+  /* used by incident decisions: same rules as suspending from the Users page */
+  h.suspendUser = (me, em, reason) => A.userStatus(me, { em, status: 'suspended', reason });
+  return A;
 };
 module.exports.OWNER_REPORT = OWNER_REPORT;
 module.exports.FLAG_KINDS = FLAG_KINDS;

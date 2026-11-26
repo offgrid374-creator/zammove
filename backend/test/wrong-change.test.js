@@ -3,7 +3,7 @@
    within 24 hours, the driver is flagged and can answer, and the cashier decides (refund + deduction + strike). */
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { setup } = require('./_setup');
+const { legacySetup: setup } = require('./_setup'); // the older driver → ZamMove remittance
 
 const D = (t, id, n, p) => t.act('d1@t.ph', n, { id, ...p });
 
@@ -44,6 +44,7 @@ test('a customer reports wrong change: the driver is flagged and can answer', as
   const t = await setup();
   const { id } = await paidDown(t, 2000);
   const r = await t.act('c1@t.ph', 'changeDispute', { id, amt: 200, gave: 2000, d: 'I gave 2000 but got back 200 less.' });
+  if (r.ok) await t.act('c1@t.ph', 'caseConfirm', { id: r.id }); // reports are drafts until confirmed
   assert.ok(r.ok, r.err);
   const c = t.S.inc.find(x => x.id == r.id);
   assert.equal(c.kind, 'change');
@@ -73,6 +74,7 @@ test('upheld: the customer is refunded, the driver pays it back on the next remi
   const t = await setup();
   const { id } = await paidDown(t, 2000);
   const r = await t.act('c1@t.ph', 'changeDispute', { id, amt: 200, gave: 2000, d: 'I gave 2000 but got back 200 less.' });
+  if (r.ok) await t.act('c1@t.ph', 'caseConfirm', { id: r.id }); // reports are drafts until confirmed
   const before = t.d.h.cashHeld('d1@t.ph');
   assert.match((await t.act('d1@t.ph', 'changeResolve', { id: r.id, ok: true, note: 'Deciding my own case' })).err, /Only a cashier/);
   const ok = await t.act('k@t.ph', 'changeResolve', { id: r.id, ok: true, note: 'Driver confirmed the shortfall on call.' });
@@ -94,6 +96,7 @@ test('the deduction is added to the driver’s next remittance', async () => {
   const t = await setup();
   const { id } = await paidDown(t, 2000);
   const r = await t.act('c1@t.ph', 'changeDispute', { id, amt: 150, d: 'Got back 150 less than I should.' });
+  if (r.ok) await t.act('c1@t.ph', 'caseConfirm', { id: r.id }); // reports are drafts until confirmed
   await t.act('k@t.ph', 'changeResolve', { id: r.id, ok: true, note: 'Shortfall confirmed by both sides.' });
   /* finish the trip, then remit its week as if it had ended */
   const b = t.bk(id);
@@ -114,6 +117,7 @@ test('rejected: no refund, no strike, the flag is closed with the reason', async
   const t = await setup();
   const { id } = await paidDown(t, 2000);
   const r = await t.act('c1@t.ph', 'changeDispute', { id, amt: 200, d: 'I gave 2000 but got back 200 less.' });
+  if (r.ok) await t.act('c1@t.ph', 'caseConfirm', { id: r.id }); // reports are drafts until confirmed
   assert.ok((await t.act('k@t.ph', 'changeResolve', { id: r.id, ok: false, note: 'Receipt and driver photo show correct change.' })).ok);
   assert.equal(t.S.inc.find(x => x.id == r.id).st, 'Rejected');
   assert.ok(!t.S.pay.some(p => p.kind == 'refund' || p.kind == 'change_charge'));

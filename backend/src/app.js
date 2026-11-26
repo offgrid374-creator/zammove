@@ -36,12 +36,19 @@ function createApp({ state, domain, cfg }) {
     res.status(500).json({ ok: false, err: 'Could not save. Nothing was changed. Please try again.' });
   };
 
+  /* timed rules (timeouts, expiries, reminders) scan everything: at most every 30 seconds, not on every request */
+  let lastSweep = 0;
+  const sweepNow = () => {
+    if (Date.now() - lastSweep < 30e3) return 0;
+    lastSweep = Date.now();
+    return domain.h.sweep();
+  };
   api.get('/health', (req, res) => res.json({ ok: true, store: state.store.kind, version: state.version }));
 
   api.get('/state', async (req, res) => {
     const token = tokenOf(req);
     try {
-      await state.run(() => domain.h.sweep());
+      await state.run(() => sweepNow());
       const me = token ? userOf(token) : null;
       if (token && !me)
         return res.status(401).json({ ok: false, err: 'Your session ended. Please log in again.' });
@@ -129,7 +136,11 @@ function createApp({ state, domain, cfg }) {
     const body = { ...(req.body || {}) };
     delete body.__road;
     if (ROAD.has(req.params.name)) {
-      const rk = await geo.roadKm(String(body.pu || '').slice(0, 200), String(body.dr || '').slice(0, 200));
+      /* the road distance comes from an outside service: wait at most 3 s, then price by the straight-line estimate */
+      const rk = await Promise.race([
+        geo.roadKm(String(body.pu || '').slice(0, 200), String(body.dr || '').slice(0, 200)),
+        new Promise(r => setTimeout(() => r(null), 3000)),
+      ]);
       if (rk) body.__road = rk;
     }
     try {
@@ -137,7 +148,7 @@ function createApp({ state, domain, cfg }) {
       const r = await state.run(() => {
         me = userOf(token);
         if (!me) return { ok: false, err: 'Please log in again.', auth: true };
-        domain.h.sweep();
+        sweepNow();
         return fn(me, body);
       });
       if (r.auth) return res.status(401).json(r);
@@ -147,6 +158,14 @@ function createApp({ state, domain, cfg }) {
     }
   });
 
+  /* chat messages for one trip or rental, after the first `since` (members and staff only); read-only, so no queue */
+  api.get('/chat/:k/:id', (req, res) => {
+    const me = userOf(tokenOf(req));
+    if (!me) return res.status(401).json({ ok: false, err: 'Please log in again.' });
+    const r = domain.h.chatRead(me, req.params.k == 'r' ? 'r' : 'b', String(req.params.id).slice(0, 20), req.query.since);
+    if (!r) return res.status(403).json({ ok: false, err: 'You are not part of this conversation.' });
+    res.json(r);
+  });
   api.post('/public/track', (req, res) => res.json(domain.publicTrack(req.body || {})));
 
   /* PROTOTYPE ONLY: no SMS/email provider is connected, so messages a provider would deliver (verification and

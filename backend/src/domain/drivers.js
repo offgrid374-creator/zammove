@@ -177,6 +177,9 @@ module.exports = (S, h) => {
       if (t.err) return no(t.err);
       if (dup(v.id, dr.em)) return no('There is already an open request for this driver and vehicle.');
       const approved = h.okr(dr, 'driver');
+      /* drivers work for one owner only */
+      const boss = approved && h.driverOwner ? h.driverOwner(dr.em) : '';
+      if (boss && boss != me.em) return no('That driver works for another vehicle owner.');
       if (p.mode == 'assign' && !approved)
         return no('That person is not an approved driver. Use “Recommend a driver” instead.');
       if (approved) {
@@ -219,6 +222,10 @@ module.exports = (S, h) => {
       if (!dr || !h.okr(dr, 'driver') || !h.acct(dr)) return no('Choose an approved, active driver.');
       if (dr.em == me.em || v.owner == me.em)
         return no('You cannot assign yourself or your own vehicle. Another administrator must do it.');
+      const boss = h.driverOwner ? h.driverOwner(dr.em) : '';
+      if (boss && boss != v.owner && dr.em != v.owner && !p.move)
+        return no(`${dr.name} works for another vehicle owner. Tick "move the driver to this owner" to reassign them.`);
+      if (p.move && boss != v.owner) dr.employer = v.owner;
       /* the owner's own vehicle: they drive it at once */
       if (dr.em == v.owner) {
         const r = h.selfDrive(dr, v, me.em);

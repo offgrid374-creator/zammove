@@ -4,7 +4,7 @@
    separation of duties, admin-editable rates, and codes that only reach the (simulated) phone or email. */
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { setup, world, future } = require('./_setup');
+const { legacySetup: setup, world, future } = require('./_setup'); // the older driver → ZamMove flow
 
 const pic = 'data:image/jpeg;base64,AAAA';
 const D = (t, id, n, p) => t.act('d1@t.ph', n, { id, ...p });
@@ -16,6 +16,7 @@ async function complete(t, id) {
   await D(t, id, 'step', { to: 'Awaiting Down Payment' });
   assert.ok((await D(t, id, 'driverPay', { kind: 'down', g: 0, c: t.d.h.due(t.bk(id), 'down') })).ok);
   await D(t, id, 'step', { to: 'Items Loaded', note: 'Sofa and 3 boxes' });
+  if (+t.bk(id).mv > 0) t.bk(id).helpers = Array.from({ length: +t.bk(id).mv }, (_, i) => ({ id: 'H' + i, name: 'Helper ' + i })); // named before departure
   const pin = await t.act('c1@t.ph', 'vNewPin', { id });
   await D(t, id, 'vVerify', { input: pin.pin, kind: 'pin' });
   await D(t, id, 'vPlate', { input: 'AAA 1111' });
@@ -158,14 +159,23 @@ test('vehicles need the LTFRB franchise and insurance; expired ones block trips'
   const v = { type: 'pk', brand: 'Toyota', model: 'Hilux', plate: 'LGL 1234', color: 'Gray', year: 2022, regExp: future(300), doc: pic, kg: 900 };
   assert.match((await t.act('o@t.ph', 'addVehicle', v)).err, /CTPL insurance/);
   assert.match((await t.act('o@t.ph', 'addVehicle', { ...v, ins: 'CTPL-1', insExp: future(100) })).err, /LTFRB franchise/);
+  /* typed numbers alone are not enough: the admin needs the photos to check them */
+  const nums = { ins: 'CTPL-1', insExp: future(100), cpc: 'CPC-12345', cpcExp: future(200) };
+  assert.match((await t.act('o@t.ph', 'addVehicle', { ...v, ...nums })).err, /photo of the CTPL insurance/);
+  assert.match((await t.act('o@t.ph', 'addVehicle', { ...v, ...nums, insDoc: pic })).err, /photo of the LTFRB franchise/);
   /* rental-only vehicles need insurance only */
-  assert.ok((await t.act('o@t.ph', 'addVehicle', { ...v, type: 'sd', plate: 'SED 1234', ins: 'CTPL-2', insExp: future(100) })).ok);
+  assert.ok((await t.act('o@t.ph', 'addVehicle', { ...v, type: 'sd', plate: 'SED 1234', ins: 'CTPL-2', insExp: future(100), insDoc: pic })).ok);
   /* an expired franchise blocks accepting jobs with that vehicle */
   t.vh = t.S.vh.find(x => x.id == 'V1');
   t.vh.legal = { ins: 'X', insExp: future(100), cpc: 'CPC-1', cpcExp: future(-1) };
   const id = (await t.booking('c1@t.ph')).id;
   assert.match((await D(t, id, 'accept')).err, /registration are valid/);
-  assert.ok((await t.act('o@t.ph', 'vehLegal', { id: 'V1', ins: 'CTPL-9', insExp: future(200), cpc: 'CPC-77777', cpcExp: future(400) })).ok);
+  /* a renewed document needs its new photo */
+  const renew = { id: 'V1', ins: 'CTPL-5', insExp: future(100), cpc: 'CPC-77777', cpcExp: future(400) };
+  Object.assign(t.vh.legal, { ins: 'CTPL-5', insDoc: pic });
+  assert.match((await t.act('o@t.ph', 'vehLegal', renew)).err, /photo of the LTFRB franchise/);
+  assert.ok((await t.act('o@t.ph', 'vehLegal', { ...renew, cpcDoc: pic })).ok, 'the unchanged insurance keeps its photo');
+  assert.equal(t.S.vh.find(x => x.id == 'V1').legal.insDoc, pic);
   assert.ok((await D(t, id, 'accept')).ok);
 });
 
@@ -232,11 +242,26 @@ test('rentals: late return is charged, the owner gets 85% and the deposit refund
   rn().e = future(-2); // it should have come back two days ago
   assert.ok((await t.act('o@t.ph', 'rentalDecision', { id, act: 'return', odo: 1200, fuel: 'Full', ph })).ok);
   assert.ok(rn().late && rn().late.amt == rn().late.days * 2000, 'late charge at the daily rate');
-  assert.match((await t.act('o@t.ph', 'rentalDecision', { id, act: 'complete' })).err, /not fully verified/);
+  /* an unpaid late charge can now come out of the deposit (see policy tests); here the renter pays it first */
   await payAll();
   assert.ok((await t.act('o@t.ph', 'rentalDecision', { id, act: 'complete' })).ok);
   const fee = 4000 + rn().late.amt;
   assert.deepEqual([rn().split.fee, rn().split.own], [fee, fee * 0.85]);
   assert.equal(t.d.h.ownerBal('o@t.ph').earnedRent, fee * 0.85);
   assert.ok(t.S.pay.some(p => p.kind == 'deposit_refund' && p.amount == 8000 && p.status == 'Due'));
+});
+
+test('3-wheelers need the city tricycle franchise (MTOP), not an LTFRB franchise', async () => {
+  const t = await setup();
+  const tw = { type: 'tw', brand: 'Bajaj', model: 'RE Cargo', plate: 'TRI 5566', color: 'Blue', year: 2023, regExp: future(300), doc: pic, kg: 450, ins: 'CTPL-77', insExp: future(100), insDoc: pic };
+  assert.match((await t.act('o@t.ph', 'addVehicle', tw)).err, /city tricycle franchise \(MTOP\) number/);
+  assert.match((await t.act('o@t.ph', 'addVehicle', { ...tw, cpc: 'MTOP-2026-0123', cpcExp: future(200) })).err, /photo of the city tricycle franchise \(MTOP\)/);
+  assert.ok((await t.act('o@t.ph', 'addVehicle', { ...tw, cpc: 'MTOP-2026-0123', cpcExp: future(200), cpcDoc: pic })).ok);
+  /* vans and trucks keep the LTFRB franchise */
+  assert.match((await t.act('o@t.ph', 'addVehicle', { ...tw, type: 'pk', plate: 'PKP 1122', kg: 900 })).err, /LTFRB franchise \(CPC\) number/);
+  /* an expired MTOP is named as such */
+  const v = t.S.vh.find(x => x.plate == 'TRI 5566');
+  v.legal.cpcExp = future(-2);
+  assert.match(t.d.h.legalIssues(v, require('../src/domain/constants').VT.find(x => x.id == 'tw')).join(), /City tricycle franchise \(MTOP\) expired/);
+  assert.equal(t.d.view(t.me('c1@t.ph')).fleet.HV.find(x => x.id == 'tw').fr, 'mtop', 'the screens learn which franchise applies');
 });

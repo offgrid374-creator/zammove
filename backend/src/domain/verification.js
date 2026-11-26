@@ -93,6 +93,7 @@ module.exports = (S, h) => {
     return [
       ['Start PIN or QR verified', !!v.pinOk],
       ['Driver is assigned to this booking', !!b.drvUser],
+      ...(+b.mv > 0 ? [[`Helpers named (${b.mv})`, (b.helpers || []).length == +b.mv]] : []),
       ['Vehicle is approved, active and available', vehOk(b)],
       ['Actual plate matches the assigned vehicle', !!(v.plate && v.plate.match)],
       ['Cargo piece count checked', !!(c && Number.isInteger(c.count) && c.done)],
@@ -150,6 +151,24 @@ module.exports = (S, h) => {
     return null;
   };
 
+  /* a discrepancy reported by the system: it blocks departure until it is resolved; the staff are told */
+  const report = (b, d) => {
+    const v = b.ver;
+    const x = { id: 'DS-' + (v.disc.length + 1), ...d, role: 'system', by: 'system', t: now(), status: 'open' };
+    v.disc.push(x);
+    v.log.push({ t: now(), role: 'system', actor: 'system', evt: 'discrepancy reported', data: { id: x.id, type: x.type } });
+    h.staffEms().forEach(em => h.ntf(em, 'Pre-departure check on hold', `${b.id}: ${x.type}. ${x.note} Resolve it under Verification.`));
+    return x;
+  };
+  /* the driver corrected the entry: an open system report of that kind closes by itself */
+  const autoResolve = (b, kind, res) => {
+    (b.ver.disc || [])
+      .filter(d => d.status == 'open' && d.auto == kind)
+      .forEach(d => {
+        Object.assign(d, { status: 'resolved', res, resBy: 'system', resT: now() });
+        b.ver.log.push({ t: now(), role: 'system', actor: 'system', evt: 'discrepancy resolved', data: { id: d.id, resolution: res } });
+      });
+  };
   return {
     vNewPin(me, p) {
       const b = find(p.id);
@@ -164,6 +183,10 @@ module.exports = (S, h) => {
       v.pin = rec;
       v.qr = { h: sha256(qs + tok), s: qs };
       log(b, me, 'start PIN issued', { expires: new Date(rec.exp).toISOString() });
+      /* also sent by SMS and email (simulated), so the customer does not have to remember it */
+      const cu = h.U(b.cu);
+      if (cu && cu.ph) h.sim(cu.ph, 'SMS', `ZamMove ${b.id}: your Start PIN is ${pin}. Give it to your driver when the items are loaded.`, b.cu);
+      if (cu) h.sim(cu.em, 'Email', `ZamMove ${b.id}: your Start PIN is ${pin}. Give it to your driver when the items are loaded.`, b.cu);
       return ok({ pin, tok }); // raw values go only to the customer who asked
     },
     vVerify(me, p) {
@@ -217,21 +240,28 @@ module.exports = (S, h) => {
       const r = vehRec(b),
         m = norm(p.input) == norm(r.plate);
       v.plate = { entered: norm(p.input), match: m, t: now(), by: actorId(me, b), vehicle: r.id };
-      if (!m && !v.disc.some(d => d.status == 'open' && d.auto == 'plate'))
-        v.disc.push({
-          id: 'DS-' + (v.disc.length + 1),
+      log(b, me, 'vehicle check', { match: m, vehicle: r.id, plate: v.plate.entered });
+      if (m) {
+        /* the right plate: a mismatch reported earlier was a typo, so it closes by itself */
+        v.plateMiss = [];
+        autoResolve(b, 'plate', 'Resolved automatically: the driver then entered the correct plate (' + v.plate.entered + ').');
+        return ok();
+      }
+      /* one wrong entry is treated as a typo; a second one is reported to an administrator */
+      v.plateMiss = [...(v.plateMiss || []), v.plate.entered];
+      if (v.plateMiss.length < 2)
+        return no(
+          'Plate ' + v.plate.entered + ' does not match the assigned vehicle. Check the plate on the truck and enter it again.'
+        );
+      if (!v.disc.some(d => d.status == 'open' && d.auto == 'plate'))
+        report(b, {
           type: 'Vehicle plate mismatch',
-          note: 'The plate entered on site does not match the assigned vehicle.',
-          role: 'system',
-          by: 'system',
-          t: now(),
-          status: 'open',
+          note: 'The driver entered ' + v.plateMiss.join(', ') + '; the assigned vehicle is ' + norm(r.plate) + '.',
           auto: 'plate',
         });
-      log(b, me, 'vehicle check', { match: m, vehicle: r.id, plate: v.plate.entered });
-      return m
-        ? ok()
-        : no('Plate mismatch. Departure is blocked and the mismatch was reported to an administrator.');
+      return no(
+        'The plate still does not match. Departure is blocked and an administrator was notified. Entering the correct plate clears it.'
+      );
     },
     vSave(me, p) {
       const b = find(p.id);
@@ -265,19 +295,24 @@ module.exports = (S, h) => {
       v.dconf = null;
       v.cconf = null;
       let warn = '';
-      if (Number.isInteger(n) && n != mc(b) && !v.disc.some(x => x.status == 'open' && x.auto == 'count')) {
-        v.disc.push({
-          id: 'DS-' + (v.disc.length + 1),
-          type: n < mc(b) ? 'Missing items' : 'Additional items',
-          note: 'Driver counted ' + n + ' pieces loaded; the booking lists ' + mc(b) + '.',
-          role: 'system',
-          by: 'system',
-          t: now(),
-          status: 'open',
-          auto: 'count',
-        });
-        warn =
-          'The count differs from the booking, so a discrepancy was reported. An administrator must resolve it before departure.';
+      if (Number.isInteger(n) && n == mc(b)) {
+        v.countMiss = null;
+        autoResolve(b, 'count', 'Resolved automatically: the driver recounted ' + n + ' pieces, as booked.');
+      } else if (Number.isInteger(n) && !v.disc.some(x => x.status == 'open' && x.auto == 'count')) {
+        if (v.countMiss !== n) {
+          /* first time this count: ask for a recount before anything is reported */
+          v.countMiss = n;
+          v.chk.done = false;
+          need.unshift('Recount: you entered ' + n + ' pieces but the booking lists ' + mc(b) + '. If ' + n + ' is right, save again to report it');
+        } else {
+          report(b, {
+            type: n < mc(b) ? 'Missing items' : 'Additional items',
+            note: 'Driver counted ' + n + ' pieces loaded (twice); the booking lists ' + mc(b) + '.',
+            auto: 'count',
+          });
+          warn =
+            'The count differs from the booking, so it was reported to an administrator. Departure waits for their decision.';
+        }
       }
       log(b, me, 'cargo checklist saved', {
         count: v.chk.count,
@@ -462,6 +497,9 @@ module.exports = (S, h) => {
       const { pin, rec } = newSecret();
       d.pin = rec;
       dlog(b, me, 'delivery PIN issued', { expires: new Date(rec.exp).toISOString() });
+      const cu = h.U(b.cu);
+      if (cu && cu.ph) h.sim(cu.ph, 'SMS', `ZamMove ${b.id}: your Delivery PIN is ${pin}. Give it only after checking your items, or let the driver scan the QR code in the app.`, b.cu);
+      if (cu) h.sim(cu.em, 'Email', `ZamMove ${b.id}: your Delivery PIN is ${pin}. Give it only after checking your items.`, b.cu);
       /* a different recipient gets the PIN by SMS (simulated) so they can confirm delivery themselves */
       if (b.rph) h.sim(b.rph, 'SMS', `ZamMove: ${b.drv} is delivering ${b.id} to you. Give this Delivery PIN only after checking your items: ${pin}`);
       return ok({ pin, recipient: b.rn || '' });
@@ -476,7 +514,11 @@ module.exports = (S, h) => {
       if (note.length < 5) return no('Describe the delivery condition (at least 5 characters).');
       if (!d.waive) {
         if (!d.pin) return no('No Delivery PIN has been issued yet. Ask the customer to open Track.');
-        const bad = checkPin(b, me, d.pin, str(p.input, 6), 'Delivery PIN', dlog);
+        /* the customer's QR code carries "ZMD:<booking>:<PIN>" */
+        const raw = str(p.input, 60),
+          q = /^ZMD:([A-Z0-9-]+):(\d{6})$/i.exec(raw);
+        if (q && q[1].toUpperCase() != String(b.id).toUpperCase()) return no('That QR code is for another booking.');
+        const bad = checkPin(b, me, d.pin, q ? q[2] : raw.slice(0, 6), 'Delivery PIN', dlog);
         if (bad) return bad;
         d.pin.used = true;
       }
